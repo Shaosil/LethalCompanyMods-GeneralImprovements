@@ -1,0 +1,9 @@
+{
+    "name": "GeneralImprovements",
+    "version_number": "1.0.0",
+    "website_url": "https://github.com/Shaosil/LethalCompanyMods-GeneralImprovements",
+    "description": "Fixes and improves several minor things about the game.",
+    "dependencies": [
+        "BepInEx-BepInExPack-5.4.2100"
+    ]
+}
