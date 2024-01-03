@@ -36,5 +36,6 @@ Because this mod can shift inventory slots around, if you play with people who d
 		<li>You can now instantly begin typing at the terminal when activating it.</li>
 		<li>Updated the key fix to include all non-scrap grabbable objects. Now none of them will show value when scanned or sold.</li>
 	</ul>
+	&nbsp;
 	<li><b>v1.0.0</b> - Initial Release</li>
 </ul>
