@@ -18,6 +18,9 @@
         <Reference Include="Unity.Netcode.Runtime">
           <HintPath>DLLs\Unity.Netcode.Runtime.dll</HintPath>
         </Reference>
+        <Reference Include="Unity.TextMeshPro">
+          <HintPath>DLLs\Unity.TextMeshPro.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine">
             <HintPath>DLLs\UnityEngine.dll</HintPath>
         </Reference>
@@ -26,6 +29,9 @@
         </Reference>
         <Reference Include="UnityEngine.UI">
           <HintPath>DLLs\UnityEngine.UI.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.UIModule">
+          <HintPath>DLLs\UnityEngine.UIModule.dll</HintPath>
         </Reference>
     </ItemGroup>
 
@@ -36,6 +42,9 @@
         <None Update="DLLs\Unity.Netcode.Runtime.dll">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="DLLs\Unity.TextMeshPro.dll">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
         <None Update="DLLs\UnityEngine.CoreModule.dll">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
@@ -43,6 +52,9 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="DLLs\UnityEngine.UI.dll">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="DLLs\UnityEngine.UIModule.dll">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
