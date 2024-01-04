@@ -11,12 +11,15 @@ Everything is mostly configurable and improves (IMO) several things about the ga
 	<li>Removes the wait to begin typing at the terminal when activating it.</li>
 	<li>Skips the "bootup" menu animation when launching the game. May be disabled in config.</li>
 	<li>If specified in the config, the game will automatically select ONLINE or LAN upon launch.</li>
+	<li>Using the up/down arrow keys at the terminal will navigate through the previous (n) commands. (n) may range from 0-100 in the config.</li>
+	<li>Using the left/right arrow keys at the terminal while viewing the radar will quickly cycle through available targets.</li>
 </ul>
 
 It also fixes the following minor bugs:
 
 <ul>
 	<li>Stops all non-scrap objects from showing value (when scanned and sold) when they do not actually have any.</li>
+	<li>Removes the random 'n' in the middle-left of the terminal monitor when switching through radar cams.</li>
 </ul>
 
 This pairs well with my other mod, <a href="https://thunderstore.io/c/lethal-company/p/ShaosilGaming/FlashlightFix/">FlashlightFix</a>
@@ -30,6 +33,13 @@ Because this mod can shift inventory slots around, if you play with people who d
 # Changelog
 
 <ul>
+	<li><b>v1.0.3</b> - Added arrow key terminal features</li>
+	<ul>
+		<li>Added up/down arrow keys for navigating through terminal command history (configurable).</li>
+		<li>Added left/right arrow keys for cycling through radar targets when viewing them on the terminal.</li>
+		<li>Fixed the little 'n' that showed up in the middle of the terminal monitor when switching radar cams.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.2</b> - More features & minor animation bugfix</li>
 	<ul>
 		<li>Fixed weird animation bug when dropping items if RearrangeOnDrop was on.</li>

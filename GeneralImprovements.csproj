@@ -15,6 +15,9 @@
         <Reference Include="Assembly-CSharp">
             <HintPath>DLLs\Assembly-CSharp.dll</HintPath>
         </Reference>
+        <Reference Include="Unity.InputSystem">
+          <HintPath>DLLs\Unity.InputSystem.dll</HintPath>
+        </Reference>
         <Reference Include="Unity.Netcode.Runtime">
           <HintPath>DLLs\Unity.Netcode.Runtime.dll</HintPath>
         </Reference>
@@ -41,6 +44,9 @@
     <ItemGroup>
         <None Update="DLLs\Assembly-CSharp.dll">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="DLLs\Unity.InputSystem.dll">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="DLLs\Unity.Netcode.Runtime.dll">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
