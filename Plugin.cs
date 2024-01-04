@@ -12,6 +12,8 @@ namespace GeneralImprovements
         public static ManualLogSource MLS { get; private set; }
 
         private const string GeneralSection = "General";
+        public static ConfigEntry<bool> SkipStartupScreen { get; private set; }
+        public static ConfigEntry<string> AutoSelectLaunchMode { get; private set; }
         public static ConfigEntry<bool> PickupInOrder { get; private set; }
         public static ConfigEntry<bool> RearrangeOnDrop { get; private set; }
         public static ConfigEntry<bool> TwoHandedInSlotOne { get; private set; }
@@ -21,11 +23,16 @@ namespace GeneralImprovements
         {
             MLS = Logger;
 
+            SkipStartupScreen = Config.Bind(GeneralSection, nameof(SkipStartupScreen), true, "Skips the main menu loading screen bootup animation.");
+            AutoSelectLaunchMode = Config.Bind(GeneralSection, nameof(AutoSelectLaunchMode), string.Empty, "If set to 'ONLINE' or 'LAN', will automatically launch the correct mode, saving you from having to click the menu option when the game loads.");
             PickupInOrder = Config.Bind(GeneralSection, nameof(PickupInOrder), true, "When picking up items, will always put them in left - right order.");
             RearrangeOnDrop = Config.Bind(GeneralSection, nameof(RearrangeOnDrop), true, "When dropping items, will rearrange other inventory items to ensure slots are filled left - right.");
             TwoHandedInSlotOne = Config.Bind(GeneralSection, nameof(TwoHandedInSlotOne), true, $"When picking up a two handed item, it will always place it in slot 1 and shift things to the right if needed. Makes selling quicker when paired with {nameof(RearrangeOnDrop)}.");
             ScrollDelay = Config.Bind(GeneralSection, nameof(ScrollDelay), 0.1f, $"The minimum time you must wait to scroll to another item in your inventory. Ignores values outside of 0.05 - 0.3. Vanilla: 0.3.");
             MLS.LogInfo("Configuration Initialized.");
+
+            Harmony.CreateAndPatchAll(typeof(MenuPatches));
+            MLS.LogInfo("Menus patched.");
 
             Harmony.CreateAndPatchAll(typeof(PlayerControllerBPatch));
             MLS.LogInfo("PlayerControllerB patched.");

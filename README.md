@@ -9,6 +9,8 @@ Everything is mostly configurable and improves (IMO) several things about the ga
 	<li>Decreases the time required in between scrolling through inventory slots. Configurable.</li>
 	<li>Decreases the time required in between placing items on the company counter.</li>
 	<li>Removes the wait to begin typing at the terminal when activating it.</li>
+	<li>Skips the "bootup" menu animation when launching the game. May be disabled in config.</li>
+	<li>If specified in the config, the game will automatically select ONLINE or LAN upon launch.</li>
 </ul>
 
 It also fixes the following minor bugs:
@@ -28,6 +30,13 @@ Because this mod can shift inventory slots around, if you play with people who d
 # Changelog
 
 <ul>
+	<li><b>v1.0.2</b> - More features & minor animation bugfix</li>
+	<ul>
+		<li>Fixed weird animation bug when dropping items if RearrangeOnDrop was on.</li>
+		<li>Added a config option (defaulting to true) to skip the bootup style menu animation.</li>
+		<li>Added a config option (defaulting to nothing) to specify whether to automatically choose ONLINE or LAN upon launch.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.1</b> - More improvements</li>
 	<ul>
 		<li>Now always puts two-handed items in slot 1 (may be disabled in config).</li>

@@ -8,21 +8,6 @@ namespace GeneralImprovements.Patches
 {
     internal static class PlayerControllerBPatch
     {
-        private static MethodInfo _switchToSlotMethod = null;
-        private static MethodInfo SwitchToSlotMethod
-        {
-            get
-            {
-                // Lazy load and cache the reflection info
-                if (_switchToSlotMethod == null)
-                {
-                    _switchToSlotMethod = typeof(PlayerControllerB).GetMethod("SwitchToItemSlot", BindingFlags.Instance | BindingFlags.NonPublic);
-                }
-
-                return _switchToSlotMethod;
-            }
-        }
-
         private static FieldInfo _timeSinceSwitchingSlotsField = null;
         internal static FieldInfo TimeSinceSwitchingSlotsField
         {
@@ -116,9 +101,16 @@ namespace GeneralImprovements.Patches
             }
 
             // Refresh the current item slot if the player is holding something new
-            if (__instance.ItemSlots[__instance.currentItemSlot] != null)
+            var newHeldItem = __instance.ItemSlots[__instance.currentItemSlot];
+            if (newHeldItem != null)
             {
-                SwitchToSlotMethod.Invoke(__instance, new object[] { __instance.currentItemSlot, null });
+                newHeldItem.EquipItem();
+                __instance.twoHanded = false;
+                __instance.twoHandedAnimation = false;
+                __instance.playerBodyAnimator.ResetTrigger("Throw");
+                __instance.playerBodyAnimator.SetBool("cancelHolding", false);
+                __instance.isHoldingObject = true;
+                __instance.currentlyHeldObjectServer = newHeldItem;
             }
         }
 
