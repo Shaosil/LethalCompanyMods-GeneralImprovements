@@ -27,6 +27,12 @@ namespace GeneralImprovements.Patches
                     __instance.scrapValue = 0;
                 }
             }
+
+            // Allow all items to be grabbed before game start
+            if (!__instance.itemProperties.canBeGrabbedBeforeGameStart)
+            {
+                __instance.itemProperties.canBeGrabbedBeforeGameStart = true;
+            }
         }
     }
 }

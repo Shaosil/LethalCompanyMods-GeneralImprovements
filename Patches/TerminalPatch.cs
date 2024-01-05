@@ -32,7 +32,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPrefix]
         private static void OnSubmit(Terminal __instance)
         {
-            if (_historyCount <= 0 || __instance.textAdded <= 0)
+            if (_historyCount <= 0 || __instance.textAdded < 3)
             {
                 return;
             }
@@ -53,9 +53,26 @@ namespace GeneralImprovements.Patches
             _curHistoryIndex = _commandHistory.Count;
         }
 
-        [HarmonyPatch(typeof(Terminal), nameof(TextPostProcess))]
+        [HarmonyPatch(typeof(Terminal), "TextPostProcess")]
+        [HarmonyPrefix]
+        private static void TextPostProcess_Pre(ref string modifiedDisplayText)
+        {
+            // Improve the scanning
+            if (modifiedDisplayText.Contains("[scanForItems]"))
+            {
+                var fixedRandom = new Random(StartOfRound.Instance.randomMapSeed + 91); // Why 91? Shrug. It's the offset in vanilla code and I kept it.
+                var valuables = UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(o => !o.isInShipRoom && !o.isInElevator && o.itemProperties.minValue > 0).ToList();
+
+                float multiplier = RoundManager.Instance.scrapValueMultiplier;
+                int sum = (int)Math.Round(valuables.Sum(i => fixedRandom.Next(i.itemProperties.minValue, i.itemProperties.maxValue) * multiplier));
+
+                modifiedDisplayText = modifiedDisplayText.Replace("[scanForItems]", $"There are {valuables.Count} objects outside the ship, totalling at an approximate value of ${sum}.");
+            }
+        }
+
+        [HarmonyPatch(typeof(Terminal), "TextPostProcess")]
         [HarmonyPostfix]
-        private static void TextPostProcess(string modifiedDisplayText, ref string __result)
+        private static void TextPostProcess_Post(string modifiedDisplayText, ref string __result)
         {
             __result = __result.Replace("\nn\n", "\n\n\n");
         }

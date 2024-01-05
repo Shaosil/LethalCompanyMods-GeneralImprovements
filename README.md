@@ -1,7 +1,8 @@
 # GeneralImprovements
 
-Everything is mostly configurable and improves (IMO) several things about the game, with more to come:
+Everything is mostly configurable and improves (IMO) several things about the game, with more to come.
 
+GENERAL IMPROVEMENTS:
 <ul>
 	<li>Places newly picked up items in the hotbar in left-right order. May be disabled in config.</li>
 	<li>Rearranges hotbar items when dropping things. May be disabled in config.</li>
@@ -10,16 +11,23 @@ Everything is mostly configurable and improves (IMO) several things about the ga
 	<li>Decreases the time required in between placing items on the company counter.</li>
 	<li>Removes the wait to begin typing at the terminal when activating it.</li>
 	<li>Skips the "bootup" menu animation when launching the game. May be disabled in config.</li>
+	<li>Allows all items to be picked up before the game starts.</li>
+</ul>
+
+NEW FEATURES:
+<ul>
 	<li>If specified in the config, the game will automatically select ONLINE or LAN upon launch.</li>
 	<li>Using the up/down arrow keys at the terminal will navigate through the previous (n) commands. (n) may range from 0-100 in the config.</li>
 	<li>Using the left/right arrow keys at the terminal while viewing the radar will quickly cycle through available targets.</li>
 </ul>
 
-It also fixes the following minor bugs:
-
+MINOR BUGFIXES:
 <ul>
 	<li>Stops all non-scrap objects from showing value (when scanned and sold) when they do not actually have any.</li>
 	<li>Removes the random 'n' in the middle-left of the terminal monitor when switching through radar cams.</li>
+	<li>Flips the rotation of fire entrances 180 degrees so you are facing inside the facility when entering.</li>
+	<li>Dead bodies will now instantly show as collected when teleported back to the ship.</li>
+	<li>Fixes the scan terminal command to include all valuables outside the ship, as well as factor in the current scrap value multiplier.</li>
 </ul>
 
 This pairs well with my other mod, <a href="https://thunderstore.io/c/lethal-company/p/ShaosilGaming/FlashlightFix/">FlashlightFix</a>
@@ -33,6 +41,16 @@ Because this mod can shift inventory slots around, if you play with people who d
 # Changelog
 
 <ul>
+	<li><b>v1.0.4</b> - More fixes and improvements</li>
+	<ul>
+		<li>Fixed terminal command history storing commands less than 3 characters.</li>
+		<li>Fixed fire entrances facing towards the door when you go in.</li>
+		<li>Fixed the teleporter not showing dead bodies as scrap when collecting them.</li>
+		<li>Now allowing all items to be picked up before game starts.</li>
+		<li>Fixing compatibility with the reserved slot mods - it will no longer shift items in reserved slots when dropping items.</li>
+		<li>Fixing terminal scanner to include all valuables, and use the current scrap value multiplier.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.3</b> - Added arrow key terminal features</li>
 	<ul>
 		<li>Added up/down arrow keys for navigating through terminal command history (configurable).</li>

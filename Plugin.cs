@@ -33,6 +33,12 @@ namespace GeneralImprovements
             TerminalHistoryItemCount = Config.Bind(GeneralSection, nameof(TerminalHistoryItemCount), 10, "How many items to keep in your terminal's command history. Ignores values outside of 0 - 100. Previous terminal commands may be navigated by using the up/down arrow keys.");
             MLS.LogInfo("Configuration Initialized.");
 
+            Harmony.CreateAndPatchAll(typeof(EntranceTeleportPatch));
+            MLS.LogInfo("EntranceTeleport patched.");
+
+            Harmony.CreateAndPatchAll(typeof(ShipTeleporterPatch));
+            MLS.LogInfo("ShipTeleporter patched.");
+
             Harmony.CreateAndPatchAll(typeof(MenuPatches));
             MLS.LogInfo("Menus patched.");
 
