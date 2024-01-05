@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using GameNetcodeStuff;
+using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -104,12 +105,27 @@ namespace GeneralImprovements.Patches
                 else if ((leftPressed || rightPressed) && __instance.displayingPersistentImage?.name == "mapTexture")
                 {
                     // Cycle through cameras
-                    int nextIndex = StartOfRound.Instance.mapScreen.targetTransformIndex + (leftPressed ? -1 : 1);
-                    if (nextIndex <= 0) nextIndex = StartOfRound.Instance.mapScreen.radarTargets.Count - 1;
-                    else if (nextIndex >= StartOfRound.Instance.mapScreen.radarTargets.Count) nextIndex = 0;
+                    int originalIndex = StartOfRound.Instance.mapScreen.targetTransformIndex;
+                    int nextIndex = originalIndex;
+                    bool isInactivePlayer;
+                    do
+                    {
+                        // Find the next target, if there is one
+                        nextIndex += (leftPressed ? -1 : 1);
 
-                    StartOfRound.Instance.mapScreen.SwitchRadarTargetAndSync(nextIndex);
-                    __instance.LoadNewNode(__instance.terminalNodes.specialNodes[20]);
+                        if (nextIndex < 0) nextIndex = StartOfRound.Instance.mapScreen.radarTargets.Count - 1;
+                        else if (nextIndex >= StartOfRound.Instance.mapScreen.radarTargets.Count) nextIndex = 0;
+
+                        var player = StartOfRound.Instance.mapScreen.radarTargets[nextIndex].transform.gameObject.GetComponent<PlayerControllerB>();
+                        isInactivePlayer = player != null && !player.isPlayerControlled;
+
+                    } while (isInactivePlayer && nextIndex != originalIndex);
+
+                    if (nextIndex != originalIndex)
+                    {
+                        StartOfRound.Instance.mapScreen.SwitchRadarTargetAndSync(nextIndex);
+                        __instance.LoadNewNode(__instance.terminalNodes.specialNodes[20]);
+                    }
                 }
             }
         }

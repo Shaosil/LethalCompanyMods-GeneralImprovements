@@ -28,6 +28,7 @@ MINOR BUGFIXES:
 	<li>Flips the rotation of fire entrances 180 degrees so you are facing inside the facility when entering.</li>
 	<li>Dead bodies will now instantly show as collected when teleported back to the ship.</li>
 	<li>Fixes the scan terminal command to include all valuables outside the ship, as well as factor in the current scrap value multiplier.</li>
+	<li>The initial monitor view now shows the correct player name when first starting a round.</li>
 </ul>
 
 This pairs well with my other mod, <a href="https://thunderstore.io/c/lethal-company/p/ShaosilGaming/FlashlightFix/">FlashlightFix</a>
@@ -41,6 +42,13 @@ Because this mod can shift inventory slots around, if you play with people who d
 # Changelog
 
 <ul>
+	<li><b>v1.0.5</b> - Hotfix!</li>
+	<ul>
+		<li>Reverting the fix from 1.0.4 for compatibility with ReservedItemSlot mods, since it completely broke HotBarPlus and similar mods. Sorry ReservedItemSlot users! Your best bet is to set <b>RearrangeOnDrop</b> to false.</li>
+		<li>Fixing the left arrow key not cycling back around properly when viewing radars from the terminal.</li>
+		<li>Fixing the monitor to display the correct player name on radar when first starting a round.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.4</b> - More fixes and improvements</li>
 	<ul>
 		<li>Fixed terminal command history storing commands less than 3 characters.</li>

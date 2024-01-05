@@ -37,7 +37,7 @@ namespace GeneralImprovements.Patches
             // Otherwise, rewrite the method to always return the first empty slot
             __result = -1;
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < __instance.ItemSlots.Length; i++)
             {
                 if (__instance.ItemSlots[i] == null)
                 {
@@ -84,12 +84,12 @@ namespace GeneralImprovements.Patches
                 return;
             }
 
-            for (int i = __instance.currentItemSlot; i < 3; i++)
+            for (int i = __instance.currentItemSlot; i < __instance.ItemSlots.Length - 1; i++)
             {
                 // Each time we find an empty slot, move the first found item after this slot to this one
                 if (__instance.ItemSlots[i] == null)
                 {
-                    for (int j = i + 1; j < 4; j++)
+                    for (int j = i + 1; j < __instance.ItemSlots.Length; j++)
                     {
                         if (__instance.ItemSlots[j] != null)
                         {
