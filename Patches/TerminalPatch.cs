@@ -117,7 +117,7 @@ namespace GeneralImprovements.Patches
                         else if (nextIndex >= StartOfRound.Instance.mapScreen.radarTargets.Count) nextIndex = 0;
 
                         var player = StartOfRound.Instance.mapScreen.radarTargets[nextIndex].transform.gameObject.GetComponent<PlayerControllerB>();
-                        isInactivePlayer = player != null && !player.isPlayerControlled;
+                        isInactivePlayer = player != null && (!player.isPlayerControlled && !player.isPlayerDead && player.redirectToEnemy == null);
 
                     } while (isInactivePlayer && nextIndex != originalIndex);
 

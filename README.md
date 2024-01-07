@@ -42,6 +42,11 @@ Because this mod can shift inventory slots around, if you play with people who d
 # Changelog
 
 <ul>
+	<li><b>v1.0.6</b> - Little bugfix</li>
+	<ul>
+		<li>Fixing L/R arrows not working on dead players.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.5</b> - Hotfix!</li>
 	<ul>
 		<li>Reverting the fix from 1.0.4 for compatibility with ReservedItemSlot mods, since it completely broke HotBarPlus and similar mods. Sorry ReservedItemSlot users! Your best bet is to set <b>RearrangeOnDrop</b> to false.</li>
