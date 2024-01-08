@@ -12,6 +12,8 @@ GENERAL IMPROVEMENTS:
 	<li>Removes the wait to begin typing at the terminal when activating it.</li>
 	<li>Skips the "bootup" menu animation when launching the game. May be disabled in config.</li>
 	<li>Allows all items to be picked up before the game starts.</li>
+	<li>Changes the "Beam up" hover tip for inverse teleporters to say "Beam out" for clarity.</li>
+	<li>Moves the ship clipboard manual to start pinned to the wall. This makes it easier to find, and moves it out of the way of the teleport button.</li>
 </ul>
 
 NEW FEATURES:
@@ -19,6 +21,7 @@ NEW FEATURES:
 	<li>If specified in the config, the game will automatically select ONLINE or LAN upon launch.</li>
 	<li>Using the up/down arrow keys at the terminal will navigate through the previous (n) commands. (n) may range from 0-100 in the config.</li>
 	<li>Using the left/right arrow keys at the terminal while viewing the radar will quickly cycle through available targets.</li>
+	<li>Hosts may change the starting money per player in the config. Default is now 30 (ranges from -1 - 1000). Setting to -1 will disable this behavior.</li>
 </ul>
 
 MINOR BUGFIXES:
@@ -27,8 +30,9 @@ MINOR BUGFIXES:
 	<li>Removes the random 'n' in the middle-left of the terminal monitor when switching through radar cams.</li>
 	<li>Flips the rotation of fire entrances 180 degrees so you are facing inside the facility when entering.</li>
 	<li>Dead bodies will now instantly show as collected when teleported back to the ship.</li>
-	<li>Fixes the scan terminal command to include all valuables outside the ship, as well as factor in the current scrap value multiplier.</li>
+	<li>Fixes the scan terminal command to include all valuables outside the ship, as well as factor in the current scrap value multiplier (under the hood, not related to company).</li>
 	<li>The initial monitor view now shows the correct player name when first starting a round.</li>
+	<li>Fixes ship scrap not being marked as 'in the ship' for clients when joining. This fixes several things client side, including terminal scans, extra scrap collection pings, and more.</li>
 </ul>
 
 This pairs well with my other mod, <a href="https://thunderstore.io/c/lethal-company/p/ShaosilGaming/FlashlightFix/">FlashlightFix</a>
@@ -42,6 +46,16 @@ Because this mod can shift inventory slots around, if you play with people who d
 # Changelog
 
 <ul>
+	<li><b>v1.0.7</b> - More fixes and improvements</li>
+	<ul>
+		<li>Fixing clients not registering server ship scrap as in the ship when connecting (which would make the terminal scan inaccurate for them).</li>
+		<li>Changing the hover tip for inverse teleporters to "Beam out" (instead of "Beam Up" like the regular one) for clarity.</li>
+		<li>Adding a "Money per player" config option for hosts, defaulting to 30, that adjusts the group credits before the game starts as players connect and drop. Setting to -1 reverts to vanilla behavior.</li>
+		<li>Changed the clipboard starting position to be hanging on the wall, so it's easier to see initially and not in the way of the teleport button.</li>
+		<li>Fixed certain shadows from two-handed objects (especially the bottles) not having transparency when the auto LAN/ONLINE config option was set (that was fun to track down).</li>
+		<li>Fixed the issue where dropping items would cause certain items (weapons, etc) would not be held correctly or animated.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.6</b> - Little bugfix</li>
 	<ul>
 		<li>Fixing L/R arrows not working on dead players.</li>

@@ -3,6 +3,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using GeneralImprovements.Patches;
 using HarmonyLib;
+using System;
 
 namespace GeneralImprovements
 {
@@ -20,6 +21,10 @@ namespace GeneralImprovements
         public static ConfigEntry<float> ScrollDelay { get; private set; }
         public static ConfigEntry<int> TerminalHistoryItemCount { get; private set; }
 
+        private const string TweaksSection = "Tweaks";
+        public static ConfigEntry<int> StartingMoneyPerPlayer { get; private set; }
+        public static int StartingMoneyPerPlayerVal => Math.Clamp(StartingMoneyPerPlayer.Value, -1, 1000);
+
         private void Awake()
         {
             MLS = Logger;
@@ -31,6 +36,7 @@ namespace GeneralImprovements
             TwoHandedInSlotOne = Config.Bind(GeneralSection, nameof(TwoHandedInSlotOne), true, $"When picking up a two handed item, it will always place it in slot 1 and shift things to the right if needed. Makes selling quicker when paired with {nameof(RearrangeOnDrop)}.");
             ScrollDelay = Config.Bind(GeneralSection, nameof(ScrollDelay), 0.1f, "The minimum time you must wait to scroll to another item in your inventory. Ignores values outside of 0.05 - 0.3. Vanilla: 0.3.");
             TerminalHistoryItemCount = Config.Bind(GeneralSection, nameof(TerminalHistoryItemCount), 10, "How many items to keep in your terminal's command history. Ignores values outside of 0 - 100. Previous terminal commands may be navigated by using the up/down arrow keys.");
+            StartingMoneyPerPlayer = Config.Bind(TweaksSection, nameof(StartingMoneyPerPlayer), 30, "How much starting money the group gets per player. Set to -1 to disable. Ignores values outside of -1 - 1000. Adjusts money as players join and leave, until the game starts.");
             MLS.LogInfo("Configuration Initialized.");
 
             Harmony.CreateAndPatchAll(typeof(StartOfRoundPatch));
@@ -48,7 +54,7 @@ namespace GeneralImprovements
             Harmony.CreateAndPatchAll(typeof(PlayerControllerBPatch));
             MLS.LogInfo("PlayerControllerB patched.");
 
-            Harmony.CreateAndPatchAll(typeof(GrabbableObjectPatch));
+            Harmony.CreateAndPatchAll(typeof(GrabbableObjectsPatch));
             MLS.LogInfo("GrabbableObjects patched.");
 
             Harmony.CreateAndPatchAll(typeof(DepositItemsDeskPatch));

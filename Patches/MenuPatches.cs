@@ -1,5 +1,5 @@
 ﻿using HarmonyLib;
-using UnityEngine.SceneManagement;
+using UnityEngine;
 
 namespace GeneralImprovements.Patches
 {
@@ -17,7 +17,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(PreInitSceneScript), "Start")]
         [HarmonyPostfix]
-        private static void Start_PreInit()
+        private static void Start_PreInit(PreInitSceneScript __instance)
         {
             string autoVal = Plugin.AutoSelectLaunchMode.Value?.ToUpper();
             bool autoSpecified = !string.IsNullOrWhiteSpace(autoVal) && (autoVal.Contains("ON") || autoVal.Contains("LAN"));
@@ -26,7 +26,8 @@ namespace GeneralImprovements.Patches
             if (autoSpecified)
             {
                 Plugin.MLS.LogInfo($"Automatically launching {(isOnline ? "ONLINE" : "LAN")} mode.");
-                SceneManager.LoadScene(isOnline ? "InitScene" : "InitSceneLANMode");
+                GameObject.Find("LANOrOnline").transform.parent.gameObject.SetActive(false);
+                __instance.ChooseLaunchOption(isOnline);
             }
         }
     }

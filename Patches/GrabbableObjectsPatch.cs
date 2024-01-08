@@ -1,8 +1,9 @@
 ﻿using HarmonyLib;
+using UnityEngine;
 
 namespace GeneralImprovements.Patches
 {
-    internal static class GrabbableObjectPatch
+    internal static class GrabbableObjectsPatch
     {
         [HarmonyPatch(typeof(GrabbableObject), nameof(Start))]
         [HarmonyPrefix]
@@ -32,6 +33,12 @@ namespace GeneralImprovements.Patches
             if (!__instance.itemProperties.canBeGrabbedBeforeGameStart)
             {
                 __instance.itemProperties.canBeGrabbedBeforeGameStart = true;
+            }
+
+            // Pin the clipboard to the wall when loading in
+            if (__instance is ClipboardItem clipboard)
+            {
+                clipboard.transform.SetPositionAndRotation(new Vector3(11.02f, 2.45f, -13.4f), Quaternion.Euler(0, 180, 90));
             }
         }
     }

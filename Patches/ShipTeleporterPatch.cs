@@ -7,9 +7,20 @@ namespace GeneralImprovements.Patches
     {
         private static PlayerControllerB _lastPlayerTeleported;
 
+
+        [HarmonyPatch(typeof(ShipTeleporter), nameof(Awake))]
+        [HarmonyPostfix]
+        private static void Awake(ShipTeleporter __instance)
+        {
+            if (__instance.isInverseTeleporter)
+            {
+                __instance.GetComponentInChildren<InteractTrigger>().hoverTip = "Beam out : [LMB]";
+            }
+        }
+
         [HarmonyPatch(typeof(ShipTeleporter), nameof(beamUpPlayer), MethodType.Enumerator)]
         [HarmonyPostfix]
-        private static void beamUpPlayer(ShipTeleporter __instance, bool __result)
+        private static void beamUpPlayer(bool __result)
         {
             // When the result of the MoveNext method is false, we are done
             if (__result)

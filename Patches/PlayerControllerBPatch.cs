@@ -108,7 +108,21 @@ namespace GeneralImprovements.Patches
                 __instance.twoHanded = false;
                 __instance.twoHandedAnimation = false;
                 __instance.playerBodyAnimator.ResetTrigger("Throw");
+                __instance.playerBodyAnimator.SetBool("Grab", true);
+                if (!string.IsNullOrEmpty(newHeldItem.itemProperties.grabAnim))
+                {
+                    __instance.playerBodyAnimator.SetBool(newHeldItem.itemProperties.grabAnim, true);
+                }
+                if (__instance.twoHandedAnimation != newHeldItem.itemProperties.twoHandedAnimation)
+                {
+                    __instance.playerBodyAnimator.ResetTrigger("SwitchHoldAnimationTwoHanded");
+                    __instance.playerBodyAnimator.SetTrigger("SwitchHoldAnimationTwoHanded");
+                }
+                __instance.playerBodyAnimator.ResetTrigger("SwitchHoldAnimation");
+                __instance.playerBodyAnimator.SetTrigger("SwitchHoldAnimation");
+                __instance.playerBodyAnimator.SetBool("GrabValidated", true);
                 __instance.playerBodyAnimator.SetBool("cancelHolding", false);
+                __instance.twoHandedAnimation = newHeldItem.itemProperties.twoHandedAnimation;
                 __instance.isHoldingObject = true;
                 __instance.currentlyHeldObjectServer = newHeldItem;
             }

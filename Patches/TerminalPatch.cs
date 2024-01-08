@@ -14,10 +14,16 @@ namespace GeneralImprovements.Patches
         private static int _curHistoryIndex = 0;
 
         [HarmonyPatch(typeof(Terminal), nameof(Start))]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         private static void Start()
         {
             _historyCount = Math.Clamp(Plugin.TerminalHistoryItemCount.Value, 0, 100);
+
+            if (Plugin.StartingMoneyPerPlayerVal >= 0 && StartOfRound.Instance.gameStats.daysSpent == 0)
+            {
+                Plugin.MLS.LogInfo($"Day 0 Begin - Setting starting credits to {Plugin.StartingMoneyPerPlayerVal}");
+                TimeOfDay.Instance.quotaVariables.startingCredits = Plugin.StartingMoneyPerPlayerVal;
+            }
         }
 
         [HarmonyPatch(typeof(Terminal), nameof(BeginUsingTerminal))]
