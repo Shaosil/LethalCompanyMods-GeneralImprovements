@@ -24,6 +24,7 @@ namespace GeneralImprovements
         private const string TweaksSection = "Tweaks";
         public static ConfigEntry<int> StartingMoneyPerPlayer { get; private set; }
         public static int StartingMoneyPerPlayerVal => Math.Clamp(StartingMoneyPerPlayer.Value, -1, 1000);
+        public static ConfigEntry<int> SnapObjectsByDegrees { get; private set; }
 
         private void Awake()
         {
@@ -37,31 +38,35 @@ namespace GeneralImprovements
             ScrollDelay = Config.Bind(GeneralSection, nameof(ScrollDelay), 0.1f, "The minimum time you must wait to scroll to another item in your inventory. Ignores values outside of 0.05 - 0.3. Vanilla: 0.3.");
             TerminalHistoryItemCount = Config.Bind(GeneralSection, nameof(TerminalHistoryItemCount), 10, "How many items to keep in your terminal's command history. Ignores values outside of 0 - 100. Previous terminal commands may be navigated by using the up/down arrow keys.");
             StartingMoneyPerPlayer = Config.Bind(TweaksSection, nameof(StartingMoneyPerPlayer), 30, "How much starting money the group gets per player. Set to -1 to disable. Ignores values outside of -1 - 1000. Adjusts money as players join and leave, until the game starts.");
-            MLS.LogInfo("Configuration Initialized.");
+            SnapObjectsByDegrees = Config.Bind(TweaksSection, nameof(SnapObjectsByDegrees), 45, "Build mode will switch to snap turning (press instead of hold) by this many degrees at a time. Setting it to 0 uses vanilla behavior. Must be an interval of 15 and go evenly into 360.");
+            MLS.LogDebug("Configuration Initialized.");
 
             Harmony.CreateAndPatchAll(typeof(StartOfRoundPatch));
-            MLS.LogInfo("StartOfRound patched.");
+            MLS.LogDebug("StartOfRound patched.");
 
             Harmony.CreateAndPatchAll(typeof(EntranceTeleportPatch));
-            MLS.LogInfo("EntranceTeleport patched.");
+            MLS.LogDebug("EntranceTeleport patched.");
 
             Harmony.CreateAndPatchAll(typeof(ShipTeleporterPatch));
-            MLS.LogInfo("ShipTeleporter patched.");
+            MLS.LogDebug("ShipTeleporter patched.");
+
+            Harmony.CreateAndPatchAll(typeof(ShipBuildModeManagerPatch));
+            MLS.LogDebug("ShipBuildModeManager patched.");
 
             Harmony.CreateAndPatchAll(typeof(MenuPatches));
-            MLS.LogInfo("Menus patched.");
+            MLS.LogDebug("Menus patched.");
 
             Harmony.CreateAndPatchAll(typeof(PlayerControllerBPatch));
-            MLS.LogInfo("PlayerControllerB patched.");
+            MLS.LogDebug("PlayerControllerB patched.");
 
             Harmony.CreateAndPatchAll(typeof(GrabbableObjectsPatch));
-            MLS.LogInfo("GrabbableObjects patched.");
+            MLS.LogDebug("GrabbableObjects patched.");
 
             Harmony.CreateAndPatchAll(typeof(DepositItemsDeskPatch));
-            MLS.LogInfo("DepositItemsDesk patched.");
+            MLS.LogDebug("DepositItemsDesk patched.");
 
             Harmony.CreateAndPatchAll(typeof(TerminalPatch));
-            MLS.LogInfo("Terminal patched.");
+            MLS.LogDebug("Terminal patched.");
 
             MLS.LogInfo($"{Metadata.PLUGIN_NAME} v{Metadata.VERSION} fully loaded.");
         }

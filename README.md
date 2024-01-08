@@ -14,6 +14,7 @@ GENERAL IMPROVEMENTS:
 	<li>Allows all items to be picked up before the game starts.</li>
 	<li>Changes the "Beam up" hover tip for inverse teleporters to say "Beam out" for clarity.</li>
 	<li>Moves the ship clipboard manual to start pinned to the wall. This makes it easier to find, and moves it out of the way of the teleport button.</li>
+	<li>Introduces a degrees config option that snap rotates placeable ship objects in build mode.</li>
 </ul>
 
 NEW FEATURES:
@@ -46,6 +47,13 @@ Because this mod can shift inventory slots around, if you play with people who d
 # Changelog
 
 <ul>
+	<li><b>v1.0.8</b> - v47 support and snap rotation</li>
+	<ul>
+		<li>Fixing things that broke in Lethal Company version 47. MAY NOT BE BACKWARDS COMPATIBLE.</li>
+		<li>Minor fix to "Starting Money Per Player" to prevent exploits.</li>
+		<li>Added a way to snap rotate to (n) degrees when using ship build modes. (n) is configurable (must be an interval of 15 and go evenly into 360). Setting it to 0 uses vanilla rotation.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.7</b> - More fixes and improvements</li>
 	<ul>
 		<li>Fixing clients not registering server ship scrap as in the ship when connecting (which would make the terminal scan inaccurate for them).</li>
