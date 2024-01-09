@@ -5,16 +5,16 @@ namespace GeneralImprovements.Patches
 {
     internal static class EntranceTeleportPatch
     {
-        [HarmonyPatch(typeof(EntranceTeleport), nameof(Awake))]
+        [HarmonyPatch(typeof(EntranceTeleport), nameof(TeleportPlayer))]
         [HarmonyPostfix]
         private static void Awake(EntranceTeleport __instance)
         {
-            // If this is an internal fire exit, add 180 to our Y direction
-            if (__instance.entranceId != 0 && !__instance.isEntranceToBuilding)
-            {
-                var curRot = __instance.entrancePoint.eulerAngles;
-                __instance.entrancePoint.eulerAngles = new Vector3(curRot.x, curRot.y + 180, curRot.z);
-            }
+            // If this is an external fire exit, rotate player 180 degrees after going through
+            if (__instance.isEntranceToBuilding && __instance.entranceId > 0)
+			{
+				Transform thisPlayerBody = GameNetworkManager.Instance.localPlayerController.thisPlayerBody;
+				thisPlayerBody.RotateAround(thisPlayerBody.transform.position, Vector3.up, 180f);
+			}
         }
     }
 }
