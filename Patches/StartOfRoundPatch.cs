@@ -1,4 +1,7 @@
-﻿using HarmonyLib;
+﻿using GameNetcodeStuff;
+using HarmonyLib;
+using System.Linq;
+using System.Reflection;
 using UnityEngine;
 
 namespace GeneralImprovements.Patches
@@ -7,6 +10,21 @@ namespace GeneralImprovements.Patches
     {
         private static int currentCredits = 0;
 
+        private static MethodInfo _updatePlayerPositionClientRpcMethod;
+        private static MethodInfo UpdatePlayerPositionClientRpcMethod
+        {
+            get
+            {
+                // Lazy load and cache reflection info
+                if (_updatePlayerPositionClientRpcMethod == null)
+                {
+                    _updatePlayerPositionClientRpcMethod = typeof(PlayerControllerB).GetMethod("UpdatePlayerPositionClientRpc", BindingFlags.Instance | BindingFlags.NonPublic);
+                }
+
+                return _updatePlayerPositionClientRpcMethod;
+            }
+        }
+
         [HarmonyPatch(typeof(StartOfRound), nameof(Start))]
         [HarmonyPostfix]
         private static void Start(StartOfRound __instance)
@@ -14,7 +32,7 @@ namespace GeneralImprovements.Patches
             // Set all grabbable objects as in ship if the game hasn't started (it never should be unless someone is using a join mid-game mod or something)
             if (!__instance.IsHost && __instance.inShipPhase)
             {
-                var allGrabbables = Object.FindObjectsOfType<GrabbableObject>();
+                var allGrabbables = UnityEngine.Object.FindObjectsOfType<GrabbableObject>();
                 foreach (var grabbable in allGrabbables)
                 {
                     grabbable.isInElevator = true;
@@ -27,6 +45,14 @@ namespace GeneralImprovements.Patches
             if (__instance.IsServer && Plugin.StartingMoneyPerPlayerVal >= 0 && __instance.inShipPhase && __instance.gameStats.daysSpent == 0)
             {
                 currentCredits = Plugin.StartingMoneyPerPlayerVal;
+            }
+
+            // Rotate ship camera if specified
+            if (Plugin.ShipMapCamDueNorth.Value)
+            {
+                Plugin.MLS.LogInfo("Rotating ship map camera to face north");
+                Vector3 curAngles = __instance.mapScreen.mapCamera.transform.eulerAngles;
+                __instance.mapScreen.mapCamera.transform.rotation = Quaternion.Euler(curAngles.x, 90, curAngles.z);
             }
         }
 
@@ -46,12 +72,28 @@ namespace GeneralImprovements.Patches
         [HarmonyPrefix]
         private static void OnClientConnect(StartOfRound __instance)
         {
-            if (__instance.IsServer && Plugin.StartingMoneyPerPlayerVal >= 0 && __instance.inShipPhase && __instance.gameStats.daysSpent == 0)
+            if (__instance.IsServer)
             {
                 // Add to the terminal credits before this function gets called so it is relayed to the connecting client
-                Plugin.MLS.LogInfo($"Player connected on day 0, adding {Plugin.StartingMoneyPerPlayerVal} to group credits");
-                currentCredits += Plugin.StartingMoneyPerPlayerVal;
-                Object.FindObjectOfType<Terminal>().groupCredits = currentCredits;
+                if (Plugin.StartingMoneyPerPlayerVal >= 0 && __instance.inShipPhase && __instance.gameStats.daysSpent == 0)
+                {
+                    Plugin.MLS.LogInfo($"Player connected on day 0, adding {Plugin.StartingMoneyPerPlayerVal} to group credits");
+                    currentCredits += Plugin.StartingMoneyPerPlayerVal;
+                    Object.FindObjectOfType<Terminal>().groupCredits = currentCredits;
+                }
+
+                // Send positional, rotational, and emotional (heh) data to all when new people connect
+                foreach (var connectedPlayer in __instance.allPlayerScripts.Where(p => p.isPlayerControlled))
+                {
+                    // (Vector3 newPos, bool inElevator, bool isInShip, bool exhausted, bool isPlayerGrounded)
+                    UpdatePlayerPositionClientRpcMethod.Invoke(connectedPlayer, new object[] { connectedPlayer.thisPlayerBody.localPosition, connectedPlayer.isInElevator,
+                        connectedPlayer.isInHangarShipRoom, connectedPlayer.isExhausted, connectedPlayer.thisController.isGrounded });
+
+                    if (connectedPlayer.performingEmote)
+                    {
+                        connectedPlayer.StartPerformingEmoteClientRpc();
+                    }
+                }
             }
         }
 
@@ -70,6 +112,15 @@ namespace GeneralImprovements.Patches
                 terminal.groupCredits = Mathf.Clamp(currentCredits, 0, int.MaxValue);
                 terminal.SyncGroupCreditsServerRpc(terminal.groupCredits, terminal.numberOfItemsInDropship);
             }
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(EndOfGameClientRpc))]
+        [HarmonyPrefix]
+        private static void EndOfGameClientRpc(StartOfRound __instance)
+        {
+            // Update the total scrap in level
+            var valuables = Object.FindObjectsOfType<GrabbableObject>().Where(o => !o.isInShipRoom && !o.isInElevator && o.itemProperties.minValue > 0).ToList();
+            RoundManager.Instance.totalScrapValueInLevel = valuables.Sum(i => i.scrapValue);
         }
     }
 }

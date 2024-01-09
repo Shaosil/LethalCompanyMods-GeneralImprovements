@@ -140,6 +140,22 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        [HarmonyPatch(typeof(QuickMenuManager), nameof(OpenQuickMenu))]
+        [HarmonyPrefix]
+        private static bool OpenQuickMenu(QuickMenuManager __instance)
+        {
+            Plugin.MLS.LogInfo("Inside OpenQuickMenu");
+            if (ShipBuildModeManager.Instance?.InBuildMode ?? false)
+            {
+                // Cancel out of build mode instead
+                Plugin.MLS.LogInfo("Cancelling build mode and returning false!");
+                ShipBuildModeManager.Instance.CancelBuildMode();
+                return false;
+            }
+
+            return true;
+        }
+
         private static void ShiftRightFromSlot(PlayerControllerB player, int slot)
         {
             // Double check the object is not two handed to prevent multiple calls to this from happening

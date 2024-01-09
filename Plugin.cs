@@ -25,6 +25,8 @@ namespace GeneralImprovements
         public static ConfigEntry<int> StartingMoneyPerPlayer { get; private set; }
         public static int StartingMoneyPerPlayerVal => Math.Clamp(StartingMoneyPerPlayer.Value, -1, 1000);
         public static ConfigEntry<int> SnapObjectsByDegrees { get; private set; }
+        public static ConfigEntry<bool> ShipMapCamDueNorth { get; private set; }
+        public static ConfigEntry<bool> ToolsDoNotAttractLightning { get; private set; }
 
         private void Awake()
         {
@@ -39,19 +41,20 @@ namespace GeneralImprovements
             TerminalHistoryItemCount = Config.Bind(GeneralSection, nameof(TerminalHistoryItemCount), 10, "How many items to keep in your terminal's command history. Ignores values outside of 0 - 100. Previous terminal commands may be navigated by using the up/down arrow keys.");
             StartingMoneyPerPlayer = Config.Bind(TweaksSection, nameof(StartingMoneyPerPlayer), 30, "How much starting money the group gets per player. Set to -1 to disable. Ignores values outside of -1 - 1000. Adjusts money as players join and leave, until the game starts.");
             SnapObjectsByDegrees = Config.Bind(TweaksSection, nameof(SnapObjectsByDegrees), 45, "Build mode will switch to snap turning (press instead of hold) by this many degrees at a time. Setting it to 0 uses vanilla behavior. Must be an interval of 15 and go evenly into 360.");
+            ShipMapCamDueNorth = Config.Bind(TweaksSection, nameof(ShipMapCamDueNorth), false, "If set to true, the ship's map camera will rotate so that it faces north evenly, instead of showing everything at an angle.");
+            ToolsDoNotAttractLightning = Config.Bind(TweaksSection, nameof(ToolsDoNotAttractLightning), false, "If set to true, all useful tools (jetpacks, keys, radar boosters, shovels & signs, tzp inhalant, and zap guns) will no longer attract lighning.");
             MLS.LogDebug("Configuration Initialized.");
 
-            Harmony.CreateAndPatchAll(typeof(StartOfRoundPatch));
-            MLS.LogDebug("StartOfRound patched.");
+            Harmony.CreateAndPatchAll(GetType().Assembly);
+
+            Harmony.CreateAndPatchAll(typeof(DepositItemsDeskPatch));
+            MLS.LogDebug("DepositItemsDesk patched.");
 
             Harmony.CreateAndPatchAll(typeof(EntranceTeleportPatch));
             MLS.LogDebug("EntranceTeleport patched.");
 
-            Harmony.CreateAndPatchAll(typeof(ShipTeleporterPatch));
-            MLS.LogDebug("ShipTeleporter patched.");
-
-            Harmony.CreateAndPatchAll(typeof(ShipBuildModeManagerPatch));
-            MLS.LogDebug("ShipBuildModeManager patched.");
+            Harmony.CreateAndPatchAll(typeof(GrabbableObjectsPatch));
+            MLS.LogDebug("GrabbableObjects patched.");
 
             Harmony.CreateAndPatchAll(typeof(MenuPatches));
             MLS.LogDebug("Menus patched.");
@@ -59,11 +62,14 @@ namespace GeneralImprovements
             Harmony.CreateAndPatchAll(typeof(PlayerControllerBPatch));
             MLS.LogDebug("PlayerControllerB patched.");
 
-            Harmony.CreateAndPatchAll(typeof(GrabbableObjectsPatch));
-            MLS.LogDebug("GrabbableObjects patched.");
+            Harmony.CreateAndPatchAll(typeof(ShipBuildModeManagerPatch));
+            MLS.LogDebug("ShipBuildModeManager patched.");
 
-            Harmony.CreateAndPatchAll(typeof(DepositItemsDeskPatch));
-            MLS.LogDebug("DepositItemsDesk patched.");
+            Harmony.CreateAndPatchAll(typeof(ShipTeleporterPatch));
+            MLS.LogDebug("ShipTeleporter patched.");
+
+            Harmony.CreateAndPatchAll(typeof(StartOfRoundPatch));
+            MLS.LogDebug("StartOfRound patched.");
 
             Harmony.CreateAndPatchAll(typeof(TerminalPatch));
             MLS.LogDebug("Terminal patched.");

@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -10,33 +9,18 @@ namespace GeneralImprovements.Patches
     internal static class ShipBuildModeManagerPatch
     {
         private static int _snapObjectsByDegrees;
-        private static int _curObjectDegrees;
+        private static float _curObjectDegrees;
 
         [HarmonyPatch(typeof(ShipBuildModeManager), nameof(Awake))]
         [HarmonyPostfix]
         private static void Awake()
         {
             // Find all intervals of 15 that go into 360
-            var validNumbers = new List<int> { 0 };
-            for (int i = 15; i < 360; i += 15)
-            {
-                if (360 % i == 0)
-                {
-                    validNumbers.Add(i);
-                }
-            }
+            var validNumbers = Enumerable.Range(0, 360 / 15).Select(n => n * 15).Where(n => n == 0 || 360 % n == 0).ToList();
 
-            // Find closest valid number to what was specified
-            var absoluteResults = new List<KeyValuePair<int, int>>();
-            var specifiedDegrees = Plugin.SnapObjectsByDegrees.Value;
-            for (int i = 0; i < validNumbers.Count; i++)
-            {
-                absoluteResults.Add(new KeyValuePair<int, int>(i, Math.Abs(validNumbers[i] - specifiedDegrees)));
-            }
-            absoluteResults = absoluteResults.OrderBy(r => r.Value).ToList();
-
-            _snapObjectsByDegrees = validNumbers[absoluteResults[0].Key];
-            Plugin.MLS.LogInfo($"Using {_snapObjectsByDegrees} for build mode snapping");
+            // Use the closest valid number to what was specified
+            _snapObjectsByDegrees = validNumbers.OrderBy(n => Math.Abs(n - Plugin.SnapObjectsByDegrees.Value)).First();
+            Plugin.MLS.LogInfo($"Using {_snapObjectsByDegrees} degrees for build mode snapping");
         }
 
         [HarmonyPatch(typeof(ShipBuildModeManager), nameof(CreateGhostObjectAndHighlight))]
@@ -49,20 +33,23 @@ namespace GeneralImprovements.Patches
             }
 
             // Update the text tips
-            if (StartOfRound.Instance.localPlayerUsingController)
+            if (!StartOfRound.Instance.localPlayerUsingController)
             {
-                HUDManager.Instance.buildModeControlTip.text = "Confirm: [Y]   |   Rotate: [L-shoulder]   |   Store: [B]";
+                HUDManager.Instance.buildModeControlTip.text = "Confirm: [B]   |   Rotate: [R]   |   Store: [X]\nFree Rotate: Hold [LAlt]   |   CCW: Hold [LShift]";
+            }
+
+            // Set the initial degrees (and snap immediately if they are already holding shift)
+            var existingAngles = __instance.ghostObject.eulerAngles;
+            if (Keyboard.current[Key.LeftShift].isPressed)
+            {
+                _curObjectDegrees = (float)Math.Round(existingAngles.y / _snapObjectsByDegrees) * _snapObjectsByDegrees;
+                __instance.ghostObject.rotation = Quaternion.Euler(existingAngles.x, _curObjectDegrees, existingAngles.z);
+                __instance.selectionOutlineMesh.transform.eulerAngles = __instance.ghostObject.eulerAngles;
             }
             else
             {
-                HUDManager.Instance.buildModeControlTip.text = "Confirm: [B]   |   Rotate CW: [R] (Hold Shift for CCW)   |   Store: [X]";
+                _curObjectDegrees = existingAngles.y;
             }
-
-            // Set the initial degrees
-            var existingAngles = __instance.ghostObject.eulerAngles;
-            _curObjectDegrees = (int)Math.Round(existingAngles.y / _snapObjectsByDegrees) * _snapObjectsByDegrees;
-            __instance.ghostObject.rotation = Quaternion.Euler(existingAngles.x, _curObjectDegrees, existingAngles.z);
-            __instance.selectionOutlineMesh.transform.eulerAngles = __instance.ghostObject.eulerAngles;
         }
 
         [HarmonyPatch(typeof(ShipBuildModeManager), nameof(Update))]
@@ -74,15 +61,32 @@ namespace GeneralImprovements.Patches
                 return;
             }
 
+            var rotateAction = StartOfRound.Instance.localPlayerUsingController
+                ? __instance.playerActions.Movement.InspectItem
+                : IngamePlayerSettings.Instance.playerInput.actions.FindAction("ReloadBatteries", false);
 
-            var rotateActionKeyboard = IngamePlayerSettings.Instance.playerInput.actions.FindAction("ReloadBatteries", false);
-            var rotateActionController = __instance.playerActions.Movement.InspectItem;
-            if (rotateActionKeyboard.IsPressed() || (StartOfRound.Instance.localPlayerUsingController && rotateActionController.IsPressed()))
+            if (rotateAction.IsPressed())
             {
-                // If the rotate button was pressed this frame, increment the degree storage variable and assign it to the object
-                if (rotateActionKeyboard.WasPressedThisFrame() || (StartOfRound.Instance.localPlayerUsingController && rotateActionController.WasPressedThisFrame()))
+                bool holdingAlt = Keyboard.current[Key.LeftAlt].isPressed;
+                bool holdingShift = Keyboard.current[Key.LeftShift].isPressed;
+
+                // If hold free rotate, use vanilla rotation and simply store the current degrees
+                if (holdingAlt)
                 {
-                    bool holdingShift = Keyboard.current[Key.LeftShift].IsPressed();
+                    // If we want counter clockwise movement, apply vanilla rotation backwards
+                    if (holdingShift)
+                    {
+                        _curObjectDegrees -= Time.deltaTime * 155f;
+                    }
+                    else
+                    {
+                        _curObjectDegrees = __instance.ghostObject.eulerAngles.y;
+                    }
+                }
+                else if (rotateAction.WasPressedThisFrame())
+                {
+                    // First make sure the current degrees are snapped, then add or subtract to them
+                    _curObjectDegrees = (float)Math.Round(_curObjectDegrees / _snapObjectsByDegrees) * _snapObjectsByDegrees;
                     _curObjectDegrees += _snapObjectsByDegrees * (holdingShift ? -1 : 1);
                 }
 

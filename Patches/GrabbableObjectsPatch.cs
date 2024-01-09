@@ -1,4 +1,6 @@
 ﻿using HarmonyLib;
+using System;
+using System.Linq;
 using UnityEngine;
 
 namespace GeneralImprovements.Patches
@@ -39,6 +41,20 @@ namespace GeneralImprovements.Patches
             if (__instance is ClipboardItem clipboard)
             {
                 clipboard.transform.SetPositionAndRotation(new Vector3(11.02f, 2.45f, -13.4f), Quaternion.Euler(0, 180, 90));
+            }
+
+            // Fix conductivity of certain objects
+            if (__instance.itemProperties != null)
+            {
+                var nonConductiveItems = new string[] { "Flask", "Whoopie Cushion" };
+                var tools = new string[] { "Jetpack", "Key", "Radar-booster", "Shovel", "Stop sign", "TZP-Inhalant", "Yield sign", "Zap gun" };
+
+                if (nonConductiveItems.Any(n => __instance.itemProperties.itemName.Equals(n, StringComparison.OrdinalIgnoreCase))
+                    || (Plugin.ToolsDoNotAttractLightning.Value && tools.Any(t => __instance.itemProperties.itemName.Equals(t, StringComparison.OrdinalIgnoreCase))))
+                {
+                    Plugin.MLS.LogInfo($"Item {__instance.itemProperties.itemName} being set to NON conductive.");
+                    __instance.itemProperties.isConductiveMetal = false;
+                }
             }
         }
     }
