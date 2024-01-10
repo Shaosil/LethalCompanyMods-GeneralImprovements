@@ -113,5 +113,27 @@ namespace GeneralImprovements.Patches
                 terminal.SyncGroupCreditsServerRpc(terminal.groupCredits, terminal.numberOfItemsInDropship);
             }
         }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(LoadShipGrabbableItems))]
+        [HarmonyPostfix]
+        private static void LoadShipGrabbableItems()
+        {
+            UpdateQuotaScreenText();
+        }
+
+        public static void UpdateQuotaScreenText()
+        {
+            var instance = StartOfRound.Instance;
+
+            if (instance.isChallengeFile)
+            {
+                // TODO: Put it on a different monitor?
+            }
+            else
+            {
+                int shipLoot = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom && o.isInElevator).Sum(o => o.scrapValue);
+                instance.deadlineMonitorText.text = $"DEADLINE:\n{TimeOfDay.Instance.daysUntilDeadline} DAYS\nIN SHIP:\n${shipLoot}";
+            }
+        }
     }
 }

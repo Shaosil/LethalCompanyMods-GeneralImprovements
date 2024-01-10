@@ -1,6 +1,12 @@
 # Changelog
 
 <ul>
+	<li><b>v1.0.12</b> - Configurable Keys and Ship Total Display</li>
+	<ul>
+		<li>Added config entries for the ship build modifier keys to be customized.</li>
+		<li>Added more text to the 'Deadline' monitor in the ship to display the total value of scrap in the ship.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.11</b> - Hotfix for my fixes</li>
 	<ul>
 		<li>Tuning the fire exit flip to make sure it happens immediately for clients as well as the host.</li>

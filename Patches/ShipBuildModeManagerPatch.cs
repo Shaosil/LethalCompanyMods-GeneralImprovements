@@ -11,10 +11,23 @@ namespace GeneralImprovements.Patches
         private static int _snapObjectsByDegrees;
         private static float _curObjectDegrees;
 
+        private static Key _freeRotateKey;
+        private static Key _ccwKey;
+
         [HarmonyPatch(typeof(ShipBuildModeManager), nameof(Awake))]
         [HarmonyPostfix]
         private static void Awake()
         {
+            // Set the keybinds - default to LAlt and CCW for Free Rotate and CCW, respectively
+            if (!Enum.TryParse(Plugin.FreeRotateKey.Value, out _freeRotateKey))
+            {
+                _freeRotateKey = Key.LeftAlt;
+            }
+            if (!Enum.TryParse(Plugin.CounterClockwiseKey.Value, out _ccwKey))
+            {
+                _ccwKey = Key.LeftShift;
+            }
+
             // Find all intervals of 15 that go into 360
             var validNumbers = Enumerable.Range(0, 360 / 15).Select(n => n * 15).Where(n => n == 0 || 360 % n == 0).ToList();
 
@@ -40,7 +53,7 @@ namespace GeneralImprovements.Patches
 
             // Set the initial degrees (and snap immediately if they are already holding shift)
             var existingAngles = __instance.ghostObject.eulerAngles;
-            if (Keyboard.current[Key.LeftShift].isPressed)
+            if (Keyboard.current[_freeRotateKey].isPressed)
             {
                 _curObjectDegrees = (float)Math.Round(existingAngles.y / _snapObjectsByDegrees) * _snapObjectsByDegrees;
                 __instance.ghostObject.rotation = Quaternion.Euler(existingAngles.x, _curObjectDegrees, existingAngles.z);
@@ -67,14 +80,14 @@ namespace GeneralImprovements.Patches
 
             if (rotateAction.IsPressed())
             {
-                bool holdingAlt = Keyboard.current[Key.LeftAlt].isPressed;
-                bool holdingShift = Keyboard.current[Key.LeftShift].isPressed;
+                bool holdingCCWModifier = Keyboard.current[_ccwKey].isPressed;
+                bool holdingFreeRotateModifier = Keyboard.current[_freeRotateKey].isPressed;
 
                 // If hold free rotate, use vanilla rotation and simply store the current degrees
-                if (holdingAlt)
+                if (holdingCCWModifier)
                 {
                     // If we want counter clockwise movement, apply vanilla rotation backwards
-                    if (holdingShift)
+                    if (holdingFreeRotateModifier)
                     {
                         _curObjectDegrees -= Time.deltaTime * 155f;
                     }
@@ -87,7 +100,7 @@ namespace GeneralImprovements.Patches
                 {
                     // First make sure the current degrees are snapped, then add or subtract to them
                     _curObjectDegrees = (float)Math.Round(_curObjectDegrees / _snapObjectsByDegrees) * _snapObjectsByDegrees;
-                    _curObjectDegrees += _snapObjectsByDegrees * (holdingShift ? -1 : 1);
+                    _curObjectDegrees += _snapObjectsByDegrees * (holdingFreeRotateModifier ? -1 : 1);
                 }
 
                 // Now make sure we overwrite whatever the game set the rotation to

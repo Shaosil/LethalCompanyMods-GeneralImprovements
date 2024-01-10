@@ -163,6 +163,13 @@ namespace GeneralImprovements.Patches
             return true;
         }
 
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(SetItemInElevator))]
+        [HarmonyPostfix]
+        private static void SetItemInElevator()
+        {
+            StartOfRoundPatch.UpdateQuotaScreenText();
+        }
+
         private static void ShiftRightFromSlot(PlayerControllerB player, int slot)
         {
             // Double check the object is not two handed to prevent multiple calls to this from happening

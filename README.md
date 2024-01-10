@@ -14,9 +14,11 @@ Everything is mostly configurable and improves (IMO) several things about the ga
 	<li>Allows all items to be picked up before the game starts.</li>
 	<li>Changes the "Beam up" hover tip for inverse teleporters to say "Beam out" for clarity.</li>
 	<li>Moves the ship clipboard manual to start pinned to the wall. This makes it easier to find, and moves it out of the way of the teleport button.</li>
-	<li>Introduces a degrees config option that snap rotates placeable ship objects in build mode.</li>
+	<li>Introduces a degrees config option that snap rotates placeable ship objects in build mode, along with configurable modifier keybinds.</li>
 	<li>Allows the ship's map camera to be rotated so that it faces straight up, instead of at an angle. This behavior is DISABLED by default in the config.</li>
 	<li>The ESC key will now cancel out of ship build mode instead of bringing up the menu (similar to the terminal).</li>
+	<li>Adds a config setting to hide the clipboard and sticky note. Defaults to off.</li>
+	<li>Adds text to the 'Deadline' monitor to also display current ship loot total.</li>
 </ul>
 
 ### NEW FEATURES:

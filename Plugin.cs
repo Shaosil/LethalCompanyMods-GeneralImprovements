@@ -5,6 +5,8 @@ using GeneralImprovements.OtherMods;
 using GeneralImprovements.Patches;
 using HarmonyLib;
 using System;
+using System.Linq;
+using UnityEngine.InputSystem;
 
 namespace GeneralImprovements
 {
@@ -27,11 +29,15 @@ namespace GeneralImprovements
         public static ConfigEntry<int> StartingMoneyPerPlayer { get; private set; }
         public static int StartingMoneyPerPlayerVal => Math.Clamp(StartingMoneyPerPlayer.Value, -1, 1000);
         public static ConfigEntry<int> SnapObjectsByDegrees { get; private set; }
+        public static ConfigEntry<string> FreeRotateKey { get; private set; }
+        public static ConfigEntry<string> CounterClockwiseKey { get; private set; }
         public static ConfigEntry<bool> ShipMapCamDueNorth { get; private set; }
         public static ConfigEntry<bool> ToolsDoNotAttractLightning { get; private set; }
 
         private void Awake()
         {
+            string validKeys = string.Join(", ", Enum.GetValues(typeof(Key)).Cast<int>().Where(e => e < (int)Key.OEM1).Select(e => Enum.GetName(typeof(Key), e)));
+
             MLS = Logger;
 
             SkipStartupScreen = Config.Bind(GeneralSection, nameof(SkipStartupScreen), true, "Skips the main menu loading screen bootup animation.");
@@ -42,10 +48,14 @@ namespace GeneralImprovements
             ScrollDelay = Config.Bind(GeneralSection, nameof(ScrollDelay), 0.1f, "The minimum time you must wait to scroll to another item in your inventory. Ignores values outside of 0.05 - 0.3. Vanilla: 0.3.");
             TerminalHistoryItemCount = Config.Bind(GeneralSection, nameof(TerminalHistoryItemCount), 10, "How many items to keep in your terminal's command history. Ignores values outside of 0 - 100. Previous terminal commands may be navigated by using the up/down arrow keys.");
             HideClipboardAndStickyNote = Config.Bind(GeneralSection, nameof(HideClipboardAndStickyNote), false, "If set to true, the game will not show the clipboard or sticky note when the game loads.");
+
             StartingMoneyPerPlayer = Config.Bind(TweaksSection, nameof(StartingMoneyPerPlayer), 30, "How much starting money the group gets per player. Set to -1 to disable. Ignores values outside of -1 - 1000. Adjusts money as players join and leave, until the game starts.");
             SnapObjectsByDegrees = Config.Bind(TweaksSection, nameof(SnapObjectsByDegrees), 45, "Build mode will switch to snap turning (press instead of hold) by this many degrees at a time. Setting it to 0 uses vanilla behavior. Must be an interval of 15 and go evenly into 360.");
+            FreeRotateKey = Config.Bind(TweaksSection, nameof(FreeRotateKey), Key.LeftAlt.ToString(), $"If SnapObjectsByDegrees > 0, configures which modifer key activates free rotation. Valid values: {validKeys}");
+            CounterClockwiseKey = Config.Bind(TweaksSection, nameof(CounterClockwiseKey), Key.LeftShift.ToString(), $"If SnapObjectsByDegrees > 0, configures which modifier key spins it CCW. Valid values: {validKeys}");
             ShipMapCamDueNorth = Config.Bind(TweaksSection, nameof(ShipMapCamDueNorth), false, "If set to true, the ship's map camera will rotate so that it faces north evenly, instead of showing everything at an angle.");
             ToolsDoNotAttractLightning = Config.Bind(TweaksSection, nameof(ToolsDoNotAttractLightning), false, "If set to true, all useful tools (jetpacks, keys, radar boosters, shovels & signs, tzp inhalant, and zap guns) will no longer attract lighning.");
+
             MLS.LogDebug("Configuration Initialized.");
 
             Harmony.CreateAndPatchAll(GetType().Assembly);
@@ -79,6 +89,9 @@ namespace GeneralImprovements
 
             Harmony.CreateAndPatchAll(typeof(TerminalPatch));
             MLS.LogDebug("Terminal patched.");
+
+            Harmony.CreateAndPatchAll(typeof(TimeOfDayPatch));
+            MLS.LogDebug("TimeOfDay patched.");
 
             // Load info about any external mods
             ReservedItemSlotCoreHelper.Initialize();
