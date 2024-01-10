@@ -7,9 +7,9 @@ namespace GeneralImprovements.Patches
 {
     internal static class GrabbableObjectsPatch
     {
-        [HarmonyPatch(typeof(GrabbableObject), nameof(Start))]
+        [HarmonyPatch(typeof(GrabbableObject), "Start")]
         [HarmonyPrefix]
-        private static void Start(GrabbableObject __instance)
+        private static void Start_Pre(GrabbableObject __instance)
         {
             // Ensure no non-scrap items have scrap value. This will update its value and description
             if (!__instance.itemProperties.isScrap)
@@ -55,6 +55,23 @@ namespace GeneralImprovements.Patches
                     Plugin.MLS.LogInfo($"Item {__instance.itemProperties.itemName} being set to NON conductive.");
                     __instance.itemProperties.isConductiveMetal = false;
                 }
+            }
+
+            // Prevent ship items from falling through objects when they spawn (prefix)
+            if (__instance.isInShipRoom && __instance.isInElevator)
+            {
+                __instance.itemProperties.itemSpawnsOnGround = false;
+            }
+        }
+
+        [HarmonyPatch(typeof(GrabbableObject), "Start")]
+        [HarmonyPostfix]
+        private static void Start_Post(GrabbableObject __instance)
+        {
+            // Prevent ship items from falling through objects when they spawn (postfix)
+            if (__instance.isInShipRoom && __instance.isInElevator)
+            {
+                __instance.reachedFloorTarget = false;
             }
         }
     }

@@ -1,6 +1,7 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using GeneralImprovements.OtherMods;
 using GeneralImprovements.Patches;
 using HarmonyLib;
 using System;
@@ -62,6 +63,9 @@ namespace GeneralImprovements
             Harmony.CreateAndPatchAll(typeof(PlayerControllerBPatch));
             MLS.LogDebug("PlayerControllerB patched.");
 
+            Harmony.CreateAndPatchAll(typeof(RoundManagerPatch));
+            MLS.LogDebug("RoundManager patched.");
+
             Harmony.CreateAndPatchAll(typeof(ShipBuildModeManagerPatch));
             MLS.LogDebug("ShipBuildModeManager patched.");
 
@@ -73,6 +77,10 @@ namespace GeneralImprovements
 
             Harmony.CreateAndPatchAll(typeof(TerminalPatch));
             MLS.LogDebug("Terminal patched.");
+
+            // Load info about any external mods
+            ReservedItemSlotCoreHelper.Initialize();
+            AdvancedCompanyHelper.Initialize();
 
             MLS.LogInfo($"{Metadata.PLUGIN_NAME} v{Metadata.VERSION} fully loaded.");
         }

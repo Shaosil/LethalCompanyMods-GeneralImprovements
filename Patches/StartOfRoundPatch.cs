@@ -113,14 +113,5 @@ namespace GeneralImprovements.Patches
                 terminal.SyncGroupCreditsServerRpc(terminal.groupCredits, terminal.numberOfItemsInDropship);
             }
         }
-
-        [HarmonyPatch(typeof(StartOfRound), nameof(EndOfGameClientRpc))]
-        [HarmonyPrefix]
-        private static void EndOfGameClientRpc(StartOfRound __instance)
-        {
-            // Update the total scrap in level
-            var valuables = Object.FindObjectsOfType<GrabbableObject>().Where(o => !o.isInShipRoom && !o.isInElevator && o.itemProperties.minValue > 0).ToList();
-            RoundManager.Instance.totalScrapValueInLevel = valuables.Sum(i => i.scrapValue);
-        }
     }
 }

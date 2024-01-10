@@ -1,4 +1,5 @@
 ﻿using GameNetcodeStuff;
+using GeneralImprovements.OtherMods;
 using HarmonyLib;
 using System;
 using System.Reflection;
@@ -9,7 +10,7 @@ namespace GeneralImprovements.Patches
     internal static class PlayerControllerBPatch
     {
         private static FieldInfo _timeSinceSwitchingSlotsField = null;
-        internal static FieldInfo TimeSinceSwitchingSlotsField
+        private static FieldInfo TimeSinceSwitchingSlotsField
         {
             get
             {
@@ -23,14 +24,13 @@ namespace GeneralImprovements.Patches
             }
         }
 
-
         [HarmonyPatch(typeof(PlayerControllerB), nameof(FirstEmptyItemSlot))]
         [HarmonyPrefix]
         private static bool FirstEmptyItemSlot(PlayerControllerB __instance, ref int __result)
         {
-            if (!Plugin.PickupInOrder.Value)
+            // If not configured to pickup in order, OR the reserved item slot or advanced company mods exist, pass over this patch
+            if (!Plugin.PickupInOrder.Value || ReservedItemSlotCoreHelper.Assembly != null || AdvancedCompanyHelper.IsActive)
             {
-                // If not configured to pickup in order, call the original method instead
                 return true;
             }
 
@@ -79,7 +79,8 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void ItemLeftSlot(PlayerControllerB __instance)
         {
-            if (!Plugin.RearrangeOnDrop.Value)
+            // If we are not configured to rearrange, or AdvancedCompany is active, skip this patch
+            if (!Plugin.RearrangeOnDrop.Value || AdvancedCompanyHelper.IsActive)
             {
                 return;
             }
@@ -91,6 +92,12 @@ namespace GeneralImprovements.Patches
                 {
                     for (int j = i + 1; j < __instance.ItemSlots.Length; j++)
                     {
+                        // If we found a reserved core slot, skip it
+                        if (ReservedItemSlotCoreHelper.IsReservedItemSlot(__instance, j))
+                        {
+                            continue;
+                        }
+
                         if (__instance.ItemSlots[j] != null)
                         {
                             ShiftSlots(__instance, i, j);
