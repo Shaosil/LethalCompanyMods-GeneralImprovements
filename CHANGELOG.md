@@ -1,6 +1,11 @@
 # Changelog
 
 <ul>
+	<li><b>v1.0.13</b> - Rotation hotfix</li>
+	<ul>
+		<li>Just a quick fix to the snap rotation stuff I broke in v1.0.12 :)</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.12</b> - Configurable Keys and Ship Total Display</li>
 	<ul>
 		<li>Added config entries for the ship build modifier keys to be customized.</li>

@@ -48,7 +48,7 @@ namespace GeneralImprovements.Patches
             // Update the text tips
             if (!StartOfRound.Instance.localPlayerUsingController)
             {
-                HUDManager.Instance.buildModeControlTip.text = "Confirm: [B]   |   Rotate: [R]   |   Store: [X]\nFree Rotate: Hold [LAlt]   |   CCW: Hold [LShift]";
+                HUDManager.Instance.buildModeControlTip.text = $"Confirm: [B]   |   Rotate: [R]   |   Store: [X]\nFree Rotate: Hold [{_freeRotateKey}]   |   CCW: Hold [{_ccwKey}]";
             }
 
             // Set the initial degrees (and snap immediately if they are already holding shift)
@@ -80,14 +80,14 @@ namespace GeneralImprovements.Patches
 
             if (rotateAction.IsPressed())
             {
-                bool holdingCCWModifier = Keyboard.current[_ccwKey].isPressed;
                 bool holdingFreeRotateModifier = Keyboard.current[_freeRotateKey].isPressed;
+                bool holdingCCWModifier = Keyboard.current[_ccwKey].isPressed;
 
                 // If hold free rotate, use vanilla rotation and simply store the current degrees
-                if (holdingCCWModifier)
+                if (holdingFreeRotateModifier)
                 {
                     // If we want counter clockwise movement, apply vanilla rotation backwards
-                    if (holdingFreeRotateModifier)
+                    if (holdingCCWModifier)
                     {
                         _curObjectDegrees -= Time.deltaTime * 155f;
                     }
@@ -100,7 +100,7 @@ namespace GeneralImprovements.Patches
                 {
                     // First make sure the current degrees are snapped, then add or subtract to them
                     _curObjectDegrees = (float)Math.Round(_curObjectDegrees / _snapObjectsByDegrees) * _snapObjectsByDegrees;
-                    _curObjectDegrees += _snapObjectsByDegrees * (holdingFreeRotateModifier ? -1 : 1);
+                    _curObjectDegrees += _snapObjectsByDegrees * (holdingCCWModifier ? -1 : 1);
                 }
 
                 // Now make sure we overwrite whatever the game set the rotation to
