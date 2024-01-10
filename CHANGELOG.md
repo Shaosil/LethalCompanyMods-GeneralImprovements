@@ -1,6 +1,13 @@
 # Changelog
 
 <ul>
+	<li><b>v1.0.11</b> - Hotfix for my fixes</li>
+	<ul>
+		<li>Tuning the fire exit flip to make sure it happens immediately for clients as well as the host.</li>
+		<li>Fixing the clipboard and sticky note rotating incorrectly when starting a new game.</li>
+		<li>Added a config option to disable seeing the clipboard and sticky note altogether.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.10</b> - Fixes and compatibility</li>
 	<ul>
 		<li>Fixing total value at end of round not calculating correctly.</li>

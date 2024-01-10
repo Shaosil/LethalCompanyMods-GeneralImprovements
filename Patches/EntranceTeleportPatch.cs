@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using GameNetcodeStuff;
+using HarmonyLib;
 using System.Reflection;
 using UnityEngine;
 
@@ -21,17 +22,36 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        [HarmonyPatch(typeof(EntranceTeleport), nameof(TeleportPlayer))]
+        [HarmonyPostfix]
+        private static void TeleportPlayer(EntranceTeleport __instance)
+        {
+            // If we are going through an external fire exit, rotate ourselves 180 degrees after going through
+            if (__instance.entranceId != 0 && __instance.isEntranceToBuilding)
+            {
+                FlipPlayer(__instance, GameNetworkManager.Instance.localPlayerController);
+            }
+        }
+
         [HarmonyPatch(typeof(EntranceTeleport), nameof(TeleportPlayerClientRpc))]
         [HarmonyPostfix]
         private static void TeleportPlayerClientRpc(EntranceTeleport __instance, int playerObj)
         {
-            // If we are going through an external fire exit, rotate player 180 degrees after going through
+            // Flip any clients (not ourselves) that have teleported through the door
             if (__instance.entranceId != 0 && __instance.isEntranceToBuilding)
             {
                 var player = __instance.playersManager.allPlayerScripts[playerObj];
-                var targetAngles = ((Transform)ExitPoint.GetValue(__instance)).eulerAngles;
-                player.transform.rotation = Quaternion.Euler(targetAngles.x, targetAngles.y + 180, targetAngles.z);
+                if (!player.IsOwner)
+                {
+                    FlipPlayer(__instance, player);
+                }
             }
+        }
+
+        private static void FlipPlayer(EntranceTeleport instance, PlayerControllerB player)
+        {
+            var targetAngles = ((Transform)ExitPoint.GetValue(instance)).eulerAngles;
+            player.transform.rotation = Quaternion.Euler(targetAngles.x, targetAngles.y + 180, targetAngles.z);
         }
     }
 }

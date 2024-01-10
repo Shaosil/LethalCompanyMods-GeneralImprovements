@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -7,10 +8,29 @@ namespace GeneralImprovements.Patches
 {
     internal static class GrabbableObjectsPatch
     {
+        private static HashSet<GrabbableObject> _itemsToKeepInPlace = new HashSet<GrabbableObject>();
+
         [HarmonyPatch(typeof(GrabbableObject), "Start")]
         [HarmonyPrefix]
         private static void Start_Pre(GrabbableObject __instance)
         {
+            if (__instance is ClipboardItem || (__instance is PhysicsProp && __instance.itemProperties.itemName == "Sticky note"))
+            {
+                // If this is the clipboard or sticky note, and we want to hide them, do so
+                if (Plugin.HideClipboardAndStickyNote.Value)
+                {
+                    __instance.gameObject.SetActive(false);
+                }
+                // Otherwise, pin the clipboard to the wall when loading in
+                else if (__instance is ClipboardItem)
+                {
+                    __instance.transform.SetPositionAndRotation(new Vector3(11.02f, 2.45f, -13.4f), Quaternion.Euler(0, 180, 90));
+                }
+
+                // Patch nothing else with these items
+                return;
+            }
+
             // Ensure no non-scrap items have scrap value. This will update its value and description
             if (!__instance.itemProperties.isScrap)
             {
@@ -37,12 +57,6 @@ namespace GeneralImprovements.Patches
                 __instance.itemProperties.canBeGrabbedBeforeGameStart = true;
             }
 
-            // Pin the clipboard to the wall when loading in
-            if (__instance is ClipboardItem clipboard)
-            {
-                clipboard.transform.SetPositionAndRotation(new Vector3(11.02f, 2.45f, -13.4f), Quaternion.Euler(0, 180, 90));
-            }
-
             // Fix conductivity of certain objects
             if (__instance.itemProperties != null)
             {
@@ -61,6 +75,8 @@ namespace GeneralImprovements.Patches
             if (__instance.isInShipRoom && __instance.isInElevator)
             {
                 __instance.itemProperties.itemSpawnsOnGround = false;
+                _itemsToKeepInPlace.Add(__instance);
+                Plugin.MLS.LogDebug($"Adding {__instance.name} to items to keep");
             }
         }
 
@@ -69,9 +85,11 @@ namespace GeneralImprovements.Patches
         private static void Start_Post(GrabbableObject __instance)
         {
             // Prevent ship items from falling through objects when they spawn (postfix)
-            if (__instance.isInShipRoom && __instance.isInElevator)
+            if (_itemsToKeepInPlace.Contains(__instance))
             {
+                Plugin.MLS.LogDebug($"Removing {__instance.name} from items to keep");
                 __instance.reachedFloorTarget = false;
+                _itemsToKeepInPlace.Remove(__instance);
             }
         }
     }
