@@ -13,16 +13,30 @@ namespace GeneralImprovements.Patches
         private static int _historyCount;
         private static int _curHistoryIndex = 0;
 
+        public static Terminal Instance;
+
         [HarmonyPatch(typeof(Terminal), nameof(Start))]
         [HarmonyPrefix]
-        private static void Start()
+        private static void Start(Terminal __instance)
         {
+            Instance = __instance;
+
             _historyCount = Math.Clamp(Plugin.TerminalHistoryItemCount.Value, 0, 100);
 
             if (Plugin.StartingMoneyPerPlayerVal >= 0 && StartOfRound.Instance.gameStats.daysSpent == 0)
             {
                 Plugin.MLS.LogInfo($"Day 0 Begin - Setting starting credits to {Plugin.StartingMoneyPerPlayerVal}");
                 TimeOfDay.Instance.quotaVariables.startingCredits = Plugin.StartingMoneyPerPlayerVal;
+            }
+
+            // Clear out the plain "Switched to player" text from the switch node
+            var switchNodes = __instance.terminalNodes?.specialNodes?.Where(n => n.displayText.Contains("Switched radar to player.") || n.terminalEvent == "switchCamera");
+            if (switchNodes != null)
+            {
+                foreach (var switchNode in switchNodes)
+                {
+                    switchNode.displayText = string.Empty;
+                }
             }
         }
 
@@ -33,6 +47,7 @@ namespace GeneralImprovements.Patches
             __instance.terminalUIScreen.gameObject.SetActive(true);
             __instance.screenText.Select();
             __instance.screenText.ActivateInputField();
+            _curHistoryIndex = _commandHistory.Count;
         }
 
         [HarmonyPatch(typeof(Terminal), nameof(OnSubmit))]
@@ -62,7 +77,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(Terminal), "TextPostProcess")]
         [HarmonyPrefix]
-        private static void TextPostProcess_Pre(ref string modifiedDisplayText)
+        private static void TextPostProcess_Pre(ref string modifiedDisplayText, TerminalNode node)
         {
             // Improve the scanning
             if (modifiedDisplayText.Contains("[scanForItems]"))

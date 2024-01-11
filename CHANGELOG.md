@@ -1,6 +1,21 @@
 # Changelog
 
 <ul>
+	<li><b>v1.0.14</b> - More fixes and improvements</li>
+	<ul>
+		<li>Fixed the map labels to be correctly rotated if ShipMapCamDueNorth is on.</li>
+		<li>Fixed deadline monitor showing -1 when it's over.</li>
+		<li>Fixed command history to reset its current 'index' when loading the terminal (U/D arrows make more sense now).</li>
+		<li>Fixed Rend's ship scan node to be more reliable.</li>
+		<li>Fixed dropship items not dropping to ground sometimes, and improved the fix for things falling through shelves on load.</li>
+		<li>Added a config entry to toggle the fix for things falling through shelves.</li>
+		<li>Added a config entry to toggle the ship scrap value total display.</li>
+		<li>Tweaked the 'switch' terminal command to show the name of the target it switched to (affects L/R arrow keys as well).</li>
+		<li>Fixed the personal scanner not being reliable in certain situations (for example trying to scan for the ship on Rend). May be disabled in the config.</li>
+		<li>Added a config entry to disable the fire exit flipping logic fix if desired.</li>
+		<li>Very slightly tweaked the width and font size of the tiny ship monitors so it doesn't look like letters are spilling onto the edge of the monitor.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.13</b> - Rotation hotfix</li>
 	<ul>
 		<li>Just a quick fix to the snap rotation stuff I broke in v1.0.12 :)</li>

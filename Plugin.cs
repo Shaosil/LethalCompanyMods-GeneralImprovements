@@ -25,6 +25,13 @@ namespace GeneralImprovements
         public static ConfigEntry<int> TerminalHistoryItemCount { get; private set; }
         public static ConfigEntry<bool> HideClipboardAndStickyNote { get; private set; }
 
+
+        private const string FixesSection = "Fixes";
+        public static ConfigEntry<bool> FixInternalFireExits { get; private set; }
+        public static ConfigEntry<bool> FixItemsFallingThrough { get; private set; }
+        public static ConfigEntry<bool> ShowShipTotalBelowDeadline { get; private set; }
+        public static ConfigEntry<bool> FixPersonalScanner { get; private set; }
+
         private const string TweaksSection = "Tweaks";
         public static ConfigEntry<int> StartingMoneyPerPlayer { get; private set; }
         public static int StartingMoneyPerPlayerVal => Math.Clamp(StartingMoneyPerPlayer.Value, -1, 1000);
@@ -49,6 +56,11 @@ namespace GeneralImprovements
             TerminalHistoryItemCount = Config.Bind(GeneralSection, nameof(TerminalHistoryItemCount), 10, "How many items to keep in your terminal's command history. Ignores values outside of 0 - 100. Previous terminal commands may be navigated by using the up/down arrow keys.");
             HideClipboardAndStickyNote = Config.Bind(GeneralSection, nameof(HideClipboardAndStickyNote), false, "If set to true, the game will not show the clipboard or sticky note when the game loads.");
 
+            FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
+            FixItemsFallingThrough = Config.Bind(FixesSection, nameof(FixItemsFallingThrough), true, "Fixes items falling through furniture on the ship when loading the game.");
+            ShowShipTotalBelowDeadline = Config.Bind(FixesSection, nameof(ShowShipTotalBelowDeadline), true, "Constantly displays the sum of all scrap value on the ship underneath the deadline text.");
+            FixPersonalScanner = Config.Bind(FixesSection, nameof(FixPersonalScanner), true, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you.");
+
             StartingMoneyPerPlayer = Config.Bind(TweaksSection, nameof(StartingMoneyPerPlayer), 30, "How much starting money the group gets per player. Set to -1 to disable. Ignores values outside of -1 - 1000. Adjusts money as players join and leave, until the game starts.");
             SnapObjectsByDegrees = Config.Bind(TweaksSection, nameof(SnapObjectsByDegrees), 45, "Build mode will switch to snap turning (press instead of hold) by this many degrees at a time. Setting it to 0 uses vanilla behavior. Must be an interval of 15 and go evenly into 360.");
             FreeRotateKey = Config.Bind(TweaksSection, nameof(FreeRotateKey), Key.LeftAlt.ToString(), $"If SnapObjectsByDegrees > 0, configures which modifer key activates free rotation. Valid values: {validKeys}");
@@ -69,6 +81,12 @@ namespace GeneralImprovements
             Harmony.CreateAndPatchAll(typeof(GrabbableObjectsPatch));
             MLS.LogDebug("GrabbableObjects patched.");
 
+            Harmony.CreateAndPatchAll(typeof(HUDManagerPatch));
+            MLS.LogDebug("HUDManager patched.");
+
+            Harmony.CreateAndPatchAll(typeof(ManualCameraRendererPatch));
+            MLS.LogDebug("ManualCameraRenderer patched.");
+
             Harmony.CreateAndPatchAll(typeof(MenuPatches));
             MLS.LogDebug("Menus patched.");
 
@@ -86,6 +104,9 @@ namespace GeneralImprovements
 
             Harmony.CreateAndPatchAll(typeof(StartOfRoundPatch));
             MLS.LogDebug("StartOfRound patched.");
+
+            Harmony.CreateAndPatchAll(typeof(TerminalAccessibleObjectPatch));
+            MLS.LogDebug("TerminalAccessibleObject patched.");
 
             Harmony.CreateAndPatchAll(typeof(TerminalPatch));
             MLS.LogDebug("Terminal patched.");

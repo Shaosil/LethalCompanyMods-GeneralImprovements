@@ -26,9 +26,6 @@ namespace GeneralImprovements.Patches
                 {
                     __instance.transform.SetPositionAndRotation(new Vector3(11.02f, 2.45f, -13.4f), Quaternion.Euler(0, 180, 90));
                 }
-
-                // Patch nothing else with these items
-                return;
             }
 
             // Ensure no non-scrap items have scrap value. This will update its value and description
@@ -72,11 +69,9 @@ namespace GeneralImprovements.Patches
             }
 
             // Prevent ship items from falling through objects when they spawn (prefix)
-            if (__instance.isInShipRoom && __instance.isInElevator)
+            if (Plugin.FixItemsFallingThrough.Value && __instance.isInShipRoom && __instance.isInElevator)
             {
-                __instance.itemProperties.itemSpawnsOnGround = false;
                 _itemsToKeepInPlace.Add(__instance);
-                Plugin.MLS.LogDebug($"Adding {__instance.name} to items to keep");
             }
         }
 
@@ -87,8 +82,9 @@ namespace GeneralImprovements.Patches
             // Prevent ship items from falling through objects when they spawn (postfix)
             if (_itemsToKeepInPlace.Contains(__instance))
             {
-                Plugin.MLS.LogDebug($"Removing {__instance.name} from items to keep");
+                __instance.fallTime = 1;
                 __instance.reachedFloorTarget = false;
+                __instance.targetFloorPosition = __instance.startFallingPosition;
                 _itemsToKeepInPlace.Remove(__instance);
             }
         }

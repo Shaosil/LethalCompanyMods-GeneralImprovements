@@ -151,7 +151,6 @@ namespace GeneralImprovements.Patches
         [HarmonyPrefix]
         private static bool OpenQuickMenu(QuickMenuManager __instance)
         {
-            Plugin.MLS.LogInfo("Inside OpenQuickMenu");
             if (ShipBuildModeManager.Instance?.InBuildMode ?? false)
             {
                 // Cancel out of build mode instead

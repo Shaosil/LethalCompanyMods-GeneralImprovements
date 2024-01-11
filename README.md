@@ -42,6 +42,8 @@ Everything is mostly configurable and improves (IMO) several things about the ga
 	<li>[Host Only] Whoopie cushions and flasks will no longer be hit by lightning. If the host/server player has this enabled, it will apply to all clients.</li>
 	<li>[Host Only] When a new client connects to your lobby, they should see the correct position, rotation, and current emote of each player.</li>
 	<li>When loading a file, items in the ship will no longer fall through shelves, tables, etc.</li>
+	<li>Fixes the personal scanners sensitivity - it should function more reliably now, for example being able to ping the ship on Rend.</li>
+	<li>Fixes the ship scan node showing up outside of the ship while flying in to a moon.</li>
 </ul>
 
 This pairs well with my other mod, <a href="https://thunderstore.io/c/lethal-company/p/ShaosilGaming/FlashlightFix/">FlashlightFix</a>

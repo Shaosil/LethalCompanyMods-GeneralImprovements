@@ -32,7 +32,7 @@ namespace GeneralImprovements.Patches
             // Set all grabbable objects as in ship if the game hasn't started (it never should be unless someone is using a join mid-game mod or something)
             if (!__instance.IsHost && __instance.inShipPhase)
             {
-                var allGrabbables = UnityEngine.Object.FindObjectsOfType<GrabbableObject>();
+                var allGrabbables = Object.FindObjectsOfType<GrabbableObject>();
                 foreach (var grabbable in allGrabbables)
                 {
                     grabbable.isInElevator = true;
@@ -54,6 +54,21 @@ namespace GeneralImprovements.Patches
                 Vector3 curAngles = __instance.mapScreen.mapCamera.transform.eulerAngles;
                 __instance.mapScreen.mapCamera.transform.rotation = Quaternion.Euler(curAngles.x, 90, curAngles.z);
             }
+
+            // Resize the two little monitors to about 95% of their existing width and font size
+            var deadlineSize = __instance.deadlineMonitorText.rectTransform.sizeDelta;
+            var profitQuotaSize = __instance.profitQuotaMonitorText.rectTransform.sizeDelta;
+            __instance.deadlineMonitorText.rectTransform.sizeDelta = new Vector2(deadlineSize.x * 0.95f, deadlineSize.y);
+            __instance.deadlineMonitorText.fontSize = __instance.deadlineMonitorText.fontSize * 0.95f;
+            __instance.profitQuotaMonitorText.rectTransform.sizeDelta = new Vector2(profitQuotaSize.x * 0.95f, profitQuotaSize.y);
+            __instance.profitQuotaMonitorText.fontSize = __instance.profitQuotaMonitorText.fontSize * 0.95f;
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(OnShipLandedMiscEvents))]
+        [HarmonyPostfix]
+        private static void OnShipLandedMiscEvents()
+        {
+            RoundManagerPatch.EnableShipScanNode();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(SwitchMapMonitorPurpose))]
@@ -79,7 +94,7 @@ namespace GeneralImprovements.Patches
                 {
                     Plugin.MLS.LogInfo($"Player connected on day 0, adding {Plugin.StartingMoneyPerPlayerVal} to group credits");
                     currentCredits += Plugin.StartingMoneyPerPlayerVal;
-                    Object.FindObjectOfType<Terminal>().groupCredits = currentCredits;
+                    TerminalPatch.Instance.groupCredits = currentCredits;
                 }
 
                 // Send positional, rotational, and emotional (heh) data to all when new people connect
@@ -108,9 +123,8 @@ namespace GeneralImprovements.Patches
                 currentCredits -= Plugin.StartingMoneyPerPlayerVal;
 
                 // Keep track of negatives to prevent exploits, but do not go below zero on the actual terminal
-                var terminal = Object.FindObjectOfType<Terminal>();
-                terminal.groupCredits = Mathf.Clamp(currentCredits, 0, int.MaxValue);
-                terminal.SyncGroupCreditsServerRpc(terminal.groupCredits, terminal.numberOfItemsInDropship);
+                TerminalPatch.Instance.groupCredits = Mathf.Clamp(currentCredits, 0, int.MaxValue);
+                TerminalPatch.Instance.SyncGroupCreditsServerRpc(TerminalPatch.Instance.groupCredits, TerminalPatch.Instance.numberOfItemsInDropship);
             }
         }
 
@@ -123,6 +137,11 @@ namespace GeneralImprovements.Patches
 
         public static void UpdateQuotaScreenText()
         {
+            if (!Plugin.ShowShipTotalBelowDeadline.Value)
+            {
+                return;
+            }
+
             var instance = StartOfRound.Instance;
 
             if (instance.isChallengeFile)
@@ -132,7 +151,8 @@ namespace GeneralImprovements.Patches
             else
             {
                 int shipLoot = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom && o.isInElevator).Sum(o => o.scrapValue);
-                instance.deadlineMonitorText.text = $"DEADLINE:\n{TimeOfDay.Instance.daysUntilDeadline} DAYS\nIN SHIP:\n${shipLoot}";
+                string deadline = TimeOfDay.Instance.daysUntilDeadline >= 0 ? TimeOfDay.Instance.daysUntilDeadline.ToString() : "NOW";
+                instance.deadlineMonitorText.text = $"DEADLINE:\n{deadline} DAYS\nIN SHIP:\n${shipLoot}";
             }
         }
     }
