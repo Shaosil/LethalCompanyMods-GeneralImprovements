@@ -1,12 +1,16 @@
 # Changelog
 
 <ul>
+	<li><b>v1.0.15</b> - Hotfix for gifts</li>
+	<ul>
+		<li>Fixing the little remaining bug where opening a gift inside the ship would leave it hovering.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.14</b> - More fixes and improvements</li>
 	<ul>
 		<li>Fixed the map labels to be correctly rotated if ShipMapCamDueNorth is on.</li>
 		<li>Fixed deadline monitor showing -1 when it's over.</li>
 		<li>Fixed command history to reset its current 'index' when loading the terminal (U/D arrows make more sense now).</li>
-		<li>Fixed Rend's ship scan node to be more reliable.</li>
 		<li>Fixed dropship items not dropping to ground sometimes, and improved the fix for things falling through shelves on load.</li>
 		<li>Added a config entry to toggle the fix for things falling through shelves.</li>
 		<li>Added a config entry to toggle the ship scrap value total display.</li>
