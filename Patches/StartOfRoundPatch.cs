@@ -8,8 +8,6 @@ namespace GeneralImprovements.Patches
 {
     internal static class StartOfRoundPatch
     {
-        private static int currentCredits = 0;
-
         private static MethodInfo _updatePlayerPositionClientRpcMethod;
         private static MethodInfo UpdatePlayerPositionClientRpcMethod
         {
@@ -41,12 +39,6 @@ namespace GeneralImprovements.Patches
                 }
             }
 
-            // Grab initial credits value if this is the server
-            if (__instance.IsServer && Plugin.StartingMoneyPerPlayerVal >= 0 && __instance.inShipPhase && __instance.gameStats.daysSpent == 0)
-            {
-                currentCredits = Plugin.StartingMoneyPerPlayerVal;
-            }
-
             // Rotate ship camera if specified
             if (Plugin.ShipMapCamDueNorth.Value)
             {
@@ -68,7 +60,23 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void OnShipLandedMiscEvents()
         {
-            RoundManagerPatch.EnableShipScanNode();
+            RoundManagerPatch.EnableAndAttachShipScanNode();
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(ShipLeave))]
+        [HarmonyPrefix]
+        private static void ShipLeave()
+        {
+            // Easter egg
+            RoundManagerPatch.CurShipNode.subText = "BYE LOL";
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(ShipHasLeft))]
+        [HarmonyPrefix]
+        private static void ShipHasLeft()
+        {
+            // Manually destroy the node here since it won't be after attaching it to the ship
+            Object.Destroy(RoundManagerPatch.CurShipNode.gameObject);
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(SwitchMapMonitorPurpose))]
@@ -90,17 +98,11 @@ namespace GeneralImprovements.Patches
             if (__instance.IsServer)
             {
                 // Add to the terminal credits before this function gets called so it is relayed to the connecting client
-                if (Plugin.StartingMoneyPerPlayerVal >= 0 && __instance.inShipPhase && __instance.gameStats.daysSpent == 0)
-                {
-                    Plugin.MLS.LogInfo($"Player connected on day 0, adding {Plugin.StartingMoneyPerPlayerVal} to group credits");
-                    currentCredits += Plugin.StartingMoneyPerPlayerVal;
-                    TerminalPatch.Instance.groupCredits = currentCredits;
-                }
+                TerminalPatch.AdjustGroupCredits(true);
 
                 // Send positional, rotational, and emotional (heh) data to all when new people connect
                 foreach (var connectedPlayer in __instance.allPlayerScripts.Where(p => p.isPlayerControlled))
                 {
-                    // (Vector3 newPos, bool inElevator, bool isInShip, bool exhausted, bool isPlayerGrounded)
                     UpdatePlayerPositionClientRpcMethod.Invoke(connectedPlayer, new object[] { connectedPlayer.thisPlayerBody.localPosition, connectedPlayer.isInElevator,
                         connectedPlayer.isInHangarShipRoom, connectedPlayer.isExhausted, connectedPlayer.thisController.isGrounded });
 
@@ -114,28 +116,26 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(StartOfRound), nameof(OnClientDisconnect))]
         [HarmonyPostfix]
-        private static void OnClientDisconnect(StartOfRound __instance)
+        private static void OnClientDisconnect()
         {
-            if (__instance.IsServer && Plugin.StartingMoneyPerPlayerVal >= 0 && __instance.inShipPhase && __instance.gameStats.daysSpent == 0)
-            {
-                // Subtract from the terminal credits, then sync it to the clients
-                Plugin.MLS.LogInfo($"Player disconnected on day 0, subtracting {Plugin.StartingMoneyPerPlayerVal} from group credits");
-                currentCredits -= Plugin.StartingMoneyPerPlayerVal;
+            TerminalPatch.AdjustGroupCredits(false);
+        }
 
-                // Keep track of negatives to prevent exploits, but do not go below zero on the actual terminal
-                TerminalPatch.Instance.groupCredits = Mathf.Clamp(currentCredits, 0, int.MaxValue);
-                TerminalPatch.Instance.SyncGroupCreditsServerRpc(TerminalPatch.Instance.groupCredits, TerminalPatch.Instance.numberOfItemsInDropship);
-            }
+        [HarmonyPatch(typeof(StartOfRound), nameof(ResetShip))]
+        [HarmonyPostfix]
+        private static void ResetShip()
+        {
+            TerminalPatch.SetStartingMoneyPerPlayer(true);
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(LoadShipGrabbableItems))]
         [HarmonyPostfix]
         private static void LoadShipGrabbableItems()
         {
-            UpdateQuotaScreenText();
+            UpdateDeadlineMonitorText();
         }
 
-        public static void UpdateQuotaScreenText()
+        public static void UpdateDeadlineMonitorText()
         {
             if (!Plugin.ShowShipTotalBelowDeadline.Value)
             {
@@ -151,8 +151,9 @@ namespace GeneralImprovements.Patches
             else
             {
                 int shipLoot = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom && o.isInElevator).Sum(o => o.scrapValue);
-                string deadline = TimeOfDay.Instance.daysUntilDeadline >= 0 ? TimeOfDay.Instance.daysUntilDeadline.ToString() : "NOW";
-                instance.deadlineMonitorText.text = $"DEADLINE:\n{deadline} DAYS\nIN SHIP:\n${shipLoot}";
+                int days = TimeOfDay.Instance.daysUntilDeadline;
+                string deadline = days >= 0 ? $"{days} DAY{(days == 1 ? string.Empty : "S")}" : "NOW";
+                instance.deadlineMonitorText.text = $"DEADLINE:\n{deadline}\nIN SHIP:\n${shipLoot}";
             }
         }
     }

@@ -1,6 +1,19 @@
 # Changelog
 
 <ul>
+	<li><b>v1.0.16</b> - Fixing my code and adding compatibility improvements.</li>
+	<ul>
+		<li>Fixed the deadline text grammar again.</li>
+		<li>Fixed the money per player not checking for amount of players when the ship was reset (and other minor fixes with it).</li>
+		<li>Attached the ship's scan node to the ship so it appears to fly off with it when it leaves a moon.</li>
+		<ul>
+			<li>I put a tiny easter egg in related to this. :)</li>
+		</ul>
+		<li>Fixed terminal improvements compatibility with AdvancedCompany.</li>
+		<li>Fixed terminal cam L/R arrow compatibility with darmuhsTerminalStuff.</li>
+		<li>Fixed clipboard and sticky note spawning outside the ship.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.15</b> - Hotfix for gifts</li>
 	<ul>
 		<li>Fixing the little remaining bug where opening a gift inside the ship would leave it hovering.</li>

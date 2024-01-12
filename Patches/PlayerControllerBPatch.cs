@@ -166,7 +166,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SetItemInElevator()
         {
-            StartOfRoundPatch.UpdateQuotaScreenText();
+            StartOfRoundPatch.UpdateDeadlineMonitorText();
         }
 
         private static void ShiftRightFromSlot(PlayerControllerB player, int slot)

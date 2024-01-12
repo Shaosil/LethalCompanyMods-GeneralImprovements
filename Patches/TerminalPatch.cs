@@ -4,11 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Utilities;
 
 namespace GeneralImprovements.Patches
 {
     internal static class TerminalPatch
     {
+        private static int _currentCredits = 0;
         private static List<string> _commandHistory = new List<string>();
         private static int _historyCount;
         private static int _curHistoryIndex = 0;
@@ -23,11 +25,7 @@ namespace GeneralImprovements.Patches
 
             _historyCount = Math.Clamp(Plugin.TerminalHistoryItemCount.Value, 0, 100);
 
-            if (Plugin.StartingMoneyPerPlayerVal >= 0 && StartOfRound.Instance.gameStats.daysSpent == 0)
-            {
-                Plugin.MLS.LogInfo($"Day 0 Begin - Setting starting credits to {Plugin.StartingMoneyPerPlayerVal}");
-                TimeOfDay.Instance.quotaVariables.startingCredits = Plugin.StartingMoneyPerPlayerVal;
-            }
+            SetStartingMoneyPerPlayer(false);
 
             // Clear out the plain "Switched to player" text from the switch node
             var switchNodes = __instance.terminalNodes?.specialNodes?.Where(n => n.displayText.Contains("Switched radar to player.") || n.terminalEvent == "switchCamera");
@@ -52,6 +50,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(Terminal), nameof(OnSubmit))]
         [HarmonyPrefix]
+        [HarmonyBefore("AdvancedCompany")]
         private static void OnSubmit(Terminal __instance)
         {
             if (_historyCount <= 0 || __instance.textAdded < 3)
@@ -123,8 +122,19 @@ namespace GeneralImprovements.Patches
                     __instance.screenText.caretPosition = __instance.screenText.text.Length;
                     __instance.textAdded = curCommand.Length;
                 }
-                else if ((leftPressed || rightPressed) && __instance.displayingPersistentImage?.name == "mapTexture")
+                else if (leftPressed || rightPressed)
                 {
+                    Plugin.MLS.LogInfo($"CUR NODE: {__instance.currentNode.name}");
+                    Plugin.MLS.LogInfo($"CUR TERMINAL TEX: {__instance.terminalImage?.texture?.name}");
+                    Plugin.MLS.LogInfo($"CUR PERSISTENT TEX: {__instance.displayingPersistentImage?.name}");
+
+                    // Do nothing if we are not viewing the map node currently
+                    var mapScreens = new[] { "ViewInsideShipCam", "SwitchedCam" };
+                    if (__instance.displayingPersistentImage == null && !mapScreens.Any(s => (__instance.currentNode?.name ?? string.Empty).Contains(s)))
+                    {
+                        return;
+                    }
+
                     // Cycle through cameras
                     int originalIndex = StartOfRound.Instance.mapScreen.targetTransformIndex;
                     int nextIndex = originalIndex;
@@ -147,6 +157,45 @@ namespace GeneralImprovements.Patches
                         StartOfRound.Instance.mapScreen.SwitchRadarTargetAndSync(nextIndex);
                         __instance.LoadNewNode(__instance.terminalNodes.specialNodes[20]);
                     }
+                }
+            }
+        }
+
+        public static void SetStartingMoneyPerPlayer(bool force)
+        {
+            // Grab initial credits value if this is the server
+            if (Instance.IsServer && Plugin.StartingMoneyPerPlayerVal >= 0)
+            {
+                bool hasSave = ES3.KeyExists("GroupCredits", GameNetworkManager.Instance.currentSaveFileName);
+
+                // Set initial credits value if they don't already have one, or this is a force reset
+                if (!hasSave || force)
+                {
+                    _currentCredits = Plugin.StartingMoneyPerPlayerVal * (StartOfRound.Instance.connectedPlayersAmount + 1);
+                    Plugin.MLS.LogInfo($"Setting starting money to {_currentCredits} ({Plugin.StartingMoneyPerPlayerVal} per player x {StartOfRound.Instance.connectedPlayersAmount + 1} current players).");
+                    TimeOfDay.Instance.quotaVariables.startingCredits = _currentCredits;
+                    Instance.groupCredits = Math.Clamp(_currentCredits, 0, _currentCredits);
+                    Instance.SyncGroupCreditsServerRpc(Instance.groupCredits, Instance.numberOfItemsInDropship);
+                }
+                else
+                {
+                    _currentCredits = ES3.Load("GroupCredits", GameNetworkManager.Instance.currentSaveFileName, Plugin.StartingMoneyPerPlayerVal);
+                }
+            }
+        }
+
+        public static void AdjustGroupCredits(bool adding)
+        {
+            if (Instance.IsServer && Plugin.StartingMoneyPerPlayerVal >= 0 && StartOfRound.Instance.inShipPhase && StartOfRound.Instance.gameStats.daysSpent == 0)
+            {
+                _currentCredits += Plugin.StartingMoneyPerPlayerVal * (adding ? 1 : -1);
+                Plugin.MLS.LogInfo($"{(adding ? "Adding" : "Subtracting")} {Plugin.StartingMoneyPerPlayerVal} {(adding ? "to" : "from")} group credits.");
+                Instance.groupCredits = Math.Clamp(_currentCredits, 0, _currentCredits);
+
+                // If this is an add, it was on client connect and will be synced automatically
+                if (!adding)
+                {
+                    Instance.SyncGroupCreditsServerRpc(Instance.groupCredits, Instance.numberOfItemsInDropship);
                 }
             }
         }

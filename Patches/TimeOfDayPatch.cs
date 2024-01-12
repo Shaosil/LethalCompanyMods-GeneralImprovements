@@ -9,7 +9,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void UpdateProfitQuotaCurrentTime()
         {
-            StartOfRoundPatch.UpdateQuotaScreenText();
+            StartOfRoundPatch.UpdateDeadlineMonitorText();
         }
     }
 }

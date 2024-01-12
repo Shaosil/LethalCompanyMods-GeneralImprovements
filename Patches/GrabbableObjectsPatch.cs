@@ -69,7 +69,7 @@ namespace GeneralImprovements.Patches
             }
 
             // Prevent ship items from falling through objects when they spawn (prefix)
-            if (Plugin.FixItemsFallingThrough.Value && __instance.isInShipRoom && __instance.isInElevator && __instance.targetFloorPosition == Vector3.zero)
+            if (Plugin.FixItemsFallingThrough.Value && __instance.isInShipRoom && __instance.isInElevator && __instance.scrapPersistedThroughRounds)
             {
                 _itemsToKeepInPlace.Add(__instance);
             }
