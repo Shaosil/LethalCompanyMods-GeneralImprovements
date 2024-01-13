@@ -1,5 +1,6 @@
 ﻿using GameNetcodeStuff;
 using HarmonyLib;
+using System;
 
 namespace GeneralImprovements.Patches
 {
@@ -7,14 +8,23 @@ namespace GeneralImprovements.Patches
     {
         private static PlayerControllerB _lastPlayerTeleported;
 
+        [HarmonyPatch(typeof(ShipTeleporter), "Awake")]
+        [HarmonyPrefix]
+        private static void Awake_Pre(ShipTeleporter __instance)
+        {
+            // Overwrite the cooldown values
+            int regularCooldown = Math.Clamp(Plugin.RegularTeleporterCooldown.Value, 0, 300);
+            int inverseCooldown = Math.Clamp(Plugin.InverseTeleporterCooldown.Value, 0, 300);
+            __instance.cooldownAmount = __instance.isInverseTeleporter ? inverseCooldown : regularCooldown;
+        }
 
-        [HarmonyPatch(typeof(ShipTeleporter), nameof(Awake))]
+        [HarmonyPatch(typeof(ShipTeleporter), "Awake")]
         [HarmonyPostfix]
-        private static void Awake(ShipTeleporter __instance)
+        private static void Awake_Post(ShipTeleporter __instance)
         {
             if (__instance.isInverseTeleporter)
             {
-                __instance.GetComponentInChildren<InteractTrigger>().hoverTip = "Beam out : [LMB]";
+                __instance.GetComponentInChildren<InteractTrigger>().hoverTip = "Beam out : [E]";
             }
         }
 

@@ -24,6 +24,8 @@ namespace GeneralImprovements
         public static ConfigEntry<float> ScrollDelay { get; private set; }
         public static ConfigEntry<int> TerminalHistoryItemCount { get; private set; }
         public static ConfigEntry<bool> HideClipboardAndStickyNote { get; private set; }
+        public static ConfigEntry<bool> ShowExtraShipMonitors { get; private set; }
+        public static ConfigEntry<bool> SyncLittleScreensPower { get; private set; }
 
 
         private const string FixesSection = "Fixes";
@@ -40,6 +42,8 @@ namespace GeneralImprovements
         public static ConfigEntry<string> CounterClockwiseKey { get; private set; }
         public static ConfigEntry<bool> ShipMapCamDueNorth { get; private set; }
         public static ConfigEntry<bool> ToolsDoNotAttractLightning { get; private set; }
+        public static ConfigEntry<int> RegularTeleporterCooldown { get; private set; }
+        public static ConfigEntry<int> InverseTeleporterCooldown { get; private set; }
 
         private void Awake()
         {
@@ -55,6 +59,8 @@ namespace GeneralImprovements
             ScrollDelay = Config.Bind(GeneralSection, nameof(ScrollDelay), 0.1f, "The minimum time you must wait to scroll to another item in your inventory. Ignores values outside of 0.05 - 0.3. Vanilla: 0.3.");
             TerminalHistoryItemCount = Config.Bind(GeneralSection, nameof(TerminalHistoryItemCount), 10, "How many items to keep in your terminal's command history. Ignores values outside of 0 - 100. Previous terminal commands may be navigated by using the up/down arrow keys.");
             HideClipboardAndStickyNote = Config.Bind(GeneralSection, nameof(HideClipboardAndStickyNote), false, "If set to true, the game will not show the clipboard or sticky note when the game loads.");
+            ShowExtraShipMonitors = Config.Bind(GeneralSection, nameof(ShowExtraShipMonitors), true, "If set to true, The ship will show extra information (sales, weather, etc) on various unused monitors in the ship.");
+            SyncLittleScreensPower = Config.Bind(GeneralSection, nameof(SyncLittleScreensPower), true, "If set to true, The smaller monitors above the map screen will turn off and on when the map screen power is toggled.");
 
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
             FixItemsFallingThrough = Config.Bind(FixesSection, nameof(FixItemsFallingThrough), true, "Fixes items falling through furniture on the ship when loading the game.");
@@ -67,6 +73,8 @@ namespace GeneralImprovements
             CounterClockwiseKey = Config.Bind(TweaksSection, nameof(CounterClockwiseKey), Key.LeftShift.ToString(), $"If SnapObjectsByDegrees > 0, configures which modifier key spins it CCW. Valid values: {validKeys}");
             ShipMapCamDueNorth = Config.Bind(TweaksSection, nameof(ShipMapCamDueNorth), false, "If set to true, the ship's map camera will rotate so that it faces north evenly, instead of showing everything at an angle.");
             ToolsDoNotAttractLightning = Config.Bind(TweaksSection, nameof(ToolsDoNotAttractLightning), false, "If set to true, all useful tools (jetpacks, keys, radar boosters, shovels & signs, tzp inhalant, and zap guns) will no longer attract lighning.");
+            RegularTeleporterCooldown = Config.Bind(TweaksSection, nameof(RegularTeleporterCooldown), 10, "How many seconds to wait in between button presses for the REGULAR teleporter. Vanilla = 10. Ignores values outside of 0 - 300.");
+            InverseTeleporterCooldown = Config.Bind(TweaksSection, nameof(InverseTeleporterCooldown), 10, "How many seconds to wait in between button presses for the INVERSE teleporter. Vanilla = 210. Ignores values outside of 0 - 300.");
 
             MLS.LogDebug("Configuration Initialized.");
 

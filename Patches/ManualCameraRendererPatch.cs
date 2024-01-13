@@ -27,5 +27,19 @@ namespace GeneralImprovements.Patches
                 TerminalPatch.Instance.scrollBarVertical.value = 0;
             }
         }
+
+        [HarmonyPatch(typeof(ManualCameraRenderer), nameof(SwitchScreenOn))]
+        [HarmonyPostfix]
+        private static void SwitchScreenOn(bool on)
+        {
+            if (Plugin.SyncLittleScreensPower.Value)
+            {
+                StartOfRound.Instance.profitQuotaMonitorBGImage.gameObject.SetActive(on);
+                StartOfRound.Instance.profitQuotaMonitorText.gameObject.SetActive(on);
+                StartOfRound.Instance.deadlineMonitorText.gameObject.SetActive(on);
+                StartOfRound.Instance.deadlineMonitorBGImage.gameObject.SetActive(on);
+                SceneHelper.ToggleExtraMonitorPower(on);
+            }
+        }
     }
 }

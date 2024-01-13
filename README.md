@@ -19,6 +19,8 @@ Everything is mostly configurable and improves (IMO) several things about the ga
 	<li>The ESC key will now cancel out of ship build mode instead of bringing up the menu (similar to the terminal).</li>
 	<li>Adds a config setting to hide the clipboard and sticky note. Defaults to off.</li>
 	<li>Adds text to the 'Deadline' monitor to also display current ship loot total.</li>
+	<li>Changes the inverse teleporter cooldown to be the same as the regular (10 seconds). Both cooldowns may be customized in the config.</li>
+	<li>The little monitors above the map screen will now share the power state of the map screen. Behavior may be disabled in config.</li>
 </ul>
 
 ### NEW FEATURES:

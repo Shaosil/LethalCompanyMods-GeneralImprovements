@@ -74,10 +74,10 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(PlayerControllerB), "PlaceObjectClientRpc")]
         [HarmonyPatch(typeof(PlayerControllerB), "ThrowObjectClientRpc")]
-        [HarmonyPatch(typeof(PlayerControllerB), "DespawnHeldObjectOnClient")]
+        [HarmonyPatch(typeof(PlayerControllerB), "DespawnHeldObjectClientRpc")]
         [HarmonyPatch(typeof(PlayerControllerB), "DestroyItemInSlotClientRpc")]
         [HarmonyPostfix]
-        private static void ItemLeftSlot(PlayerControllerB __instance)
+        private static void ItemLeftSlot(PlayerControllerB __instance, MethodBase __originalMethod)
         {
             // If we are not configured to rearrange, or AdvancedCompany is active, skip this patch
             if (!Plugin.RearrangeOnDrop.Value || AdvancedCompanyHelper.IsActive)

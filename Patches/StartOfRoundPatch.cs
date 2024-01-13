@@ -54,6 +54,9 @@ namespace GeneralImprovements.Patches
             __instance.deadlineMonitorText.fontSize = __instance.deadlineMonitorText.fontSize * 0.95f;
             __instance.profitQuotaMonitorText.rectTransform.sizeDelta = new Vector2(profitQuotaSize.x * 0.95f, profitQuotaSize.y);
             __instance.profitQuotaMonitorText.fontSize = __instance.profitQuotaMonitorText.fontSize * 0.95f;
+
+            // Create new monitors
+            SceneHelper.CreateExtraMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(OnShipLandedMiscEvents))]

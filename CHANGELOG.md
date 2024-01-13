@@ -1,6 +1,14 @@
 # Changelog
 
 <ul>
+	<li><b>v1.0.17</b> - More tweaks, and key fix</li>
+	<ul>
+		<li>Added a config value for customizing the regular and inverse teleport cooldown seconds (both default to 10).</li>
+		<li>Now syncing the little monitors' power state with the map screen (configurable).</li>
+		<li>Fixed a bug in my code that broke inventory slots when using a key to unlock a door.</li>
+		<li>Added little WIP monitors above the profit quote and deadline monitors - more to come in future updates.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.16</b> - Fixing my code and adding compatibility improvements.</li>
 	<ul>
 		<li>Fixed the deadline text grammar again.</li>
