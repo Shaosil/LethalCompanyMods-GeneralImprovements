@@ -86,6 +86,9 @@ namespace GeneralImprovements
             Harmony.CreateAndPatchAll(typeof(EntranceTeleportPatch));
             MLS.LogDebug("EntranceTeleport patched.");
 
+            Harmony.CreateAndPatchAll(typeof(GameNetworkManagerPatch));
+            MLS.LogDebug("GameNetworkManager patched.");
+
             Harmony.CreateAndPatchAll(typeof(GrabbableObjectsPatch));
             MLS.LogDebug("GrabbableObjects patched.");
 

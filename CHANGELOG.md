@@ -1,6 +1,13 @@
 # Changelog
 
 <ul>
+	<li><b>v1.0.18</b> - More Fixes and improvements</li>
+	<ul>
+		<li>Fixed (hopefully!) the rest of the problems related to ship objects floating in the wrong spot when loading a game.</li>
+		<li>Fixed softlock that occurred in orbit if CorporateRestructure was installed.</li>
+		<li>Updated the max number of items able to be saved in the game file from 45 to 999.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.17</b> - More tweaks, and key fix</li>
 	<ul>
 		<li>Added a config value for customizing the regular and inverse teleport cooldown seconds (both default to 10).</li>

@@ -84,7 +84,7 @@ namespace GeneralImprovements.Patches
             {
                 __instance.fallTime = 1;
                 __instance.reachedFloorTarget = false;
-                __instance.targetFloorPosition = __instance.startFallingPosition;
+                __instance.targetFloorPosition = __instance.transform.localPosition;
                 _itemsToKeepInPlace.Remove(__instance);
             }
         }

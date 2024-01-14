@@ -34,10 +34,10 @@ namespace GeneralImprovements.Patches
         {
             if (Plugin.SyncLittleScreensPower.Value)
             {
-                StartOfRound.Instance.profitQuotaMonitorBGImage.gameObject.SetActive(on);
-                StartOfRound.Instance.profitQuotaMonitorText.gameObject.SetActive(on);
-                StartOfRound.Instance.deadlineMonitorText.gameObject.SetActive(on);
-                StartOfRound.Instance.deadlineMonitorBGImage.gameObject.SetActive(on);
+                if (StartOfRound.Instance.profitQuotaMonitorBGImage != null) StartOfRound.Instance.profitQuotaMonitorBGImage.gameObject.SetActive(on);
+                if (StartOfRound.Instance.profitQuotaMonitorText != null) StartOfRound.Instance.profitQuotaMonitorText.gameObject.SetActive(on);
+                if (StartOfRound.Instance.deadlineMonitorText != null) StartOfRound.Instance.deadlineMonitorText.gameObject.SetActive(on);
+                if (StartOfRound.Instance.deadlineMonitorBGImage != null) StartOfRound.Instance.deadlineMonitorBGImage.gameObject.SetActive(on);
                 SceneHelper.ToggleExtraMonitorPower(on);
             }
         }

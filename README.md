@@ -21,6 +21,7 @@ Everything is mostly configurable and improves (IMO) several things about the ga
 	<li>Adds text to the 'Deadline' monitor to also display current ship loot total.</li>
 	<li>Changes the inverse teleporter cooldown to be the same as the regular (10 seconds). Both cooldowns may be customized in the config.</li>
 	<li>The little monitors above the map screen will now share the power state of the map screen. Behavior may be disabled in config.</li>
+	<li>Increases the max items able to be saved on the ship from 45 to 999 (affects saving and loading game files).</li>
 </ul>
 
 ### NEW FEATURES:

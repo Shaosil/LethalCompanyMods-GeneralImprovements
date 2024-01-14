@@ -57,6 +57,9 @@ namespace GeneralImprovements.Patches
 
             // Create new monitors
             SceneHelper.CreateExtraMonitors();
+
+            // Fix max items allowed to be stored
+            __instance.maxShipItemCapacity = 999;
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(OnShipLandedMiscEvents))]
