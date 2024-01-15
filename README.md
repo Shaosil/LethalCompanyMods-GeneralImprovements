@@ -18,7 +18,6 @@ Everything is mostly configurable and improves (IMO) several things about the ga
 	<li>Allows the ship's map camera to be rotated so that it faces straight up, instead of at an angle. This behavior is DISABLED by default in the config.</li>
 	<li>The ESC key will now cancel out of ship build mode instead of bringing up the menu (similar to the terminal).</li>
 	<li>Adds a config setting to hide the clipboard and sticky note. Defaults to off.</li>
-	<li>Adds text to the 'Deadline' monitor to also display current ship loot total.</li>
 	<li>Changes the inverse teleporter cooldown to be the same as the regular (10 seconds). Both cooldowns may be customized in the config.</li>
 	<li>The little monitors above the map screen will now share the power state of the map screen. Behavior may be disabled in config.</li>
 	<li>Increases the max items able to be saved on the ship from 45 to 999 (affects saving and loading game files).</li>
@@ -31,6 +30,9 @@ Everything is mostly configurable and improves (IMO) several things about the ga
 	<li>Using the left/right arrow keys at the terminal while viewing the radar will quickly cycle through available targets.</li>
 	<li>Hosts may change the starting money per player in the config. Default is now 30 (ranges from -1 - 1000). Setting to -1 will disable this behavior.</li>
 	<li>[Host Only] Added an option (default OFF) to prevent tools from getting struck by lightning. This is a bit of a cheat in some opinions, so I recommend leaving it off. If the host/server player has this enabled, it will apply to all clients.</li>
+	<li>Adds text to the 'Deadline' monitor to also display current ship loot total.</li>
+	<li>[Host Required] Adds an option to roll over surplus credits to the next quota. Defaults to OFF in the config. If clients do NOT have this enabled, there will be visual desyncs only.</li>
+	<li>Adds more little monitors above the profit quota and deadline monitors, with information like weather, sales, time, etc. Work in progress, may be disabled in the config.</li>
 </ul>
 
 ### MINOR BUGFIXES:

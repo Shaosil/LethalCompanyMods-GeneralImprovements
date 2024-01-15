@@ -1,6 +1,15 @@
 # Changelog
 
 <ul>
+	<li><b>v1.0.19</b> - Weather Monitor, Rollover, and Fixes</li>
+	<ul>
+		<li>Fixing the nutcracker shotgun (and any other similar problem) breaking the scan terminal command.</li>
+		<li>Added an option in the config to allow surplus credits to roll over to the next quota. Default OFF.</li>
+		<li>Fixed a bug with the terminal history that was removing the most recent item instead of the last when reaching the history limit.</li>
+		<li>Fleshed out the new weather monitor a bit, including a config setting for 'fancy' animated ASCII art for current weather.</li>
+		<li>Fixed the clipboard and sticky note being rotated incorrectly (again!) on clients.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.18</b> - More Fixes and improvements</li>
 	<ul>
 		<li>Fixed (hopefully!) the rest of the problems related to ship objects floating in the wrong spot when loading a game.</li>

@@ -67,7 +67,7 @@ namespace GeneralImprovements.Patches
 
                 if (_commandHistory.Count > _historyCount)
                 {
-                    _commandHistory.RemoveAt(_commandHistory.Count - 1);
+                    _commandHistory.RemoveAt(0);
                 }
             }
 

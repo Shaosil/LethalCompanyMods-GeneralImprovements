@@ -85,6 +85,14 @@ namespace GeneralImprovements.Patches
             Object.Destroy(RoundManagerPatch.CurShipNode.gameObject);
         }
 
+        [HarmonyPatch(typeof(StartOfRound), nameof(SetMapScreenInfoToCurrentLevel))]
+        [HarmonyPostfix]
+        private static void SetMapScreenInfoToCurrentLevel()
+        {
+            // Update weather monitor text
+            SceneHelper.UpdateWeatherMonitor();
+        }
+
         [HarmonyPatch(typeof(StartOfRound), nameof(SwitchMapMonitorPurpose))]
         [HarmonyPostfix]
         private static void SwitchMapMonitorPurpose(StartOfRound __instance, bool displayInfo)
@@ -139,6 +147,13 @@ namespace GeneralImprovements.Patches
         private static void LoadShipGrabbableItems()
         {
             UpdateDeadlineMonitorText();
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(Update))]
+        [HarmonyPostfix]
+        private static void Update()
+        {
+            SceneHelper.AnimateWeatherMonitor();
         }
 
         public static void UpdateDeadlineMonitorText()
