@@ -4,7 +4,7 @@
         <TargetFramework>netstandard2.1</TargetFramework>
         <Configurations>Debug;Release;Deploy</Configurations>
         <PackageDir>..\PACKAGED\$(MSBuildProjectName)</PackageDir>
-        <GamePath>F:\Steam Games\steamapps\common\Lethal Company\BepInEx\plugins\</GamePath>
+        <GamePath>F:\Steam Games\steamapps\common\Lethal Company\BepInEx\plugins\ShaosilGaming-GeneralImprovements\</GamePath>
     </PropertyGroup>
 
     <ItemGroup>
@@ -33,8 +33,14 @@
         <Reference Include="UnityEngine.AnimationModule">
           <HintPath>DLLs\UnityEngine.AnimationModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.AssetBundleModule">
+          <HintPath>DLLs\UnityEngine.AssetBundleModule.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine.CoreModule">
           <HintPath>DLLs\UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.ImageConversionModule">
+          <HintPath>DLLs\UnityEngine.ImageConversionModule.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.PhysicsModule">
           <HintPath>DLLs\UnityEngine.PhysicsModule.dll</HintPath>
@@ -80,9 +86,11 @@
         </None>
     </ItemGroup>
 
-    <Target Name="CopyDLLToGame" AfterTargets="PostBuildEvent" Condition="$(Configuration) != 'Debug'">
+    <Target Name="CopyFilesToGamePath" AfterTargets="PostBuildEvent" Condition="$(Configuration) != 'Debug'">
         <Message Text="Copying DLL to $(GamePath)..." Importance="high" />
         <Exec Command="copy $(TargetPath) &quot;$(GamePath)&quot;" />
+        <Message Text="Copying assets to $(GamePath)..." Importance="high" />
+        <Exec Command="copy assets &quot;$(GamePath)&quot;" />
     </Target>
 
     <Target Name="ZipMod" AfterTargets="PostBuildEvent" Condition="$(Configuration) == 'Deploy'">
@@ -90,7 +98,7 @@
         <RemoveDir Directories="$(PackageDir)" />
 
         <Message Text="Copying mod files to $(PackageDir)..." Importance="high" />
-        <Copy SourceFiles="$(TargetPath);icon.png;manifest.json;CHANGELOG.md;README.md" DestinationFolder="$(PackageDir)" />
+        <Copy SourceFiles="$(TargetPath);assets;icon.png;manifest.json;CHANGELOG.md;README.md" DestinationFolder="$(PackageDir)" />
 
         <ZipDirectory SourceDirectory="$(PackageDir)" DestinationFile="..\PACKAGED\$(MSBuildProjectName).zip" Overwrite="true" />
     </Target>

@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using GeneralImprovements.Utilities;
+using HarmonyLib;
 
 namespace GeneralImprovements.Patches
 {

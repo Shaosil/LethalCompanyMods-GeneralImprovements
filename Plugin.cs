@@ -3,6 +3,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using GeneralImprovements.OtherMods;
 using GeneralImprovements.Patches;
+using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System;
 using System.Linq;
@@ -24,9 +25,12 @@ namespace GeneralImprovements
         public static ConfigEntry<float> ScrollDelay { get; private set; }
         public static ConfigEntry<int> TerminalHistoryItemCount { get; private set; }
         public static ConfigEntry<bool> HideClipboardAndStickyNote { get; private set; }
-        public static ConfigEntry<bool> ShowExtraShipMonitors { get; private set; }
+        public static ConfigEntry<bool> ShowShipTimeMonitor { get; private set; }
+        public static ConfigEntry<bool> ShowShipWeatherMonitor { get; private set; }
         public static ConfigEntry<bool> FancyWeatherMonitor { get; private set; }
+        public static ConfigEntry<bool> ShowShipSalesMonitor { get; private set; }
         public static ConfigEntry<bool> SyncLittleScreensPower { get; private set; }
+        public static ConfigEntry<bool> AddTargetReticle { get; private set; }
 
         private const string FixesSection = "Fixes";
         public static ConfigEntry<bool> FixInternalFireExits { get; private set; }
@@ -37,6 +41,8 @@ namespace GeneralImprovements
         private const string TweaksSection = "Tweaks";
         public static ConfigEntry<int> StartingMoneyPerPlayer { get; private set; }
         public static int StartingMoneyPerPlayerVal => Math.Clamp(StartingMoneyPerPlayer.Value, -1, 1000);
+        public static ConfigEntry<int> MinimumStartingMoney { get; private set; }
+        public static int MinimumStartingMoneyVal => Math.Clamp(MinimumStartingMoney.Value, StartingMoneyPerPlayerVal, 1000);
         public static ConfigEntry<int> SnapObjectsByDegrees { get; private set; }
         public static ConfigEntry<string> FreeRotateKey { get; private set; }
         public static ConfigEntry<string> CounterClockwiseKey { get; private set; }
@@ -60,9 +66,12 @@ namespace GeneralImprovements
             ScrollDelay = Config.Bind(GeneralSection, nameof(ScrollDelay), 0.1f, "The minimum time you must wait to scroll to another item in your inventory. Ignores values outside of 0.05 - 0.3. Vanilla: 0.3.");
             TerminalHistoryItemCount = Config.Bind(GeneralSection, nameof(TerminalHistoryItemCount), 10, "How many items to keep in your terminal's command history. Ignores values outside of 0 - 100. Previous terminal commands may be navigated by using the up/down arrow keys.");
             HideClipboardAndStickyNote = Config.Bind(GeneralSection, nameof(HideClipboardAndStickyNote), false, "If set to true, the game will not show the clipboard or sticky note when the game loads.");
-            ShowExtraShipMonitors = Config.Bind(GeneralSection, nameof(ShowExtraShipMonitors), true, "If set to true, The ship will show extra information (sales, weather, etc) on various unused monitors in the ship.");
-            FancyWeatherMonitor = Config.Bind(GeneralSection, nameof(FancyWeatherMonitor), true, "If set to true and paired with ShowExtraShipMonitors, the weather monitor will display ASCII art instead of text descriptions.");
+            ShowShipTimeMonitor = Config.Bind(GeneralSection, nameof(ShowShipTimeMonitor), true, "If set to true, The ship will show the time on one of the unused monitors above the landing lever.");
+            ShowShipWeatherMonitor = Config.Bind(GeneralSection, nameof(ShowShipWeatherMonitor), true, "If set to true, The ship will show the weather on one of the unused monitors above the landing lever.");
+            FancyWeatherMonitor = Config.Bind(GeneralSection, nameof(FancyWeatherMonitor), true, "If set to true and paired with ShowShipWeatherMonitor, the weather monitor will display ASCII art instead of text descriptions.");
+            ShowShipSalesMonitor = Config.Bind(GeneralSection, nameof(ShowShipSalesMonitor), true, "If set to true, The ship will show basic sales info on one of the unused monitors above the landing lever.");
             SyncLittleScreensPower = Config.Bind(GeneralSection, nameof(SyncLittleScreensPower), true, "If set to true, The smaller monitors above the map screen will turn off and on when the map screen power is toggled.");
+            AddTargetReticle = Config.Bind(GeneralSection, nameof(AddTargetReticle), true, "If set to true, the HUD will display a small white dot so you can see exactly where you are pointing at all times.");
 
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
             FixItemsFallingThrough = Config.Bind(FixesSection, nameof(FixItemsFallingThrough), true, "Fixes items falling through furniture on the ship when loading the game.");
@@ -70,6 +79,7 @@ namespace GeneralImprovements
             FixPersonalScanner = Config.Bind(FixesSection, nameof(FixPersonalScanner), true, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you.");
 
             StartingMoneyPerPlayer = Config.Bind(TweaksSection, nameof(StartingMoneyPerPlayer), 30, "How much starting money the group gets per player. Set to -1 to disable. Ignores values outside of -1 - 1000. Adjusts money as players join and leave, until the game starts.");
+            MinimumStartingMoney = Config.Bind(TweaksSection, nameof(MinimumStartingMoney), 30, "When paired with StartingMoneyPerPlayer, will ensure a group always starts with at least this much money. Ignores values outside of StartingMoneyPerPlayer - 1000.");
             SnapObjectsByDegrees = Config.Bind(TweaksSection, nameof(SnapObjectsByDegrees), 45, "Build mode will switch to snap turning (press instead of hold) by this many degrees at a time. Setting it to 0 uses vanilla behavior. Must be an interval of 15 and go evenly into 360.");
             FreeRotateKey = Config.Bind(TweaksSection, nameof(FreeRotateKey), Key.LeftAlt.ToString(), $"If SnapObjectsByDegrees > 0, configures which modifer key activates free rotation. Valid values: {validKeys}");
             CounterClockwiseKey = Config.Bind(TweaksSection, nameof(CounterClockwiseKey), Key.LeftShift.ToString(), $"If SnapObjectsByDegrees > 0, configures which modifier key spins it CCW. Valid values: {validKeys}");
@@ -131,6 +141,7 @@ namespace GeneralImprovements
             // Load info about any external mods
             ReservedItemSlotCoreHelper.Initialize();
             AdvancedCompanyHelper.Initialize();
+            AssetBundleHelper.Initialize();
 
             MLS.LogInfo($"{Metadata.PLUGIN_NAME} v{Metadata.VERSION} fully loaded.");
         }

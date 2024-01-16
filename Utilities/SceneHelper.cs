@@ -1,5 +1,4 @@
-﻿using GeneralImprovements.Utilities;
-using System;
+﻿using System;
 using System.Linq;
 using System.Text;
 using TMPro;
@@ -8,14 +7,16 @@ using UnityEngine.UI;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
-namespace GeneralImprovements
+namespace GeneralImprovements.Utilities
 {
     internal static class SceneHelper
     {
-        private static Image _salesMonitorBG;
-        private static TextMeshProUGUI _salesMonitorText;
+        private static Image _timeMonitorBG;
+        private static TextMeshProUGUI _timeMonitorText;
         private static Image _weatherMonitorBG;
         private static TextMeshProUGUI _weatherMonitorText;
+        private static Image _salesMonitorBG;
+        private static TextMeshProUGUI _salesMonitorText;
 
         private static int _curWeatherAnimIndex = 0;
         private static int _curWeatherOverlayIndex = 0;
@@ -31,25 +32,30 @@ namespace GeneralImprovements
 
         public static void CreateExtraMonitors()
         {
-            if (!Plugin.ShowExtraShipMonitors.Value)
+            // Copy the display and quota objects
+            if (Plugin.ShowShipTimeMonitor.Value)
             {
-                return;
+                var existingProfitBG = StartOfRound.Instance.profitQuotaMonitorBGImage;
+                var existingProfitText = StartOfRound.Instance.profitQuotaMonitorText;
+                _timeMonitorBG = Object.Instantiate(existingProfitBG, existingProfitBG.transform.parent);
+                _timeMonitorText = Object.Instantiate(existingProfitText, existingProfitText.transform.parent);
+                _timeMonitorText.text = "TIME COMING SOON";
+            }
+            if (Plugin.ShowShipWeatherMonitor.Value)
+            {
+                var existingDeadlineBG = StartOfRound.Instance.deadlineMonitorBGImage;
+                var existingDeadlineText = StartOfRound.Instance.deadlineMonitorText;
+                _weatherMonitorBG = Object.Instantiate(existingDeadlineBG, existingDeadlineBG.transform.parent);
+                _weatherMonitorText = Object.Instantiate(existingDeadlineText, existingDeadlineText.transform.parent);
+                UpdateWeatherMonitor();
+            }
+            if (Plugin.ShowShipSalesMonitor.Value)
+            {
+                // TODO
             }
 
-            // Copy the display and quota objects
-            var existingProfitBG = StartOfRound.Instance.profitQuotaMonitorBGImage;
-            var existingProfitText = StartOfRound.Instance.profitQuotaMonitorText;
-            var existingDeadlineBG = StartOfRound.Instance.deadlineMonitorBGImage;
-            var existingDeadlineText = StartOfRound.Instance.deadlineMonitorText;
-            _salesMonitorBG = Object.Instantiate(existingProfitBG, existingProfitBG.transform.parent);
-            _salesMonitorText = Object.Instantiate(existingProfitText, existingProfitText.transform.parent);
-            _salesMonitorText.text = "SALES COMING SOON";
-            _weatherMonitorBG = Object.Instantiate(existingDeadlineBG, existingDeadlineBG.transform.parent);
-            _weatherMonitorText = Object.Instantiate(existingDeadlineText, existingDeadlineText.transform.parent);
-            UpdateWeatherMonitor();
-
             // Position our new friends by offset in case things move around
-            foreach (var newObj in new MonoBehaviour[] { _salesMonitorBG, _salesMonitorText, _weatherMonitorBG, _weatherMonitorText })
+            foreach (var newObj in new MonoBehaviour[] { _timeMonitorBG, _timeMonitorText, _weatherMonitorBG, _weatherMonitorText, _salesMonitorBG, _salesMonitorText }.Where(x => x != null))
             {
                 newObj.transform.localPosition += new Vector3(0, 455, -28);
                 newObj.transform.localEulerAngles += new Vector3(-18, 0, 0);
@@ -60,8 +66,8 @@ namespace GeneralImprovements
         {
             if (Plugin.SyncLittleScreensPower.Value)
             {
-                if (_salesMonitorBG != null) _salesMonitorBG.gameObject.SetActive(on);
-                if (_salesMonitorText != null) _salesMonitorText.gameObject.SetActive(on);
+                if (_timeMonitorBG != null) _timeMonitorBG.gameObject.SetActive(on);
+                if (_timeMonitorText != null) _timeMonitorText.gameObject.SetActive(on);
                 if (_weatherMonitorBG != null) _weatherMonitorBG.gameObject.SetActive(on);
                 if (_weatherMonitorText != null) _weatherMonitorText.gameObject.SetActive(on);
             }
@@ -69,7 +75,7 @@ namespace GeneralImprovements
 
         public static void UpdateWeatherMonitor()
         {
-            if (Plugin.ShowExtraShipMonitors.Value && _weatherMonitorText != null)
+            if (Plugin.ShowShipWeatherMonitor.Value && _weatherMonitorText != null)
             {
                 Plugin.MLS.LogInfo("Updating weather monitor");
 

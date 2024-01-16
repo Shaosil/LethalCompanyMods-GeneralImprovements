@@ -1,9 +1,11 @@
 ﻿using GameNetcodeStuff;
 using GeneralImprovements.OtherMods;
+using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System;
 using System.Reflection;
 using Unity.Netcode;
+using UnityEngine;
 
 namespace GeneralImprovements.Patches
 {
@@ -22,6 +24,14 @@ namespace GeneralImprovements.Patches
 
                 return _timeSinceSwitchingSlotsField;
             }
+        }
+        private static float _originalCursorScale = 0;
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(Start))]
+        [HarmonyPostfix]
+        private static void Start(PlayerControllerB __instance)
+        {
+            _originalCursorScale = __instance.cursorIcon.transform.localScale.x;
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(FirstEmptyItemSlot))]
@@ -167,6 +177,30 @@ namespace GeneralImprovements.Patches
         private static void SetItemInElevator()
         {
             StartOfRoundPatch.UpdateDeadlineMonitorText();
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(SetHoverTipAndCurrentInteractTrigger))]
+        [HarmonyPostfix]
+        private static void SetHoverTipAndCurrentInteractTrigger(PlayerControllerB __instance)
+        {
+            if (Plugin.AddTargetReticle.Value && AssetBundleHelper.TargetReticle != null)
+            {
+                // Use our reticle and resize
+                if (__instance.hoveringOverTrigger == null)
+                {
+                    __instance.cursorIcon.sprite = AssetBundleHelper.TargetReticle;
+                    __instance.cursorIcon.color = new Color(1, 1, 1, 0.05f);
+                    __instance.cursorIcon.enabled = true;
+                    __instance.cursorIcon.transform.localScale = Vector3.one * 0.02f;
+                }
+                else if (__instance.hoveringOverTrigger is InteractTrigger component)
+                {
+                    // Make sure we reset/turn back off when we are hovering over something
+                    __instance.cursorIcon.sprite = component.hoverIcon;
+                    __instance.cursorIcon.color = Color.white;
+                    __instance.cursorIcon.transform.localScale = Vector3.one * _originalCursorScale;
+                }
+            }
         }
 
         private static void ShiftRightFromSlot(PlayerControllerB player, int slot)

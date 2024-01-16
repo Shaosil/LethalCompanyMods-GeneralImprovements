@@ -171,8 +171,8 @@ namespace GeneralImprovements.Patches
                 // Set initial credits value if they don't already have one, or this is a force reset
                 if (!hasSave || force)
                 {
-                    _currentCredits = Plugin.StartingMoneyPerPlayerVal * (StartOfRound.Instance.connectedPlayersAmount + 1);
-                    Plugin.MLS.LogInfo($"Setting starting money to {_currentCredits} ({Plugin.StartingMoneyPerPlayerVal} per player x {StartOfRound.Instance.connectedPlayersAmount + 1} current players).");
+                    _currentCredits = Math.Clamp(Plugin.StartingMoneyPerPlayerVal * (StartOfRound.Instance.connectedPlayersAmount + 1), Plugin.MinimumStartingMoneyVal, int.MaxValue);
+                    Plugin.MLS.LogInfo($"Setting starting money to {_currentCredits} ({Plugin.StartingMoneyPerPlayerVal} per player x {StartOfRound.Instance.connectedPlayersAmount + 1} current players), with a minimium of {Plugin.MinimumStartingMoneyVal}.");
                     TimeOfDay.Instance.quotaVariables.startingCredits = _currentCredits;
                     Instance.groupCredits = Math.Clamp(_currentCredits, 0, _currentCredits);
                     Instance.SyncGroupCreditsServerRpc(Instance.groupCredits, Instance.numberOfItemsInDropship);
@@ -188,11 +188,19 @@ namespace GeneralImprovements.Patches
         {
             if (Instance.IsServer && Plugin.StartingMoneyPerPlayerVal >= 0 && StartOfRound.Instance.inShipPhase && StartOfRound.Instance.gameStats.daysSpent == 0)
             {
+                // Do nothing if the number of current players does not match the num required to go past the minimum starting credits
+                int actualNumPlayers = StartOfRound.Instance.connectedPlayersAmount + (adding ? 2 : 1);
+                int minPlayersToAdjust = (int)MathF.Floor((float)Plugin.MinimumStartingMoneyVal / Plugin.StartingMoneyPerPlayerVal) + (adding ? 1 : 0);
+                if (actualNumPlayers < minPlayersToAdjust)
+                {
+                    return;
+                }
+
                 _currentCredits += Plugin.StartingMoneyPerPlayerVal * (adding ? 1 : -1);
                 Plugin.MLS.LogInfo($"{(adding ? "Adding" : "Subtracting")} {Plugin.StartingMoneyPerPlayerVal} {(adding ? "to" : "from")} group credits.");
                 Instance.groupCredits = Math.Clamp(_currentCredits, 0, _currentCredits);
 
-                // If this is an add, it was on client connect and will be synced automatically
+                // If this is a disconnect, credits will not be synced automatically, so do that here
                 if (!adding)
                 {
                     Instance.SyncGroupCreditsServerRpc(Instance.groupCredits, Instance.numberOfItemsInDropship);

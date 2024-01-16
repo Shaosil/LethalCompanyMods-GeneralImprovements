@@ -21,6 +21,7 @@ Everything is mostly configurable and improves (IMO) several things about the ga
 	<li>Changes the inverse teleporter cooldown to be the same as the regular (10 seconds). Both cooldowns may be customized in the config.</li>
 	<li>The little monitors above the map screen will now share the power state of the map screen. Behavior may be disabled in config.</li>
 	<li>Increases the max items able to be saved on the ship from 45 to 999 (affects saving and loading game files).</li>
+	<li>Adds a subtle target reticle to the HUD UI so you can see where you are pointing. May be disabled in config.</li>
 </ul>
 
 ### NEW FEATURES:
@@ -28,7 +29,7 @@ Everything is mostly configurable and improves (IMO) several things about the ga
 	<li>If specified in the config, the game will automatically select ONLINE or LAN upon launch.</li>
 	<li>Using the up/down arrow keys at the terminal will navigate through the previous (n) commands. (n) may range from 0-100 in the config.</li>
 	<li>Using the left/right arrow keys at the terminal while viewing the radar will quickly cycle through available targets.</li>
-	<li>Hosts may change the starting money per player in the config. Default is now 30 (ranges from -1 - 1000). Setting to -1 will disable this behavior.</li>
+	<li>Hosts may change the starting money per player in the config, as well as define a minumum credit amount. Default is now 30 (ranges from -1 - 1000). Setting to -1 will disable this behavior.</li>
 	<li>[Host Only] Added an option (default OFF) to prevent tools from getting struck by lightning. This is a bit of a cheat in some opinions, so I recommend leaving it off. If the host/server player has this enabled, it will apply to all clients.</li>
 	<li>Adds text to the 'Deadline' monitor to also display current ship loot total.</li>
 	<li>[Host Required] Adds an option to roll over surplus credits to the next quota. Defaults to OFF in the config. If clients do NOT have this enabled, there will be visual desyncs only.</li>

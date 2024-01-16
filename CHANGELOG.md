@@ -1,9 +1,16 @@
 # Changelog
 
 <ul>
+	<li><b>v1.0.20</b> - More improvements</li>
+	<ul>
+		<li>Added a subtle target reticle to HUD so you can more clearly see exactly where you are pointing. May be disabled in config.</li>
+		<li>Added a 'MinimumStartingMoney' config entry that goes well with StartingMoneyPerPlayer, and ensures the group starts with at least that amount.</li>
+		<li>Changed the 'ShowExtraMonitors' from being a single config to having one config entry per monitor, for ULTIMATE CUSTOMIZATION. True nerds may wish to clean up the config to remove the old entries that were renamed.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.19</b> - Weather Monitor, Rollover, and Fixes</li>
 	<ul>
-		<li>Fixing the nutcracker shotgun (and any other similar problem) breaking the scan terminal command.</li>
+		<li>Fixed the nutcracker shotgun (and any other similar problem) breaking the scan terminal command.</li>
 		<li>Added an option in the config to allow surplus credits to roll over to the next quota. Default OFF.</li>
 		<li>Fixed a bug with the terminal history that was removing the most recent item instead of the last when reaching the history limit.</li>
 		<li>Fleshed out the new weather monitor a bit, including a config setting for 'fancy' animated ASCII art for current weather.</li>
