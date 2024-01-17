@@ -1,6 +1,6 @@
 # Changelog
 
-* **v1.0.22** - TBD
+* **v1.0.22** - Compatibility Improvements
 	* Added a [wiki.](https://thunderstore.io/c/lethal-company/p/ShaosilGaming/GeneralImprovements/wiki/1267-config-reference/)
 	* Updated many of the config settings to default to OFF for new users of the mod.
 	* Fixed compatibility with the [Touchscreen](https://thunderstore.io/c/lethal-company/p/TheDeadSnake/Touchscreen/) mod when AddTargetReticle is set to true.
