@@ -179,18 +179,18 @@ namespace GeneralImprovements.Utilities
             }
         }
 
-        public static void UpdateTimeMonitor(bool force = false)
+        public static void UpdateTimeMonitor()
         {
             if (Plugin.ShowShipTimeMonitor.Value && HUDManager.Instance?.clockNumber != null)
             {
-                Plugin.MLS.LogInfo("Updating time display.");
-                if ((force || StartOfRound.Instance.shipHasLanded) && (StartOfRound.Instance.currentLevel?.planetHasTime ?? false))
+                Plugin.MLS.LogDebug("Updating time display.");
+                if (TimeOfDay.Instance.movingGlobalTimeForward)
                 {
                     _timeMonitorText.text = $"TIME:\n{HUDManager.Instance.clockNumber.text.Replace('\n', ' ')}";
                 }
                 else
                 {
-                    _timeMonitorText.text = "TIME:\nN/A";
+                    _timeMonitorText.text = "TIME\nPENDING";
                 }
             }
         }

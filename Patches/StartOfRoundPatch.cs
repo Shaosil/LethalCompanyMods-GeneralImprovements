@@ -90,8 +90,6 @@ namespace GeneralImprovements.Patches
             {
                 Object.Destroy(RoundManagerPatch.CurShipNode.gameObject);
             }
-
-            SceneHelper.UpdateTimeMonitor();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(SetMapScreenInfoToCurrentLevel))]

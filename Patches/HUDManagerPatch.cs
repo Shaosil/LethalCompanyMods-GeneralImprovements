@@ -55,7 +55,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SetClock(TextMeshProUGUI ___clockNumber)
         {
-            SceneHelper.UpdateTimeMonitor(true);
+            SceneHelper.UpdateTimeMonitor();
         }
 
         [HarmonyPatch(typeof(HUDManager), nameof(CanPlayerScan))]

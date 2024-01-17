@@ -190,26 +190,33 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SetHoverTipAndCurrentInteractTrigger(PlayerControllerB __instance)
         {
-            if (Plugin.AddTargetReticle.Value && AssetBundleHelper.TargetReticle != null)
+            if (Plugin.AddTargetReticle.Value && AssetBundleHelper.Reticle != null)
             {
                 // Use our reticle and resize
-                if (__instance.hoveringOverTrigger == null)
+                if (__instance.hoveringOverTrigger == null && !__instance.cursorIcon.enabled)
                 {
-                    __instance.cursorIcon.sprite = AssetBundleHelper.TargetReticle;
+                    __instance.cursorIcon.sprite = AssetBundleHelper.Reticle;
                     __instance.cursorIcon.color = new Color(1, 1, 1, 0.1f);
                     __instance.cursorIcon.enabled = true;
                     __instance.cursorIcon.transform.localScale = Vector3.one * 0.05f;
                 }
-                else if (__instance.hoveringOverTrigger is InteractTrigger component)
+                else
                 {
+                    if (__instance.cursorIcon.transform.localScale.x < _originalCursorScale)
+                    {
+                        __instance.cursorIcon.transform.localScale = Vector3.one * _originalCursorScale;
+                    }
+
                     // Make sure we reset/turn back off when we are hovering over something
-                    __instance.cursorIcon.sprite = component.hoverIcon;
-                    __instance.cursorIcon.color = Color.white;
-                    __instance.cursorIcon.transform.localScale = Vector3.one * _originalCursorScale;
+                    if (__instance.hoveringOverTrigger is InteractTrigger component)
+                    {
+                        __instance.cursorIcon.sprite = component.hoverIcon;
+                        __instance.cursorIcon.color = Color.white;
+                    }
                 }
             }
 
-            if (Plugin.AllowHealthRecharge.Value && __instance.hoveringOverTrigger?.transform.parent == SceneHelper.MedStation.transform)
+            if (Plugin.AllowHealthRecharge.Value && SceneHelper.MedStation != null && __instance.hoveringOverTrigger?.transform.parent == SceneHelper.MedStation.transform)
             {
                 if (__instance.health > SceneHelper.MaxHealth)
                 {

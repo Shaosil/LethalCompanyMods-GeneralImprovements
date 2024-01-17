@@ -22,6 +22,7 @@ namespace GeneralImprovements.Patches
                 mapRadarText.rectTransform.pivot = new Vector2(0.5f, 0.5f);
                 var curAngles = mapRadarText.rectTransform.eulerAngles;
                 mapRadarText.rectTransform.rotation = Quaternion.Euler(curAngles.x, curAngles.y, 225);
+                mapRadarText.transform.position += new Vector3(1, 0, -1);
             }
         }
     }

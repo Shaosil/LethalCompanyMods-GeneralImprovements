@@ -2,58 +2,54 @@
 
 Everything is mostly configurable and improves (IMO) several things about the game, with more to come.
 
+Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-company/p/ShaosilGaming/GeneralImprovements/wiki/) I default most of the improvements to OFF to maximize compatibility with other mods, but there's some good QoL features in there you might not want to miss.
+
 ### GENERAL IMPROVEMENTS:
-<ul>
-	<li>Places newly picked up items in the hotbar in left-right order. May be disabled in config.</li>
-	<li>Rearranges hotbar items when dropping things. May be disabled in config.</li>
-	<li>Always puts two-handed items in slot 1 (makes selling things a bit faster). May be disabled in config.</li>
-	<li>Decreases the time required in between scrolling through inventory slots. Configurable.</li>
-	<li>Decreases the time required in between placing items on the company counter.</li>
-	<li>Removes the wait to begin typing at the terminal when activating it.</li>
-	<li>Skips the "bootup" menu animation when launching the game. May be disabled in config.</li>
-	<li>Allows all items to be picked up before the game starts.</li>
-	<li>Changes the "Beam up" hover tip for inverse teleporters to say "Beam out" for clarity.</li>
-	<li>Moves the ship clipboard manual to start pinned to the wall. This makes it easier to find, and moves it out of the way of the teleport button.</li>
-	<li>Introduces a degrees config option that snap rotates placeable ship objects in build mode, along with configurable modifier keybinds.</li>
-	<li>Allows the ship's map camera to be rotated so that it faces straight up, instead of at an angle. This behavior is DISABLED by default in the config.</li>
-	<li>The ESC key will now cancel out of ship build mode instead of bringing up the menu (similar to the terminal).</li>
-	<li>Adds a config setting to hide the clipboard and sticky note. Defaults to off.</li>
-	<li>Changes the inverse teleporter cooldown to be the same as the regular (10 seconds). Both cooldowns may be customized in the config.</li>
-	<li>The little monitors above the map screen will now share the power state of the map screen. Behavior may be disabled in config.</li>
-	<li>Increases the max items able to be saved on the ship from 45 to 999 (affects saving and loading game files).</li>
-	<li>Adds a subtle target reticle to the HUD UI so you can see where you are pointing. May be disabled in config.</li>
-</ul>
+* Places newly picked up items in the hotbar in left-right order. May be disabled in config.
+* Rearranges hotbar items when dropping things. May be disabled in config.
+* Always puts two-handed items in slot 1 (makes selling things a bit faster). May be disabled in config.
+* Decreases the time required in between scrolling through inventory slots. Configurable.
+* Decreases the time required in between placing items on the company counter.
+* Removes the wait to begin typing at the terminal when activating it.
+* Skips the "bootup" menu animation when launching the game. May be disabled in config.
+* Allows all items to be picked up before the game starts.
+* Changes the "Beam up" hover tip for inverse teleporters to say "Beam out" for clarity.
+* Moves the ship clipboard manual to start pinned to the wall. This makes it easier to find, and moves it out of the way of the teleport button.
+* Introduces a degrees config option that snap rotates placeable ship objects in build mode, along with configurable modifier keybinds.
+* Adds an option to make the ship's map camera rotated so that it faces straight up, instead of at an angle.
+* The ESC key will now cancel out of ship build mode instead of bringing up the menu (similar to the terminal).
+* Adds a config setting to hide the clipboard and sticky note.
+* Changes the inverse teleporter cooldown to be the same as the regular (10 seconds). Both cooldowns may be customized in the config.
+* The little monitors above the map screen will now share the power state of the map screen. Behavior may be disabled in config.
+* Increases the max items able to be saved on the ship from 45 to 999 (affects saving and loading game files).
+* Adds an option to show a small reticle on the HUD UI so you can see where you are pointing.
 
 ### NEW FEATURES:
-<ul>
-	<li>If specified in the config, the game will automatically select ONLINE or LAN upon launch.</li>
-	<li>Using the up/down arrow keys at the terminal will navigate through the previous (n) commands. (n) may range from 0-100 in the config.</li>
-	<li>Using the left/right arrow keys at the terminal while viewing the radar will quickly cycle through available targets.</li>
-	<li>Hosts may change the starting money per player in the config, as well as define a minumum credit amount. Default is now 30 (ranges from -1 - 1000). Setting to -1 will disable this behavior.</li>
-	<li>[Host Only] Added an option (default OFF) to prevent tools from getting struck by lightning. This is a bit of a cheat in some opinions, so I recommend leaving it off. If the host/server player has this enabled, it will apply to all clients.</li>
-	<li>Adds text to the 'Deadline' monitor to also display current ship loot total.</li>
-	<li>[Host Required] Adds an option to roll over surplus credits to the next quota. Defaults to OFF in the config. If clients do NOT have this enabled, there will be visual desyncs only.</li>
-	<li>Adds more little monitors above the profit quota and deadline monitors, with information like weather, sales, time, etc. Work in progress, may be disabled individually in the config.</li>
-	<li>Adds a little medical station above the ship's charging station that heals you back to full health when used. Disabled by default.</li>
-</ul>
+* If specified in the config, the game will automatically select ONLINE or LAN upon launch.
+* Using the up/down arrow keys at the terminal will navigate through the previous (n) commands. (n) may range from 0-100 in the config.
+* Using the left/right arrow keys at the terminal while viewing the radar will quickly cycle through available targets.
+* [Host only] Adds an option to specify starting money per player, as well as define a minumum credit amount. Accepts ranges from -1 (disabled/default) to 1000.
+* [Host Only] Adds an option to prevent tools from getting struck by lightning. This is a bit of a cheat in some opinions, so I recommend leaving it off. If the host/server player has this enabled, it will apply to all clients.
+* Adds an option to display text under the 'Deadline' monitor with the current ship loot total.
+* [Host Required] Adds an option to roll over surplus credits to the next quota. If clients do NOT have this enabled, there will be visual desyncs only.
+* Adds an option to add more little monitors above the profit quota and deadline monitors, with information like weather, sales, time, etc. Work in progress, may be enabled individually in the config.
+* Adds an option for adding a little medical station above the ship's charging station that heals you back to full health when used.
 
 ### MINOR BUGFIXES:
-<ul>
-	<li>Stops all non-scrap objects from showing value (when scanned and sold) when they do not actually have any.</li>
-	<li>Removes the random 'n' in the middle-left of the terminal monitor when switching through radar cams.</li>
-	<li>Flips the rotation of fire entrances 180 degrees so you are facing inside the facility when entering.</li>
-	<li>Dead bodies will now instantly show as collected when teleported back to the ship.</li>
-	<li>Fixes the scan terminal command and end-of-round scrap sum to include all valuables outside the ship, as well as factor in the current scrap value multiplier (under the hood, not related to company).</li>
-	<li>The initial monitor view now shows the correct player name when first starting a round.</li>
-	<li>Fixes ship scrap not being marked as 'in the ship' for clients when joining. This fixes several things client side, including terminal scans, extra scrap collection pings, and more.</li>
-	<li>[Host Only] Whoopie cushions and flasks will no longer be hit by lightning. If the host/server player has this enabled, it will apply to all clients.</li>
-	<li>[Host Only] When a new client connects to your lobby, they should see the correct position, rotation, and current emote of each player.</li>
-	<li>When loading a file, items in the ship will no longer fall through shelves, tables, etc.</li>
-	<li>Fixes the personal scanners sensitivity - it should function more reliably now, for example being able to ping the ship on Rend.</li>
-	<li>Fixes the ship scan node showing up outside of the ship while flying in to a moon.</li>
-</ul>
+* Stops all non-scrap objects from showing value (when scanned and sold) when they do not actually have any.
+* Removes the random 'n' in the middle-left of the terminal monitor when switching through radar cams.
+* Flips the rotation of fire entrances 180 degrees so you are facing inside the facility when entering.
+* Dead bodies will now instantly show as collected when teleported back to the ship.
+* Fixes the scan terminal command and end-of-round scrap sum to include all valuables outside the ship, as well as factor in the current scrap value multiplier (under the hood, not related to company).
+* The initial monitor view now shows the correct player name when first starting a round.
+* Fixes ship scrap not being marked as 'in the ship' for clients when joining. This fixes several things client side, including terminal scans, extra scrap collection pings, and more.
+* [Host Only] Whoopie cushions and flasks will no longer be hit by lightning. If the host/server player has this enabled, it will apply to all clients.
+* [Host Only] When a new client connects to your lobby, they should see the correct position, rotation, and current emote of each player.
+* When loading a file, items in the ship will no longer fall through shelves, tables, etc. May be disabled.
+* Adds an option to fix the personal scanners sensitivity, making it function more reliably, for example being able to ping the ship on Rend.
+* Fixes the ship scan node showing up outside of the ship while flying in to a moon.
 
-This pairs well with my other mod, <a href="https://thunderstore.io/c/lethal-company/p/ShaosilGaming/FlashlightFix/">FlashlightFix</a>
+This pairs well with my other mod, [FlashlightFix.](https://thunderstore.io/c/lethal-company/p/ShaosilGaming/FlashlightFix/)
 
 I will probably keep adding to this as I see minor things that could be improved or fixed.
 

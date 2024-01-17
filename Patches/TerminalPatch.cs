@@ -81,7 +81,7 @@ namespace GeneralImprovements.Patches
             // Improve the scanning
             if (modifiedDisplayText.Contains("[scanForItems]"))
             {
-                var fixedRandom = new Random(StartOfRound.Instance.randomMapSeed + 91); // Why 91? Shrug. It's the offset in vanilla code and I kept it.
+                var fixedRandom = new System.Random(StartOfRound.Instance.randomMapSeed + 91); // Why 91? Shrug. It's the offset in vanilla code and I kept it.
                 var valuables = UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(o => !o.isInShipRoom && !o.isInElevator && o.itemProperties.minValue > 0).ToList();
 
                 float multiplier = RoundManager.Instance.scrapValueMultiplier;
@@ -100,6 +100,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(Terminal), nameof(Update))]
         [HarmonyPostfix]
+        [HarmonyPriority(Priority.First)]
         private static void Update(Terminal __instance)
         {
             if (GameNetworkManager.Instance?.localPlayerController?.inTerminalMenu ?? false)
@@ -124,17 +125,6 @@ namespace GeneralImprovements.Patches
                 }
                 else if (leftPressed || rightPressed)
                 {
-                    Plugin.MLS.LogInfo($"CUR NODE: {__instance.currentNode.name}");
-                    Plugin.MLS.LogInfo($"CUR TERMINAL TEX: {__instance.terminalImage?.texture?.name}");
-                    Plugin.MLS.LogInfo($"CUR PERSISTENT TEX: {__instance.displayingPersistentImage?.name}");
-
-                    // Do nothing if we are not viewing the map node currently
-                    var mapScreens = new[] { "ViewInsideShipCam", "SwitchedCam" };
-                    if (__instance.displayingPersistentImage == null && !mapScreens.Any(s => (__instance.currentNode?.name ?? string.Empty).Contains(s)))
-                    {
-                        return;
-                    }
-
                     // Cycle through cameras
                     int originalIndex = StartOfRound.Instance.mapScreen.targetTransformIndex;
                     int nextIndex = originalIndex;

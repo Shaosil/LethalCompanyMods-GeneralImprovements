@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using GeneralImprovements.Utilities;
+using HarmonyLib;
 using System.Linq;
 using UnityEngine;
 
@@ -36,6 +37,13 @@ namespace GeneralImprovements.Patches
 
                 _gotShipNode = true;
             }
+        }
+
+        [HarmonyPatch(typeof(RoundManager), nameof(DespawnPropsAtEndOfRound))]
+        [HarmonyPostfix]
+        private static void DespawnPropsAtEndOfRound()
+        {
+            SceneHelper.UpdateTimeMonitor();
         }
 
         public static void EnableAndAttachShipScanNode()
