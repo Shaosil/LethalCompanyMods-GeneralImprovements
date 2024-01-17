@@ -3,6 +3,7 @@ using GeneralImprovements.OtherMods;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System;
+using System.Collections;
 using System.Reflection;
 using Unity.Netcode;
 using UnityEngine;
@@ -31,7 +32,13 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void Start(PlayerControllerB __instance)
         {
-            _originalCursorScale = __instance.cursorIcon.transform.localScale.x;
+            if (__instance.IsOwner)
+            {
+                _originalCursorScale = __instance.cursorIcon.transform.localScale.x;
+
+                // Store max health on creation
+                SceneHelper.MaxHealth = __instance.health;
+            }
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(FirstEmptyItemSlot))]
@@ -189,9 +196,9 @@ namespace GeneralImprovements.Patches
                 if (__instance.hoveringOverTrigger == null)
                 {
                     __instance.cursorIcon.sprite = AssetBundleHelper.TargetReticle;
-                    __instance.cursorIcon.color = new Color(1, 1, 1, 0.05f);
+                    __instance.cursorIcon.color = new Color(1, 1, 1, 0.1f);
                     __instance.cursorIcon.enabled = true;
-                    __instance.cursorIcon.transform.localScale = Vector3.one * 0.02f;
+                    __instance.cursorIcon.transform.localScale = Vector3.one * 0.05f;
                 }
                 else if (__instance.hoveringOverTrigger is InteractTrigger component)
                 {
@@ -199,6 +206,18 @@ namespace GeneralImprovements.Patches
                     __instance.cursorIcon.sprite = component.hoverIcon;
                     __instance.cursorIcon.color = Color.white;
                     __instance.cursorIcon.transform.localScale = Vector3.one * _originalCursorScale;
+                }
+            }
+
+            if (Plugin.AllowHealthRecharge.Value && __instance.hoveringOverTrigger?.transform.parent == SceneHelper.MedStation.transform)
+            {
+                if (__instance.health > SceneHelper.MaxHealth)
+                {
+                    SceneHelper.MaxHealth = __instance.health;
+                }
+                else
+                {
+                    __instance.hoveringOverTrigger.interactable = __instance.health < SceneHelper.MaxHealth;
                 }
             }
         }
@@ -233,6 +252,26 @@ namespace GeneralImprovements.Patches
             // Move item
             player.ItemSlots[newSlot] = player.ItemSlots[oldSlot];
             player.ItemSlots[oldSlot] = null;
+        }
+
+        public static void HealLocalPlayer()
+        {
+            if (StartOfRound.Instance.localPlayerController.health <= SceneHelper.MaxHealth)
+            {
+                StartOfRound.Instance.localPlayerController.StartCoroutine(HealLocalPlayerCoroutine());
+            }
+        }
+
+        private static IEnumerator HealLocalPlayerCoroutine()
+        {
+            SceneHelper.MedStation.GetComponentInChildren<AudioSource>().Play();
+            yield return new WaitForSeconds(0.75f);
+
+            Plugin.MLS.LogInfo($"Healing back to {SceneHelper.MaxHealth}...");
+            StartOfRound.Instance.localPlayerController.DamagePlayer(-(SceneHelper.MaxHealth - StartOfRound.Instance.localPlayerController.health), false, true);
+            StartOfRound.Instance.localPlayerController.MakeCriticallyInjured(false);
+
+            yield break;
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GeneralImprovements.Patches;
+using System;
 using System.Linq;
 using System.Text;
 using TMPro;
@@ -30,6 +31,9 @@ namespace GeneralImprovements.Utilities
         private static bool _showingOverlay = false;
         private static float _overlayCycle; // In seconds, randomly assigned each time
 
+        public static GameObject MedStation;
+        public static int MaxHealth;
+
         public static void CreateExtraMonitors()
         {
             // Copy the display and quota objects
@@ -39,7 +43,8 @@ namespace GeneralImprovements.Utilities
                 var existingProfitText = StartOfRound.Instance.profitQuotaMonitorText;
                 _timeMonitorBG = Object.Instantiate(existingProfitBG, existingProfitBG.transform.parent);
                 _timeMonitorText = Object.Instantiate(existingProfitText, existingProfitText.transform.parent);
-                _timeMonitorText.text = "TIME COMING SOON";
+                _timeMonitorText.alignment = TextAlignmentOptions.Center;
+                UpdateTimeMonitor();
             }
             if (Plugin.ShowShipWeatherMonitor.Value)
             {
@@ -47,6 +52,7 @@ namespace GeneralImprovements.Utilities
                 var existingDeadlineText = StartOfRound.Instance.deadlineMonitorText;
                 _weatherMonitorBG = Object.Instantiate(existingDeadlineBG, existingDeadlineBG.transform.parent);
                 _weatherMonitorText = Object.Instantiate(existingDeadlineText, existingDeadlineText.transform.parent);
+                _weatherMonitorText.rectTransform.localPosition += new Vector3(10, 0, 0);
                 UpdateWeatherMonitor();
             }
             if (Plugin.ShowShipSalesMonitor.Value)
@@ -113,7 +119,7 @@ namespace GeneralImprovements.Utilities
             }
         }
 
-        internal static void AnimateWeatherMonitor()
+        public static void AnimateWeatherMonitor()
         {
             if (!Plugin.FancyWeatherMonitor.Value || _weatherMonitorText == null || _curWeatherAnimations.Length < 2)
             {
@@ -170,6 +176,56 @@ namespace GeneralImprovements.Utilities
 
                     drawWeather();
                 }
+            }
+        }
+
+        public static void UpdateTimeMonitor(bool force = false)
+        {
+            if (Plugin.ShowShipTimeMonitor.Value && HUDManager.Instance?.clockNumber != null)
+            {
+                Plugin.MLS.LogInfo("Updating time display.");
+                if ((force || StartOfRound.Instance.shipHasLanded) && (StartOfRound.Instance.currentLevel?.planetHasTime ?? false))
+                {
+                    _timeMonitorText.text = $"TIME:\n{HUDManager.Instance.clockNumber.text.Replace('\n', ' ')}";
+                }
+                else
+                {
+                    _timeMonitorText.text = "TIME:\nN/A";
+                }
+            }
+        }
+
+        public static void CreateMedStation()
+        {
+            if (Plugin.AllowHealthRecharge.Value && AssetBundleHelper.MedStationPrefab != null)
+            {
+                Plugin.MLS.LogInfo("Adding medical station to ship");
+                MedStation = Object.Instantiate(AssetBundleHelper.MedStationPrefab, new Vector3(2.75f, 3.4f, -16.561f), Quaternion.Euler(-90, 0, 0), StartOfRound.Instance.elevatorTransform);
+
+                // Interaction trigger
+                var chargeStation = Object.FindObjectOfType<ItemCharger>().GetComponent<InteractTrigger>();
+                var chargeTriggerCollider = chargeStation.GetComponent<BoxCollider>();
+                chargeTriggerCollider.center = Vector3.zero;
+                chargeTriggerCollider.size = new Vector3(1, 0.8f, 0.8f);
+                var medTrigger = MedStation.transform.Find("Trigger");
+                medTrigger.tag = chargeStation.tag;
+                medTrigger.GetComponent<AudioSource>().outputAudioMixerGroup = chargeStation.GetComponent<AudioSource>().outputAudioMixerGroup;
+                medTrigger.gameObject.layer = chargeStation.gameObject.layer;
+                var interactScript = medTrigger.gameObject.AddComponent<InteractTrigger>();
+                interactScript.hoverTip = "Heal";
+                interactScript.disabledHoverTip = "(Health Full)";
+                interactScript.hoverIcon = chargeStation.hoverIcon;
+                interactScript.specialCharacterAnimation = true;
+                interactScript.animationString = chargeStation.animationString;
+                interactScript.lockPlayerPosition = true;
+                interactScript.playerPositionNode = chargeStation.playerPositionNode;
+                interactScript.onInteract = new InteractEvent();
+                interactScript.onCancelAnimation = new InteractEvent();
+                interactScript.onInteractEarly = new InteractEvent();
+                interactScript.onInteractEarly.AddListener(_ => PlayerControllerBPatch.HealLocalPlayer());
+
+                // Scan node
+                var scanNode = MedStation.transform.Find("ScanNode");
             }
         }
     }

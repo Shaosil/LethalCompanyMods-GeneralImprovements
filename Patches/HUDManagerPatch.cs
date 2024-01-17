@@ -1,8 +1,10 @@
 ﻿using GameNetcodeStuff;
+using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using TMPro;
 using UnityEngine;
 
 namespace GeneralImprovements.Patches
@@ -47,6 +49,20 @@ namespace GeneralImprovements.Patches
 
             // Skip the original method
             return false;
+        }
+
+        [HarmonyPatch(typeof(HUDManager), nameof(SetClock))]
+        [HarmonyPostfix]
+        private static void SetClock(TextMeshProUGUI ___clockNumber)
+        {
+            SceneHelper.UpdateTimeMonitor(true);
+        }
+
+        [HarmonyPatch(typeof(HUDManager), nameof(CanPlayerScan))]
+        [HarmonyPostfix]
+        private static void CanPlayerScan(ref bool __result)
+        {
+            __result = __result && !(ShipBuildModeManager.Instance?.InBuildMode ?? false);
         }
     }
 }

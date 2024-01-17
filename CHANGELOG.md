@@ -1,6 +1,20 @@
 # Changelog
 
 <ul>
+	<li><b>v1.0.21</b> - Fixing my stuff and adding a medkit</li>
+	<ul>
+		<li>Fixed the quota rollover showing zero incorrectly for clients after a deadline was met.</li>
+		<li>Fixed a rare bug that caused a softlock when trying to leave moons.</li>
+		<li>Fixed clients seeing $0 for the ship total on the monitor when first connecting.</li>
+		<li>Updated target reticle transparency, size, and now defaulting to OFF for new users.</li>
+		<li>Fixed map labels for turrets, doors, etc being too far offset from their respective objects.</li>
+		<li>Adds a medkit 'charging station' the ship above the battery charger to recharge your health (defaults to OFF).</li>
+		<li>Finished the time display monitor and it now shows current time on moons. May be disabled in config.</li>
+		<li>Centering the time & weather text a little better in the ship monitors.</li>
+		<li>Disabled the ability to scan during ship building mode.</li>
+		<li>Added mouse button support to snap rotation keybinds in the config.</li>
+	</ul>
+	&nbsp;
 	<li><b>v1.0.20</b> - More improvements</li>
 	<ul>
 		<li>Added a subtle target reticle to HUD so you can more clearly see exactly where you are pointing. May be disabled in config.</li>

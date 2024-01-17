@@ -19,6 +19,7 @@ namespace GeneralImprovements.Patches
             {
                 // Make sure the labels are facing the same way as the map camera
                 var mapRadarText = (TextMeshProUGUI)MapRadarTextField.GetValue(__instance);
+                mapRadarText.rectTransform.pivot = new Vector2(0.5f, 0.5f);
                 var curAngles = mapRadarText.rectTransform.eulerAngles;
                 mapRadarText.rectTransform.rotation = Quaternion.Euler(curAngles.x, curAngles.y, 225);
             }

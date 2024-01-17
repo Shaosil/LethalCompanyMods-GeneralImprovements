@@ -25,19 +25,33 @@ namespace GeneralImprovements.Patches
                     return false;
                 }
 
+                // Store the leftover funds on the server before they are overwritten
                 _leftoverFunds = __instance.quotaFulfilled - __instance.profitQuota;
-                Plugin.MLS.LogInfo($"Storing surplus quota: ${_leftoverFunds}");
+                Plugin.MLS.LogInfo($"Storing surplus quota on server: ${_leftoverFunds}");
             }
 
             return true;
         }
 
-        [HarmonyPatch(typeof(TimeOfDay), nameof(SyncNewProfitQuotaClientRpc))]
+        [HarmonyPatch(typeof(TimeOfDay), "SyncNewProfitQuotaClientRpc")]
+        [HarmonyPrefix]
+        private static void SyncNewProfitQuotaClientRpc_Pre(TimeOfDay __instance)
+        {
+            // On clients only, store the leftover funds before they are overwritten
+            if (Plugin.AllowQuotaRollover.Value && !__instance.IsServer)
+            {
+                _leftoverFunds = __instance.quotaFulfilled - __instance.profitQuota;
+                Plugin.MLS.LogInfo($"Storing surplus quota on client: ${_leftoverFunds}");
+            }
+        }
+
+        [HarmonyPatch(typeof(TimeOfDay), "SyncNewProfitQuotaClientRpc")]
         [HarmonyPostfix]
-        private static void SyncNewProfitQuotaClientRpc(TimeOfDay __instance)
+        private static void SyncNewProfitQuotaClientRpc_Post(TimeOfDay __instance)
         {
             if (Plugin.AllowQuotaRollover.Value)
             {
+                // At this point, we will have the surplus set whether we are server or client
                 Plugin.MLS.LogInfo($"Applying surplus quota to fulfilled: ${_leftoverFunds}");
                 __instance.quotaFulfilled = _leftoverFunds;
             }

@@ -33,7 +33,8 @@ Everything is mostly configurable and improves (IMO) several things about the ga
 	<li>[Host Only] Added an option (default OFF) to prevent tools from getting struck by lightning. This is a bit of a cheat in some opinions, so I recommend leaving it off. If the host/server player has this enabled, it will apply to all clients.</li>
 	<li>Adds text to the 'Deadline' monitor to also display current ship loot total.</li>
 	<li>[Host Required] Adds an option to roll over surplus credits to the next quota. Defaults to OFF in the config. If clients do NOT have this enabled, there will be visual desyncs only.</li>
-	<li>Adds more little monitors above the profit quota and deadline monitors, with information like weather, sales, time, etc. Work in progress, may be disabled in the config.</li>
+	<li>Adds more little monitors above the profit quota and deadline monitors, with information like weather, sales, time, etc. Work in progress, may be disabled individually in the config.</li>
+	<li>Adds a little medical station above the ship's charging station that heals you back to full health when used. Disabled by default.</li>
 </ul>
 
 ### MINOR BUGFIXES:

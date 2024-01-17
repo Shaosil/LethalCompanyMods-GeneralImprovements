@@ -36,6 +36,9 @@
         <Reference Include="UnityEngine.AssetBundleModule">
           <HintPath>DLLs\UnityEngine.AssetBundleModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.AudioModule">
+          <HintPath>DLLs\UnityEngine.AudioModule.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine.CoreModule">
           <HintPath>DLLs\UnityEngine.CoreModule.dll</HintPath>
         </Reference>

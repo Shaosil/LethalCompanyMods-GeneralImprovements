@@ -51,10 +51,12 @@ namespace GeneralImprovements
         public static ConfigEntry<int> RegularTeleporterCooldown { get; private set; }
         public static ConfigEntry<int> InverseTeleporterCooldown { get; private set; }
         public static ConfigEntry<bool> AllowQuotaRollover { get; private set; }
+        public static ConfigEntry<bool> AllowHealthRecharge { get; private set; }
 
         private void Awake()
         {
-            string validKeys = string.Join(", ", Enum.GetValues(typeof(Key)).Cast<int>().Where(e => e < (int)Key.OEM1).Select(e => Enum.GetName(typeof(Key), e)));
+            string validKeys = string.Join(", ", Enum.GetValues(typeof(Key)).Cast<int>().Where(e => e < (int)Key.OEM1).Select(e => Enum.GetName(typeof(Key), e))
+                .Concat(new[] { "MouseLeft", "MouseRight", "MouseMiddle", "MouseBackButton", "MouseForwardButton" }));
 
             MLS = Logger;
 
@@ -71,7 +73,7 @@ namespace GeneralImprovements
             FancyWeatherMonitor = Config.Bind(GeneralSection, nameof(FancyWeatherMonitor), true, "If set to true and paired with ShowShipWeatherMonitor, the weather monitor will display ASCII art instead of text descriptions.");
             ShowShipSalesMonitor = Config.Bind(GeneralSection, nameof(ShowShipSalesMonitor), true, "If set to true, The ship will show basic sales info on one of the unused monitors above the landing lever.");
             SyncLittleScreensPower = Config.Bind(GeneralSection, nameof(SyncLittleScreensPower), true, "If set to true, The smaller monitors above the map screen will turn off and on when the map screen power is toggled.");
-            AddTargetReticle = Config.Bind(GeneralSection, nameof(AddTargetReticle), true, "If set to true, the HUD will display a small white dot so you can see exactly where you are pointing at all times.");
+            AddTargetReticle = Config.Bind(GeneralSection, nameof(AddTargetReticle), false, "If set to true, the HUD will display a small white dot so you can see exactly where you are pointing at all times.");
 
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
             FixItemsFallingThrough = Config.Bind(FixesSection, nameof(FixItemsFallingThrough), true, "Fixes items falling through furniture on the ship when loading the game.");
@@ -88,6 +90,7 @@ namespace GeneralImprovements
             RegularTeleporterCooldown = Config.Bind(TweaksSection, nameof(RegularTeleporterCooldown), 10, "How many seconds to wait in between button presses for the REGULAR teleporter. Vanilla = 10. Ignores values outside of 0 - 300.");
             InverseTeleporterCooldown = Config.Bind(TweaksSection, nameof(InverseTeleporterCooldown), 10, "How many seconds to wait in between button presses for the INVERSE teleporter. Vanilla = 210. Ignores values outside of 0 - 300.");
             AllowQuotaRollover = Config.Bind(TweaksSection, nameof(AllowQuotaRollover), false, "If set to true, will keep the surplus money remaining after selling things to the company, and roll it over to the next quota.");
+            AllowHealthRecharge = Config.Bind(TweaksSection, nameof(AllowHealthRecharge), false, "If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full.");
 
             MLS.LogDebug("Configuration Initialized.");
 

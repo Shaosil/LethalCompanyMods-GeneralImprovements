@@ -9,6 +9,7 @@ namespace GeneralImprovements.Utilities
         private static AssetBundle _bundle;
 
         public static Sprite TargetReticle { get; private set; }
+        public static GameObject MedStationPrefab { get; private set; }
 
         public static void Initialize()
         {
@@ -26,6 +27,7 @@ namespace GeneralImprovements.Utilities
                 // Load assets into memory
                 Plugin.MLS.LogInfo("Loading assets...");
                 TargetReticle = _bundle.LoadAsset<Sprite>("reticle");
+                MedStationPrefab = _bundle.LoadAsset<GameObject>("MedStation.prefab");
             }
         }
     }

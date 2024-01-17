@@ -59,6 +59,9 @@ namespace GeneralImprovements.Patches
             // Create new monitors
             SceneHelper.CreateExtraMonitors();
 
+            // Add medical charging station
+            SceneHelper.CreateMedStation();
+
             // Fix max items allowed to be stored
             __instance.maxShipItemCapacity = 999;
         }
@@ -83,7 +86,12 @@ namespace GeneralImprovements.Patches
         private static void ShipHasLeft()
         {
             // Manually destroy the node here since it won't be after attaching it to the ship
-            Object.Destroy(RoundManagerPatch.CurShipNode.gameObject);
+            if (RoundManagerPatch.CurShipNode != null)
+            {
+                Object.Destroy(RoundManagerPatch.CurShipNode.gameObject);
+            }
+
+            SceneHelper.UpdateTimeMonitor();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(SetMapScreenInfoToCurrentLevel))]
@@ -136,11 +144,19 @@ namespace GeneralImprovements.Patches
             TerminalPatch.AdjustGroupCredits(false);
         }
 
+        [HarmonyPatch(typeof(StartOfRound), nameof(SyncShipUnlockablesClientRpc))]
+        [HarmonyPostfix]
+        private static void SyncShipUnlockablesClientRpc()
+        {
+            UpdateDeadlineMonitorText();
+        }
+
         [HarmonyPatch(typeof(StartOfRound), nameof(ResetShip))]
         [HarmonyPostfix]
-        private static void ResetShip()
+        private static void ResetShip(StartOfRound __instance)
         {
             TerminalPatch.SetStartingMoneyPerPlayer(true);
+            SceneHelper.MaxHealth = __instance.localPlayerController?.health ?? 100;
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(LoadShipGrabbableItems))]
@@ -164,18 +180,18 @@ namespace GeneralImprovements.Patches
                 return;
             }
 
-            var instance = StartOfRound.Instance;
-
-            if (instance.isChallengeFile)
+            if (StartOfRound.Instance.isChallengeFile)
             {
                 // TODO: Put it on a different monitor?
             }
             else
             {
-                int shipLoot = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom && o.isInElevator).Sum(o => o.scrapValue);
+                var allScrap = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom && o.isInElevator).ToList();
+                int shipLoot = allScrap.Sum(o => o.scrapValue);
                 int days = TimeOfDay.Instance.daysUntilDeadline;
                 string deadline = days >= 0 ? $"{days} DAY{(days == 1 ? string.Empty : "S")}" : "NOW";
-                instance.deadlineMonitorText.text = $"DEADLINE:\n{deadline}\nIN SHIP:\n${shipLoot}";
+                StartOfRound.Instance.deadlineMonitorText.text = $"DEADLINE:\n{deadline}\nIN SHIP:\n${shipLoot}";
+                Plugin.MLS.LogInfo($"Set ship total to ${shipLoot} ({allScrap.Count} items).");
             }
         }
     }
