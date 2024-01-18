@@ -1,5 +1,18 @@
 # Changelog
 
+* **v1.0.23** - The "I'm Sorry" Overhaul
+
+	**THIS HAS RESET MANY OF YOUR CONFIGURATION SETTINGS!**
+
+	I'm trying to structure my config, so this HOPEFULLY will be a one time inconvenience. By moving config settings to new sections, it keeps the old, unused value in your config, but generates a new setting with the same name under the new section. Your best bet is to completely delete the config file and let the game regenerate it when it launches.
+
+	* Overhauled the config file since it's growing more than I originally anticipated and I want to keep things organized.
+	* Overhauled the extra monitors. They are now more configurable, down to whether the backgrounds show and which monitor they each display on, if any.
+	* Slightly overhauled the FixPersonalScanner code, making it even more reliable.
+	* Added a config setting to disable L/R arrow keys at the terminal if desired.
+	* Hopefully fixed the UI reticle scaling up before disappearing at times.
+	<br>
+
 * **v1.0.22** - Compatibility Improvements
 	* Added a [wiki.](https://thunderstore.io/c/lethal-company/p/ShaosilGaming/GeneralImprovements/wiki/1267-config-reference/)
 	* Updated many of the config settings to default to OFF for new users of the mod.

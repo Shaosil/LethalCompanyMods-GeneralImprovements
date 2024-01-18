@@ -183,14 +183,14 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SetItemInElevator()
         {
-            StartOfRoundPatch.UpdateDeadlineMonitorText();
+            SceneHelper.UpdateShipTotalMonitor();
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SetHoverTipAndCurrentInteractTrigger))]
         [HarmonyPostfix]
         private static void SetHoverTipAndCurrentInteractTrigger(PlayerControllerB __instance)
         {
-            if (Plugin.AddTargetReticle.Value && AssetBundleHelper.Reticle != null)
+            if (Plugin.ShowUIReticle.Value && AssetBundleHelper.Reticle != null)
             {
                 // Use our reticle and resize
                 if (__instance.hoveringOverTrigger == null && !__instance.cursorIcon.enabled)
@@ -202,21 +202,17 @@ namespace GeneralImprovements.Patches
                 }
                 else
                 {
+                    // Make sure we reset/turn back off when needed
                     if (__instance.cursorIcon.transform.localScale.x < _originalCursorScale)
                     {
                         __instance.cursorIcon.transform.localScale = Vector3.one * _originalCursorScale;
-                    }
-
-                    // Make sure we reset/turn back off when we are hovering over something
-                    if (__instance.hoveringOverTrigger is InteractTrigger component)
-                    {
-                        __instance.cursorIcon.sprite = component.hoverIcon;
                         __instance.cursorIcon.color = Color.white;
+                        __instance.cursorIcon.sprite = __instance.hoveringOverTrigger?.hoverIcon ?? __instance.cursorIcon.sprite;
                     }
                 }
             }
 
-            if (Plugin.AllowHealthRecharge.Value && SceneHelper.MedStation != null && __instance.hoveringOverTrigger?.transform.parent == SceneHelper.MedStation.transform)
+            if (Plugin.AddHealthRechargeStation.Value && SceneHelper.MedStation != null && __instance.hoveringOverTrigger?.transform.parent == SceneHelper.MedStation.transform)
             {
                 if (__instance.health > SceneHelper.MaxHealth)
                 {

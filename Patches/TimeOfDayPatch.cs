@@ -6,13 +6,6 @@ namespace GeneralImprovements.Patches
     {
         private static int _leftoverFunds = 0;
 
-        [HarmonyPatch(typeof(TimeOfDay), nameof(UpdateProfitQuotaCurrentTime))]
-        [HarmonyPostfix]
-        private static void UpdateProfitQuotaCurrentTime()
-        {
-            StartOfRoundPatch.UpdateDeadlineMonitorText();
-        }
-
         [HarmonyPatch(typeof(TimeOfDay), nameof(SetNewProfitQuota))]
         [HarmonyPrefix]
         private static bool SetNewProfitQuota(TimeOfDay __instance)

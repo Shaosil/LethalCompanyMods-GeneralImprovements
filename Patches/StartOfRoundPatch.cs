@@ -26,6 +26,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(StartOfRound), nameof(Start))]
         [HarmonyPostfix]
+        [HarmonyPriority(Priority.High)]
         private static void Start(StartOfRound __instance)
         {
             // Set all grabbable objects as in ship if the game hasn't started (it never should be unless someone is using a join mid-game mod or something)
@@ -47,14 +48,6 @@ namespace GeneralImprovements.Patches
                 Vector3 curAngles = __instance.mapScreen.mapCamera.transform.eulerAngles;
                 __instance.mapScreen.mapCamera.transform.rotation = Quaternion.Euler(curAngles.x, 90, curAngles.z);
             }
-
-            // Resize the two little monitors to about 95% of their existing width and font size
-            var deadlineSize = __instance.deadlineMonitorText.rectTransform.sizeDelta;
-            var profitQuotaSize = __instance.profitQuotaMonitorText.rectTransform.sizeDelta;
-            __instance.deadlineMonitorText.rectTransform.sizeDelta = new Vector2(deadlineSize.x * 0.95f, deadlineSize.y);
-            __instance.deadlineMonitorText.fontSize = __instance.deadlineMonitorText.fontSize * 0.95f;
-            __instance.profitQuotaMonitorText.rectTransform.sizeDelta = new Vector2(profitQuotaSize.x * 0.95f, profitQuotaSize.y);
-            __instance.profitQuotaMonitorText.fontSize = __instance.profitQuotaMonitorText.fontSize * 0.95f;
 
             // Create new monitors
             SceneHelper.CreateExtraMonitors();
@@ -146,7 +139,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SyncShipUnlockablesClientRpc()
         {
-            UpdateDeadlineMonitorText();
+            SceneHelper.UpdateShipTotalMonitor();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(ResetShip))]
@@ -161,7 +154,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void LoadShipGrabbableItems()
         {
-            UpdateDeadlineMonitorText();
+            SceneHelper.UpdateShipTotalMonitor();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(Update))]
@@ -169,28 +162,6 @@ namespace GeneralImprovements.Patches
         private static void Update()
         {
             SceneHelper.AnimateWeatherMonitor();
-        }
-
-        public static void UpdateDeadlineMonitorText()
-        {
-            if (!Plugin.ShowShipTotalBelowDeadline.Value)
-            {
-                return;
-            }
-
-            if (StartOfRound.Instance.isChallengeFile)
-            {
-                // TODO: Put it on a different monitor?
-            }
-            else
-            {
-                var allScrap = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom && o.isInElevator).ToList();
-                int shipLoot = allScrap.Sum(o => o.scrapValue);
-                int days = TimeOfDay.Instance.daysUntilDeadline;
-                string deadline = days >= 0 ? $"{days} DAY{(days == 1 ? string.Empty : "S")}" : "NOW";
-                StartOfRound.Instance.deadlineMonitorText.text = $"DEADLINE:\n{deadline}\nIN SHIP:\n${shipLoot}";
-                Plugin.MLS.LogInfo($"Set ship total to ${shipLoot} ({allScrap.Count} items).");
-            }
         }
     }
 }

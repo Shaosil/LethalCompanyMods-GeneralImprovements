@@ -100,7 +100,6 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(Terminal), nameof(Update))]
         [HarmonyPostfix]
-        [HarmonyPriority(Priority.First)]
         private static void Update(Terminal __instance)
         {
             if (GameNetworkManager.Instance?.localPlayerController?.inTerminalMenu ?? false)
@@ -123,7 +122,7 @@ namespace GeneralImprovements.Patches
                     __instance.screenText.caretPosition = __instance.screenText.text.Length;
                     __instance.textAdded = curCommand.Length;
                 }
-                else if (leftPressed || rightPressed)
+                else if (Plugin.TerminalFastCamSwitch.Value && (leftPressed || rightPressed))
                 {
                     // Cycle through cameras
                     int originalIndex = StartOfRound.Instance.mapScreen.targetTransformIndex;

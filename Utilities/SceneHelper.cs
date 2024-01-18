@@ -1,5 +1,6 @@
 ﻿using GeneralImprovements.Patches;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using TMPro;
@@ -12,6 +13,8 @@ namespace GeneralImprovements.Utilities
 {
     internal static class SceneHelper
     {
+        private static Image _totalMonitorBg;
+        private static TextMeshProUGUI _totalMonitorText;
         private static Image _timeMonitorBG;
         private static TextMeshProUGUI _timeMonitorText;
         private static Image _weatherMonitorBG;
@@ -36,52 +39,140 @@ namespace GeneralImprovements.Utilities
 
         public static void CreateExtraMonitors()
         {
-            // Copy the display and quota objects
-            if (Plugin.ShowShipTimeMonitor.Value)
+            // Resize the two extra monitor texts to be the same as their respective backgrounds, and give them padding
+            var quotaBG = StartOfRound.Instance.profitQuotaMonitorBGImage;
+            var quotaText = StartOfRound.Instance.profitQuotaMonitorText;
+            var deadlineBG = StartOfRound.Instance.deadlineMonitorBGImage;
+            var deadlineText = StartOfRound.Instance.deadlineMonitorText;
+            quotaText.rectTransform.sizeDelta = quotaBG.rectTransform.sizeDelta;
+            quotaText.transform.position = quotaBG.transform.TransformPoint(Vector3.back);
+            quotaText.fontSize = quotaText.fontSize * 0.9f;
+            quotaText.margin = Vector4.one * 5;
+            deadlineText.rectTransform.sizeDelta = deadlineBG.rectTransform.sizeDelta;
+            deadlineText.transform.position = deadlineBG.transform.TransformPoint(Vector3.back);
+            deadlineText.fontSize = deadlineText.fontSize * 0.9f;
+            deadlineText.margin = Vector4.one * 5;
+
+            // Copy everything from the existing quota monitor
+            if (Plugin.ShipTotalMonitorNum.Value > 0)
             {
-                var existingProfitBG = StartOfRound.Instance.profitQuotaMonitorBGImage;
-                var existingProfitText = StartOfRound.Instance.profitQuotaMonitorText;
-                _timeMonitorBG = Object.Instantiate(existingProfitBG, existingProfitBG.transform.parent);
-                _timeMonitorText = Object.Instantiate(existingProfitText, existingProfitText.transform.parent);
+                _totalMonitorBg = Object.Instantiate(quotaBG, quotaBG.transform.parent);
+                _totalMonitorText = Object.Instantiate(quotaText, quotaText.transform.parent);
+                _totalMonitorText.alignment = TextAlignmentOptions.Center;
+            }
+            if (Plugin.ShipTimeMonitorNum.Value > 0)
+            {
+                _timeMonitorBG = Object.Instantiate(quotaBG, quotaBG.transform.parent);
+                _timeMonitorText = Object.Instantiate(quotaText, quotaText.transform.parent);
                 _timeMonitorText.alignment = TextAlignmentOptions.Center;
-                UpdateTimeMonitor();
             }
-            if (Plugin.ShowShipWeatherMonitor.Value)
+            if (Plugin.ShipWeatherMonitorNum.Value > 0)
             {
-                var existingDeadlineBG = StartOfRound.Instance.deadlineMonitorBGImage;
-                var existingDeadlineText = StartOfRound.Instance.deadlineMonitorText;
-                _weatherMonitorBG = Object.Instantiate(existingDeadlineBG, existingDeadlineBG.transform.parent);
-                _weatherMonitorText = Object.Instantiate(existingDeadlineText, existingDeadlineText.transform.parent);
+                _weatherMonitorBG = Object.Instantiate(quotaBG, quotaBG.transform.parent);
+                _weatherMonitorText = Object.Instantiate(quotaText, quotaText.transform.parent);
                 _weatherMonitorText.rectTransform.localPosition += new Vector3(10, 0, 0);
-                UpdateWeatherMonitor();
             }
-            if (Plugin.ShowShipSalesMonitor.Value)
+            if (Plugin.ShipSalesMonitorNum.Value > 0)
             {
-                // TODO
+                _salesMonitorBG = Object.Instantiate(quotaBG, quotaBG.transform.parent);
+                _salesMonitorText = Object.Instantiate(quotaText, quotaText.transform.parent);
             }
 
-            // Position our new friends by offset in case things move around
-            foreach (var newObj in new MonoBehaviour[] { _timeMonitorBG, _timeMonitorText, _weatherMonitorBG, _weatherMonitorText, _salesMonitorBG, _salesMonitorText }.Where(x => x != null))
+            // Store positions and rotations by offset based on monitor index
+            var offsets = new List<KeyValuePair<Vector3, Vector3>>
             {
-                newObj.transform.localPosition += new Vector3(0, 455, -28);
-                newObj.transform.localEulerAngles += new Vector3(-18, 0, 0);
+                new KeyValuePair<Vector3, Vector3>(new Vector3(0, 465, -22), new Vector3(-18, 0, 0)),       // Monitor 1
+                new KeyValuePair<Vector3, Vector3>(new Vector3(470, 465, -22), new Vector3(-18, 0, 0)),     // Monitor 2
+                new KeyValuePair<Vector3, Vector3>(new Vector3(970, 485, -128), new Vector3(-18, 25, 5)),   // Monitor 3
+                new KeyValuePair<Vector3, Vector3>(new Vector3(1390, 525, -329), new Vector3(-18, 25, 5)),  // Monitor 4
+                new KeyValuePair<Vector3, Vector3>(new Vector3(1025, 30, -115), new Vector3(-1, 25, 5)),    // Monitor 5
+                new KeyValuePair<Vector3, Vector3>(new Vector3(1445, 72, -320), new Vector3(-1, 25, 5))     // Monitor 6
+            };
+
+            // Store the new monitor objects in a separate list
+            var monitors = new List<Tuple<int, Component, Component>>
+            {
+                new Tuple<int, Component, Component>(Plugin.ShipTotalMonitorNum.Value, _totalMonitorBg, _totalMonitorText),
+                new Tuple<int, Component, Component>(Plugin.ShipTimeMonitorNum.Value, _timeMonitorBG, _timeMonitorText),
+                new Tuple<int, Component, Component>(Plugin.ShipWeatherMonitorNum.Value, _weatherMonitorBG, _weatherMonitorText),
+                new Tuple<int, Component, Component>(Plugin.ShipSalesMonitorNum.Value, _salesMonitorBG, _salesMonitorText)
+            };
+
+            // Assign monitors to the positions that were specified, ensuring to not overlap
+            var existingAssignments = new HashSet<int>();
+            for (int i = 1; i <= offsets.Count; i++)
+            {
+                var targetMonitor = monitors.FirstOrDefault(m => m.Item1 == i);
+                if (targetMonitor != null)
+                {
+                    if (!existingAssignments.Contains(i))
+                    {
+                        Plugin.MLS.LogInfo($"Creating monitor at position {i}");
+                        existingAssignments.Add(i);
+
+                        var positionOffset = offsets[i - 1].Key;
+                        var rotationOffset = offsets[i - 1].Value;
+                        targetMonitor.Item2.transform.localPosition += positionOffset;
+                        targetMonitor.Item2.transform.localEulerAngles += rotationOffset;
+                        targetMonitor.Item3.transform.localPosition += positionOffset + new Vector3(0, 0, -1);
+                        targetMonitor.Item3.transform.localEulerAngles += rotationOffset;
+                    }
+                    else
+                    {
+                        Plugin.MLS.LogError($"Already created monitor at position {i} - skipping extra call! Check your config to ensure you do not have duplicate monitor assignments.");
+                    }
+                }
             }
+
+            // Disable all backgrounds if needed
+            if (!Plugin.ShowBlueMonitorBackground.Value)
+            {
+                if (quotaBG != null) quotaBG.gameObject.SetActive(false);
+                if (deadlineBG != null) deadlineBG.gameObject.SetActive(false);
+                foreach (var t in monitors)
+                {
+                    t.Item2.gameObject.SetActive(false);
+                }
+            }
+
+            UpdateShipTotalMonitor();
+            UpdateTimeMonitor();
+            UpdateWeatherMonitor();
+            UpdateSalesMonitor();
         }
 
-        public static void ToggleExtraMonitorPower(bool on)
+        public static void UpdateShipTotalMonitor()
         {
-            if (Plugin.SyncLittleScreensPower.Value)
+            if (Plugin.ShipTotalMonitorNum.Value == 0 || _totalMonitorText == null)
             {
-                if (_timeMonitorBG != null) _timeMonitorBG.gameObject.SetActive(on);
-                if (_timeMonitorText != null) _timeMonitorText.gameObject.SetActive(on);
-                if (_weatherMonitorBG != null) _weatherMonitorBG.gameObject.SetActive(on);
-                if (_weatherMonitorText != null) _weatherMonitorText.gameObject.SetActive(on);
+                return;
+            }
+
+            var allScrap = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom && o.isInElevator).ToList();
+            int shipLoot = allScrap.Sum(o => o.scrapValue);
+            _totalMonitorText.text = $"SCRAP IN SHIP:\n${shipLoot}";
+            Plugin.MLS.LogInfo($"Set ship scrap total to ${shipLoot} ({allScrap.Count} items).");
+        }
+
+        public static void UpdateTimeMonitor()
+        {
+            if (Plugin.ShipTimeMonitorNum.Value > 0 && HUDManager.Instance?.clockNumber != null)
+            {
+                Plugin.MLS.LogDebug("Updating time display.");
+                if (TimeOfDay.Instance.movingGlobalTimeForward)
+                {
+                    _timeMonitorText.text = $"TIME:\n{HUDManager.Instance.clockNumber.text.Replace('\n', ' ')}";
+                }
+                else
+                {
+                    _timeMonitorText.text = "TIME:\nPENDING";
+                }
             }
         }
 
         public static void UpdateWeatherMonitor()
         {
-            if (Plugin.ShowShipWeatherMonitor.Value && _weatherMonitorText != null)
+            if (Plugin.ShipWeatherMonitorNum.Value > 0 && _weatherMonitorText != null)
             {
                 Plugin.MLS.LogInfo("Updating weather monitor");
 
@@ -179,25 +270,32 @@ namespace GeneralImprovements.Utilities
             }
         }
 
-        public static void UpdateTimeMonitor()
+        public static void UpdateSalesMonitor()
         {
-            if (Plugin.ShowShipTimeMonitor.Value && HUDManager.Instance?.clockNumber != null)
+            if (Plugin.ShipSalesMonitorNum.Value > 0 && _salesMonitorText != null)
             {
-                Plugin.MLS.LogDebug("Updating time display.");
-                if (TimeOfDay.Instance.movingGlobalTimeForward)
-                {
-                    _timeMonitorText.text = $"TIME:\n{HUDManager.Instance.clockNumber.text.Replace('\n', ' ')}";
-                }
-                else
-                {
-                    _timeMonitorText.text = "TIME\nPENDING";
-                }
+                Plugin.MLS.LogDebug("Updating sales display.");
+                _salesMonitorText.text = "SALES COMING SOON!";
+            }
+        }
+
+        public static void ToggleExtraMonitorPower(bool on)
+        {
+            if (Plugin.SyncExtraMonitorsPower.Value)
+            {
+                bool displayBackgrounds = Plugin.ShowBlueMonitorBackground.Value;
+                if (_timeMonitorBG != null && displayBackgrounds) _timeMonitorBG.gameObject.SetActive(on);
+                if (_timeMonitorText != null) _timeMonitorText.gameObject.SetActive(on);
+                if (_weatherMonitorBG != null && displayBackgrounds) _weatherMonitorBG.gameObject.SetActive(on);
+                if (_weatherMonitorText != null) _weatherMonitorText.gameObject.SetActive(on);
+                if (_salesMonitorBG != null && displayBackgrounds) _salesMonitorBG.gameObject.SetActive(on);
+                if (_salesMonitorText != null) _salesMonitorText.gameObject.SetActive(on);
             }
         }
 
         public static void CreateMedStation()
         {
-            if (Plugin.AllowHealthRecharge.Value && AssetBundleHelper.MedStationPrefab != null)
+            if (Plugin.AddHealthRechargeStation.Value && AssetBundleHelper.MedStationPrefab != null)
             {
                 Plugin.MLS.LogInfo("Adding medical station to ship");
                 MedStation = Object.Instantiate(AssetBundleHelper.MedStationPrefab, new Vector3(2.75f, 3.4f, -16.561f), Quaternion.Euler(-90, 0, 0), StartOfRound.Instance.elevatorTransform);

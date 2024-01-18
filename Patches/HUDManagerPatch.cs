@@ -11,40 +11,37 @@ namespace GeneralImprovements.Patches
 {
     internal static class HUDManagerPatch
     {
-        private static RaycastHit[] _scanHits;
-
         // Lazy load and cache reflection info
-        private static FieldInfo _scannedScrapNumField;
-        private static FieldInfo ScannedScrapNumField => _scannedScrapNumField ?? (_scannedScrapNumField = typeof(HUDManager).GetField("scannedScrapNum", BindingFlags.NonPublic | BindingFlags.Instance));
-        private static FieldInfo _nodesOnScreenField;
-        private static FieldInfo NodesOnScreenField => _nodesOnScreenField ?? (_nodesOnScreenField = typeof(HUDManager).GetField("nodesOnScreen", BindingFlags.NonPublic | BindingFlags.Instance));
         private static MethodInfo _attemptScanNodeMethod;
         private static MethodInfo AttemptScanNodeMethod => _attemptScanNodeMethod ?? (_attemptScanNodeMethod = typeof(HUDManager).GetMethod("AttemptScanNode", BindingFlags.NonPublic | BindingFlags.Instance));
 
         [HarmonyPatch(typeof(HUDManager), nameof(AssignNewNodes))]
         [HarmonyPrefix]
-        private static bool AssignNewNodes(HUDManager __instance, PlayerControllerB playerScript)
+        private static bool AssignNewNodes(HUDManager __instance, PlayerControllerB playerScript, ref int ___scannedScrapNum, List<ScanNodeProperties> ___nodesOnScreen)
         {
             if (!Plugin.FixPersonalScanner.Value)
             {
                 return true;
             }
 
-            // Increase the allowance for raycast scan targets
-            _scanHits = new RaycastHit[64];
-            var ray = new Ray(playerScript.gameplayCamera.transform.position + playerScript.gameplayCamera.transform.forward * 20f, playerScript.gameplayCamera.transform.forward);
-            int numHits = Physics.SphereCastNonAlloc(ray, 20f, _scanHits, 100f, LayerMask.GetMask("ScanNode"));
+            ___nodesOnScreen.Clear();
+            ___scannedScrapNum = 0;
 
-            // Sort the hits by distance and take only up to the number of UI elements to distribute
-            _scanHits = _scanHits.Where(h => h.collider != null).OrderBy(h => h.distance).Take(__instance.scanElements.Length).ToArray();
+            // Get all the in-range scannables in the player's camera viewbox and sort them by distance away from the player
+            var camPlanes = GeometryUtility.CalculateFrustumPlanes(playerScript.gameplayCamera);
+            var allScannables = Object.FindObjectsOfType<ScanNodeProperties>()
+                .Select(s => new KeyValuePair<float, ScanNodeProperties>(Vector3.Distance(s.transform.position, playerScript.transform.position), s))
+                .Where(s => s.Key >= s.Value.minRange && s.Key <= s.Value.maxRange && GeometryUtility.TestPlanesAABB(camPlanes, s.Value.GetComponent<BoxCollider>().bounds))
+                .OrderBy(s => s.Key);
 
-            NodesOnScreenField.SetValue(__instance, new List<ScanNodeProperties>());
-            ScannedScrapNumField.SetValue(__instance, 0);
-
-            for (int i = 0; i < __instance.scanElements.Length && i < _scanHits.Length; i++)
+            // Now attempt to scan each of them, stopping when we fill the number of UI elements
+            foreach (var scannable in allScannables)
             {
-                var component = _scanHits[i].transform.GetComponent<ScanNodeProperties>();
-                AttemptScanNodeMethod.Invoke(__instance, new object[] { component, i, playerScript });
+                AttemptScanNodeMethod.Invoke(__instance, new object[] { scannable.Value, 0, playerScript });
+                if (___nodesOnScreen.Count >= __instance.scanElements.Length)
+                {
+                    break;
+                }
             }
 
             // Skip the original method

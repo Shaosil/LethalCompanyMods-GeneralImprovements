@@ -10,7 +10,6 @@ namespace GeneralImprovements.Patches
         private static void updateMapTarget(int ___setRadarTargetIndex, bool ___calledFromRPC, bool __result)
         {
             // Wait until the enumerator is complete (result == false)
-            Plugin.MLS.LogInfo($"updateMapTarget {__result}");
             var instance = StartOfRound.Instance.mapScreen;
             bool inTerminal = GameNetworkManager.Instance.localPlayerController.inTerminalMenu;
             bool curNodeIsSwitchCam = TerminalPatch.Instance.currentNode?.name == "SwitchedCam";
@@ -33,7 +32,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SwitchScreenOn(bool on)
         {
-            if (Plugin.SyncLittleScreensPower.Value)
+            if (Plugin.SyncExtraMonitorsPower.Value)
             {
                 if (StartOfRound.Instance.profitQuotaMonitorBGImage != null) StartOfRound.Instance.profitQuotaMonitorBGImage.gameObject.SetActive(on);
                 if (StartOfRound.Instance.profitQuotaMonitorText != null) StartOfRound.Instance.profitQuotaMonitorText.gameObject.SetActive(on);
