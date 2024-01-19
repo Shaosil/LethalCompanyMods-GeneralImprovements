@@ -57,25 +57,33 @@ namespace GeneralImprovements.Utilities
             if (Plugin.ShipTotalMonitorNum.Value > 0)
             {
                 _totalMonitorBg = Object.Instantiate(quotaBG, quotaBG.transform.parent);
+                _totalMonitorBg.name = "TotalMonitorBG";
                 _totalMonitorText = Object.Instantiate(quotaText, quotaText.transform.parent);
+                _totalMonitorText.name = "TotalMonitorText";
                 _totalMonitorText.alignment = TextAlignmentOptions.Center;
             }
             if (Plugin.ShipTimeMonitorNum.Value > 0)
             {
                 _timeMonitorBG = Object.Instantiate(quotaBG, quotaBG.transform.parent);
+                _timeMonitorBG.name = "TimeMonitorBG";
                 _timeMonitorText = Object.Instantiate(quotaText, quotaText.transform.parent);
+                _timeMonitorText.name = "TimeMonitorText";
                 _timeMonitorText.alignment = TextAlignmentOptions.Center;
             }
             if (Plugin.ShipWeatherMonitorNum.Value > 0)
             {
                 _weatherMonitorBG = Object.Instantiate(quotaBG, quotaBG.transform.parent);
+                _weatherMonitorBG.name = "WeatherMonitorBG";
                 _weatherMonitorText = Object.Instantiate(quotaText, quotaText.transform.parent);
+                _weatherMonitorText.name = "WeatherMonitorText";
                 _weatherMonitorText.rectTransform.localPosition += new Vector3(10, 0, 0);
             }
             if (Plugin.ShipSalesMonitorNum.Value > 0)
             {
                 _salesMonitorBG = Object.Instantiate(quotaBG, quotaBG.transform.parent);
+                _salesMonitorBG.name = "SalesMonitorBG";
                 _salesMonitorText = Object.Instantiate(quotaText, quotaText.transform.parent);
+                _salesMonitorText.name = "SalesMonitorText";
             }
 
             // Store positions and rotations by offset based on monitor index
@@ -129,7 +137,7 @@ namespace GeneralImprovements.Utilities
             {
                 if (quotaBG != null) quotaBG.gameObject.SetActive(false);
                 if (deadlineBG != null) deadlineBG.gameObject.SetActive(false);
-                foreach (var t in monitors)
+                foreach (var t in monitors.Where(m => m.Item2 != null))
                 {
                     t.Item2.gameObject.SetActive(false);
                 }
@@ -184,6 +192,7 @@ namespace GeneralImprovements.Utilities
                         LevelWeatherType.None => WeatherASCIIArt.ClearAnimations,
                         LevelWeatherType.Rainy => WeatherASCIIArt.RainAnimations,
                         LevelWeatherType.Stormy => WeatherASCIIArt.RainAnimations,
+                        LevelWeatherType.Foggy => WeatherASCIIArt.FoggyAnimations,
                         LevelWeatherType.Flooded => WeatherASCIIArt.FloodedAnimations,
                         LevelWeatherType.Eclipsed => WeatherASCIIArt.EclipsedAnimations,
                         _ => new string[] { string.Empty }

@@ -28,17 +28,15 @@ namespace GeneralImprovements.Patches
         }
         private static float _originalCursorScale = 0;
 
-        [HarmonyPatch(typeof(PlayerControllerB), nameof(Start))]
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(ConnectClientToPlayerObject))]
         [HarmonyPostfix]
-        private static void Start(PlayerControllerB __instance)
+        [HarmonyPriority(Priority.High)]
+        private static void ConnectClientToPlayerObject(PlayerControllerB __instance)
         {
-            if (__instance.IsOwner)
-            {
-                _originalCursorScale = __instance.cursorIcon.transform.localScale.x;
+            _originalCursorScale = __instance.cursorIcon.transform.localScale.x;
 
-                // Store max health on creation
-                SceneHelper.MaxHealth = __instance.health;
-            }
+            // Store max health on creation
+            SceneHelper.MaxHealth = __instance.health;
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(FirstEmptyItemSlot))]
@@ -193,21 +191,23 @@ namespace GeneralImprovements.Patches
             if (Plugin.ShowUIReticle.Value && AssetBundleHelper.Reticle != null)
             {
                 // Use our reticle and resize
-                if (__instance.hoveringOverTrigger == null && !__instance.cursorIcon.enabled)
+                if (!__instance.cursorIcon.enabled)
                 {
                     __instance.cursorIcon.sprite = AssetBundleHelper.Reticle;
                     __instance.cursorIcon.color = new Color(1, 1, 1, 0.1f);
                     __instance.cursorIcon.enabled = true;
                     __instance.cursorIcon.transform.localScale = Vector3.one * 0.05f;
                 }
-                else
+                else if (__instance.cursorIcon.transform.localScale.x < _originalCursorScale)
                 {
                     // Make sure we reset/turn back off when needed
-                    if (__instance.cursorIcon.transform.localScale.x < _originalCursorScale)
+                    __instance.cursorIcon.transform.localScale = Vector3.one * _originalCursorScale;
+                    __instance.cursorIcon.color = Color.white;
+                    __instance.cursorIcon.sprite = __instance.hoveringOverTrigger?.hoverIcon ?? __instance.cursorIcon.sprite;
+
+                    if (__instance.cursorIcon.sprite == AssetBundleHelper.Reticle)
                     {
-                        __instance.cursorIcon.transform.localScale = Vector3.one * _originalCursorScale;
-                        __instance.cursorIcon.color = Color.white;
-                        __instance.cursorIcon.sprite = __instance.hoveringOverTrigger?.hoverIcon ?? __instance.cursorIcon.sprite;
+                        __instance.cursorIcon.enabled = false;
                     }
                 }
             }

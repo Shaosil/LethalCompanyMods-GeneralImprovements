@@ -146,6 +146,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void ResetShip(StartOfRound __instance)
         {
+            SceneHelper.UpdateShipTotalMonitor();
             TerminalPatch.SetStartingMoneyPerPlayer(true);
             SceneHelper.MaxHealth = __instance.localPlayerController?.health ?? 100;
         }

@@ -31,7 +31,8 @@ namespace GeneralImprovements.Patches
             var camPlanes = GeometryUtility.CalculateFrustumPlanes(playerScript.gameplayCamera);
             var allScannables = Object.FindObjectsOfType<ScanNodeProperties>()
                 .Select(s => new KeyValuePair<float, ScanNodeProperties>(Vector3.Distance(s.transform.position, playerScript.transform.position), s))
-                .Where(s => s.Key >= s.Value.minRange && s.Key <= s.Value.maxRange && GeometryUtility.TestPlanesAABB(camPlanes, s.Value.GetComponent<BoxCollider>().bounds))
+                .Where(s => s.Value.GetComponentInParent<GrabbableObject>()?.playerHeldBy != playerScript && s.Key >= s.Value.minRange && s.Key <= s.Value.maxRange
+                    && GeometryUtility.TestPlanesAABB(camPlanes, new Bounds(s.Value.transform.position, Vector3.one)))
                 .OrderBy(s => s.Key);
 
             // Now attempt to scan each of them, stopping when we fill the number of UI elements

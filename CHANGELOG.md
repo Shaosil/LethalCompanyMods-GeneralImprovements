@@ -1,5 +1,14 @@
 # Changelog
 
+* **v1.0.24** - Fixing my stuff yet again
+	* Fixing the foggy weather ASCII art not showing up.
+	* Fixing the personal scanner fix throwing errors and scanning held items.
+	* Fixing ship total not resetting when players are fired.
+	* Fixing the medical station not working for clients unless they look at it before taking damage.
+	* Fixed an error that occurred during the creation of the extra monitors if any were set to 0.
+	* Slightly improved compatibility with Corporate Restructure.
+	* Yet again fixed the UI reticle behavior...
+
 * **v1.0.23** - The "I'm Sorry" Overhaul
 
 	**THIS HAS RESET MANY OF YOUR CONFIGURATION SETTINGS!**
