@@ -1,4 +1,4 @@
-﻿using GeneralImprovements.Patches;
+﻿using GeneralImprovements.Items;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -306,17 +306,39 @@ namespace GeneralImprovements.Utilities
         {
             if (Plugin.AddHealthRechargeStation.Value && AssetBundleHelper.MedStationPrefab != null)
             {
-                Plugin.MLS.LogInfo("Adding medical station to ship");
-                MedStation = Object.Instantiate(AssetBundleHelper.MedStationPrefab, new Vector3(2.75f, 3.4f, -16.561f), Quaternion.Euler(-90, 0, 0), StartOfRound.Instance.elevatorTransform);
+                MedStationItem medStationItem = null;
 
-                // Interaction trigger
+                if (StartOfRound.Instance.IsHost)
+                {
+                    // If we are the host, spawn it as a network object
+                    Plugin.MLS.LogInfo("Adding medical station to ship");
+                    MedStation = Object.Instantiate(AssetBundleHelper.MedStationPrefab, new Vector3(2.75f, 3.4f, -16.561f), Quaternion.Euler(-90, 0, 0), StartOfRound.Instance.elevatorTransform);
+                    medStationItem = MedStation.GetComponent<MedStationItem>();
+                    medStationItem.NetworkObject.Spawn();
+                }
+                else
+                {
+                    // If we are a client, try to find it in the scene first
+                    Plugin.MLS.LogInfo("Finding medical station in ship");
+                    medStationItem = Object.FindObjectOfType<MedStationItem>();
+                    MedStation = medStationItem?.gameObject;
+
+                    if (MedStation == null)
+                    {
+                        Plugin.MLS.LogWarning($"Could not find existing med station! Ensure the host has {nameof(Plugin.AddHealthRechargeStation)} set to true.");
+                        return;
+                    }
+                }
+
                 var chargeStation = Object.FindObjectOfType<ItemCharger>().GetComponent<InteractTrigger>();
+                MedStation.GetComponent<AudioSource>().outputAudioMixerGroup = chargeStation.GetComponent<AudioSource>().outputAudioMixerGroup;
+
+                // Add interaction trigger
                 var chargeTriggerCollider = chargeStation.GetComponent<BoxCollider>();
                 chargeTriggerCollider.center = Vector3.zero;
                 chargeTriggerCollider.size = new Vector3(1, 0.8f, 0.8f);
                 var medTrigger = MedStation.transform.Find("Trigger");
                 medTrigger.tag = chargeStation.tag;
-                medTrigger.GetComponent<AudioSource>().outputAudioMixerGroup = chargeStation.GetComponent<AudioSource>().outputAudioMixerGroup;
                 medTrigger.gameObject.layer = chargeStation.gameObject.layer;
                 var interactScript = medTrigger.gameObject.AddComponent<InteractTrigger>();
                 interactScript.hoverTip = "Heal";
@@ -329,10 +351,15 @@ namespace GeneralImprovements.Utilities
                 interactScript.onInteract = new InteractEvent();
                 interactScript.onCancelAnimation = new InteractEvent();
                 interactScript.onInteractEarly = new InteractEvent();
-                interactScript.onInteractEarly.AddListener(_ => PlayerControllerBPatch.HealLocalPlayer());
+                interactScript.onInteractEarly.AddListener(_ => medStationItem.HealLocalPlayer());
 
-                // Scan node
-                var scanNode = MedStation.transform.Find("ScanNode");
+                // Add scan node
+                var scanNode = MedStation.transform.Find("ScanNode").gameObject.AddComponent<ScanNodeProperties>();
+                scanNode.minRange = 0;
+                scanNode.maxRange = 6;
+                scanNode.nodeType = 0;
+                scanNode.headerText = "Med Station";
+                scanNode.subText = "Fully heal yourself";
             }
         }
     }

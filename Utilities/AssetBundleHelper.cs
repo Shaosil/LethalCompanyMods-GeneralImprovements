@@ -26,7 +26,7 @@ namespace GeneralImprovements.Utilities
 
                 // Load assets into memory
                 Plugin.MLS.LogInfo("Loading assets...");
-                Reticle = _bundle.LoadAsset<Sprite>("reticle");
+                Reticle = _bundle.LoadAsset<Sprite>("reticle.png");
                 MedStationPrefab = _bundle.LoadAsset<GameObject>("MedStation.prefab");
             }
         }

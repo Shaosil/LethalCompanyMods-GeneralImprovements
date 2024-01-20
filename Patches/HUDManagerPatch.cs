@@ -15,6 +15,13 @@ namespace GeneralImprovements.Patches
         private static MethodInfo _attemptScanNodeMethod;
         private static MethodInfo AttemptScanNodeMethod => _attemptScanNodeMethod ?? (_attemptScanNodeMethod = typeof(HUDManager).GetMethod("AttemptScanNode", BindingFlags.NonPublic | BindingFlags.Instance));
 
+        [HarmonyPatch(typeof(HUDManager), nameof(Start))]
+        [HarmonyPostfix]
+        private static void Start(ref float ___playerPingingScan)
+        {
+            ___playerPingingScan = -1f;
+        }
+
         [HarmonyPatch(typeof(HUDManager), nameof(AssignNewNodes))]
         [HarmonyPrefix]
         private static bool AssignNewNodes(HUDManager __instance, PlayerControllerB playerScript, ref int ___scannedScrapNum, List<ScanNodeProperties> ___nodesOnScreen)
@@ -47,6 +54,28 @@ namespace GeneralImprovements.Patches
 
             // Skip the original method
             return false;
+        }
+
+        [HarmonyPatch(typeof(HUDManager), nameof(UpdateScanNodes))]
+        [HarmonyPostfix]
+        private static void UpdateScanNodes(RectTransform[] ___scanElements, Dictionary<RectTransform, ScanNodeProperties> ___scanNodes)
+        {
+            // Disable subtext if desired and it has no text or scrap value
+            if (Plugin.HideEmptySubtextOfScanNodes.Value && ___scanElements != null)
+            {
+                foreach (var scanElement in ___scanElements.Where(s => s.gameObject.activeSelf))
+                {
+                    var subText = scanElement.GetComponentsInChildren<TextMeshProUGUI>().FirstOrDefault(t => t.name.ToUpper() == "SUBTEXT");
+                    var subTextBox = subText?.transform.parent.Find("SubTextBox");
+
+                    if (subTextBox != null && subText != null && ___scanNodes.ContainsKey(scanElement) && ___scanNodes[scanElement] != null)
+                    {
+                        bool shouldHide = string.IsNullOrWhiteSpace(subText.text) || subText.text.ToUpper().Contains("VALUE: $0");
+                        subTextBox.gameObject.SetActive(!shouldHide);
+                        subText.enabled = !shouldHide;
+                    }
+                }
+            }
         }
 
         [HarmonyPatch(typeof(HUDManager), nameof(SetClock))]

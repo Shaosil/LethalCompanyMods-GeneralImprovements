@@ -1,11 +1,43 @@
-﻿using HarmonyLib;
+﻿using GeneralImprovements.Items;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 using System.Linq;
+using System.Reflection;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace GeneralImprovements.Patches
 {
     internal static class GameNetworkManagerPatch
     {
+        public static void PatchNetcode()
+        {
+            var types = Assembly.GetExecutingAssembly().GetTypes();
+            foreach (var type in types)
+            {
+                var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                foreach (var method in methods)
+                {
+                    var attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
+                    if (attributes.Length > 0)
+                    {
+                        method.Invoke(null, null);
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(GameNetworkManager), nameof(Start))]
+        [HarmonyPostfix]
+        private static void Start(GameNetworkManager __instance)
+        {
+            if (Plugin.AddHealthRechargeStation.Value && AssetBundleHelper.MedStationPrefab != null)
+            {
+                AssetBundleHelper.MedStationPrefab.AddComponent<MedStationItem>();
+                NetworkManager.Singleton.AddNetworkPrefab(AssetBundleHelper.MedStationPrefab);
+            }
+        }
+
         [HarmonyPatch(typeof(GameNetworkManager), nameof(Disconnect))]
         [HarmonyPrefix]
         private static void Disconnect(GameNetworkManager __instance)

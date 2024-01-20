@@ -71,7 +71,10 @@ namespace GeneralImprovements.Patches
         private static void ShipLeave()
         {
             // Easter egg
-            RoundManagerPatch.CurShipNode.subText = "BYE LOL";
+            if (RoundManagerPatch.CurShipNode != null)
+            {
+                RoundManagerPatch.CurShipNode.subText = "BYE LOL";
+            }
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(ShipHasLeft))]

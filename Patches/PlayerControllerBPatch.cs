@@ -3,7 +3,6 @@ using GeneralImprovements.OtherMods;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System;
-using System.Collections;
 using System.Reflection;
 using Unity.Netcode;
 using UnityEngine;
@@ -255,26 +254,6 @@ namespace GeneralImprovements.Patches
             // Move item
             player.ItemSlots[newSlot] = player.ItemSlots[oldSlot];
             player.ItemSlots[oldSlot] = null;
-        }
-
-        public static void HealLocalPlayer()
-        {
-            if (StartOfRound.Instance.localPlayerController.health <= SceneHelper.MaxHealth)
-            {
-                StartOfRound.Instance.localPlayerController.StartCoroutine(HealLocalPlayerCoroutine());
-            }
-        }
-
-        private static IEnumerator HealLocalPlayerCoroutine()
-        {
-            SceneHelper.MedStation.GetComponentInChildren<AudioSource>().Play();
-            yield return new WaitForSeconds(0.75f);
-
-            Plugin.MLS.LogInfo($"Healing back to {SceneHelper.MaxHealth}...");
-            StartOfRound.Instance.localPlayerController.DamagePlayer(-(SceneHelper.MaxHealth - StartOfRound.Instance.localPlayerController.health), false, true);
-            StartOfRound.Instance.localPlayerController.MakeCriticallyInjured(false);
-
-            yield break;
         }
     }
 }

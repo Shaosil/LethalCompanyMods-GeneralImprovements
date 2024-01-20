@@ -85,6 +85,16 @@ namespace GeneralImprovements.Patches
                 __instance.itemProperties.minValue = __instance.itemProperties.maxValue;
                 __instance.itemProperties.maxValue = oldMin;
             }
+
+            // Add scan nodes to tools if requested
+            if (Plugin.ScannableTools.Value.Split(",").Any(t => __instance.GetType().Name == t) && __instance.GetComponent<ScanNodeProperties>() == null)
+            {
+                var newScanNode = __instance.gameObject.AddComponent<ScanNodeProperties>();
+                newScanNode.nodeType = 0;
+                newScanNode.minRange = 1;
+                newScanNode.maxRange = 13;
+                newScanNode.headerText = __instance.itemProperties.itemName;
+            }
         }
 
         [HarmonyPatch(typeof(GrabbableObject), "Start")]

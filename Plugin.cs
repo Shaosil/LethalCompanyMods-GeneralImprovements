@@ -6,6 +6,7 @@ using GeneralImprovements.Patches;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.InputSystem;
 
@@ -64,10 +65,13 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> TerminalFastCamSwitch { get; private set; }
 
         private const string ToolsSection = "Tools";
+        public static ConfigEntry<string> ScannableTools { get; private set; }
+        public static List<Type> ScannableToolVals { get; private set; } = new List<Type>();
         public static ConfigEntry<bool> ToolsDoNotAttractLightning { get; private set; }
 
         private const string UISection = "UI";
         public static ConfigEntry<bool> ShowUIReticle { get; private set; }
+        public static ConfigEntry<bool> HideEmptySubtextOfScanNodes { get; private set; }
 
         private void Awake()
         {
@@ -75,6 +79,10 @@ namespace GeneralImprovements
                 .Concat(Enum.GetValues(typeof(ShipBuildModeManagerPatch.MouseButton)).Cast<int>().Select(e => Enum.GetName(typeof(ShipBuildModeManagerPatch.MouseButton), e))).ToArray();
 
             var validSnapRotations = Enumerable.Range(0, 360 / 15).Select(n => n * 15).Where(n => n == 0 || 360 % n == 0).ToArray();
+
+            var validToolTypes = new List<Type> { typeof(BoomboxItem), typeof(ExtensionLadderItem), typeof(FlashlightItem), typeof(JetpackItem), typeof(LockPicker), typeof(RadarBoosterItem),
+                                                typeof(Shovel), typeof(SprayPaintItem), typeof(StunGrenadeItem), typeof(TetraChemicalItem), typeof(WalkieTalkie), typeof(PatcherTool) };
+            var validToolStrings = string.Join(", ", "All", validToolTypes.ToArray());
 
             MLS = Logger;
 
@@ -84,8 +92,8 @@ namespace GeneralImprovements
             ShipTotalMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipTotalMonitorNum), 0, new ConfigDescription($"Displays the sum of all scrap value on the ship on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 6)));
             ShipTimeMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipTimeMonitorNum), 0, new ConfigDescription($"Displays current time on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 6)));
             ShipWeatherMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipWeatherMonitorNum), 0, new ConfigDescription($"Displays the current moon's weather on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 6)));
-            FancyWeatherMonitor = Config.Bind(ExtraMonitorsSection, nameof(FancyWeatherMonitor), true, "If set to true and paired with ShowShipWeatherMonitor, the weather monitor will display ASCII art instead of text descriptions.");
             ShipSalesMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipSalesMonitorNum), 0, new ConfigDescription($"Displays info about current sales on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 6)));
+            FancyWeatherMonitor = Config.Bind(ExtraMonitorsSection, nameof(FancyWeatherMonitor), true, "If set to true and paired with ShowShipWeatherMonitor, the weather monitor will display ASCII art instead of text descriptions.");
             SyncExtraMonitorsPower = Config.Bind(ExtraMonitorsSection, nameof(SyncExtraMonitorsPower), true, "If set to true, The smaller monitors above the map screen will turn off and on when the map screen power is toggled.");
 
             // Fixes
@@ -104,14 +112,10 @@ namespace GeneralImprovements
             ScrollDelay = Config.Bind(InventorySection, nameof(ScrollDelay), 0.1f, new ConfigDescription("The minimum time you must wait to scroll to another item in your inventory. Vanilla: 0.3.", new AcceptableValueRange<float>(0.05f, 0.3f)));
 
             // Mechanics
-            StartingMoneyPerPlayer = Config.Bind(MechanicsSection, nameof(StartingMoneyPerPlayer), -1, new ConfigDescription("How much starting money the group gets per player. Set to -1 to disable. Adjusts money as players join and leave, until the game starts.", new AcceptableValueRange<int>(-1, 1000)));
-            MinimumStartingMoney = Config.Bind(MechanicsSection, nameof(MinimumStartingMoney), 30, new ConfigDescription("When paired with StartingMoneyPerPlayer, will ensure a group always starts with at least this much money. Must be at least the value of StartingMoneyPerPlayer.", new AcceptableValueRange<int>(-1, 1000)));
-            if (MinimumStartingMoney.Value < StartingMoneyPerPlayer.Value)
-            {
-                MinimumStartingMoney.Value = StartingMoneyPerPlayer.Value;
-            }
-            AllowQuotaRollover = Config.Bind(MechanicsSection, nameof(AllowQuotaRollover), false, "If set to true, will keep the surplus money remaining after selling things to the company, and roll it over to the next quota.");
-            AddHealthRechargeStation = Config.Bind(MechanicsSection, nameof(AddHealthRechargeStation), false, "If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full.");
+            StartingMoneyPerPlayer = Config.Bind(MechanicsSection, nameof(StartingMoneyPerPlayer), -1, new ConfigDescription("[Host Only] How much starting money the group gets per player. Set to -1 to disable. Adjusts money as players join and leave, until the game starts.", new AcceptableValueRange<int>(-1, 1000)));
+            MinimumStartingMoney = Config.Bind(MechanicsSection, nameof(MinimumStartingMoney), 30, new ConfigDescription("[Host Only] When paired with StartingMoneyPerPlayer, will ensure a group always starts with at least this much money. Must be at least the value of StartingMoneyPerPlayer.", new AcceptableValueRange<int>(-1, 1000)));
+            AllowQuotaRollover = Config.Bind(MechanicsSection, nameof(AllowQuotaRollover), false, "[Host Required] If set to true, will keep the surplus money remaining after selling things to the company, and roll it over to the next quota. If clients do not set this, they will see visual desyncs.");
+            AddHealthRechargeStation = Config.Bind(MechanicsSection, nameof(AddHealthRechargeStation), false, "[Host Only] If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full.");
 
             // Ship
             HideClipboardAndStickyNote = Config.Bind(ShipSection, nameof(HideClipboardAndStickyNote), false, "If set to true, the game will not show the clipboard or sticky note when the game loads.");
@@ -129,17 +133,45 @@ namespace GeneralImprovements
             TerminalFastCamSwitch = Config.Bind(TerminalSection, nameof(TerminalFastCamSwitch), true, "If set to true, will allow use of the left/right arrow keys to quickly cycle through radar cameras while using the terminal.");
 
             // Tools
-            ToolsDoNotAttractLightning = Config.Bind(ToolsSection, nameof(ToolsDoNotAttractLightning), false, "If set to true, all useful tools (jetpacks, keys, radar boosters, shovels & signs, tzp inhalant, and zap guns) will no longer attract lighning.");
+            ScannableTools = Config.Bind(ToolsSection, nameof(ScannableTools), string.Empty, $"A comma separated list of which tools, if any, should be scannable. Accepted values: {validToolStrings}");
+            ToolsDoNotAttractLightning = Config.Bind(ToolsSection, nameof(ToolsDoNotAttractLightning), false, "[Host Only] If set to true, all useful tools (jetpacks, keys, radar boosters, shovels & signs, tzp inhalant, and zap guns) will no longer attract lighning.");
 
             // UI
+            HideEmptySubtextOfScanNodes = Config.Bind(UISection, nameof(HideEmptySubtextOfScanNodes), true, "If set to true, will hide the subtext section of scannables that do not have subtext or scrap value.");
             ShowUIReticle = Config.Bind(UISection, nameof(ShowUIReticle), false, "If set to true, the HUD will display a small dot so you can see exactly where you are pointing at all times.");
 
-            // Cleanup old values
+            // Sanitize where needed
+            if (MinimumStartingMoney.Value < StartingMoneyPerPlayer.Value)
+            {
+                MinimumStartingMoney.Value = StartingMoneyPerPlayer.Value;
+            }
+            var validGrabbables = new List<string>();
+            string[] specifiedScannables = ScannableTools.Value.Replace(" ", "").Split(',');
+            if (specifiedScannables.Any(s => s.ToUpper() == "ALL"))
+            {
+                ScannableToolVals = validToolTypes;
+            }
+            else
+            {
+                foreach (string scannableTool in ScannableTools.Value.Replace(" ", "").Split(','))
+                {
+                    var grabbable = validToolTypes.FirstOrDefault(g => g.Name.ToUpper().Contains(scannableTool.ToUpper()));
+                    if (grabbable == null)
+                    {
+                        MLS.LogWarning($"Could not find item type {scannableTool} when trying to add a scan node! Check your spelling and the acceptable values.");
+                        continue;
+                    }
+                    else
+                    {
+                        ScannableToolVals.Add(grabbable);
+                        validGrabbables.Add(scannableTool);
+                    }
+                }
 
+                ScannableTools.Value = string.Join(',', validGrabbables.ToArray());
+            }
 
             MLS.LogDebug("Configuration Initialized.");
-
-            Harmony.CreateAndPatchAll(GetType().Assembly);
 
             Harmony.CreateAndPatchAll(typeof(DepositItemsDeskPatch));
             MLS.LogDebug("DepositItemsDesk patched.");
@@ -190,6 +222,7 @@ namespace GeneralImprovements
             ReservedItemSlotCoreHelper.Initialize();
             AdvancedCompanyHelper.Initialize();
             AssetBundleHelper.Initialize();
+            GameNetworkManagerPatch.PatchNetcode();
 
             MLS.LogInfo($"{Metadata.PLUGIN_NAME} v{Metadata.VERSION} fully loaded.");
         }

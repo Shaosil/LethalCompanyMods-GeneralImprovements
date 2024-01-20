@@ -23,12 +23,14 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * The little monitors above the map screen will now share the power state of the map screen. Behavior may be disabled in config.
 * Increases the max items able to be saved on the ship from 45 to 999 (affects saving and loading game files).
 * Adds an option to show a small reticle on the HUD UI so you can see where you are pointing.
+* Adds an option to hide scan node subtext if it has no scrap value or description.
+* Adds an option to scan tools.
 
 ### NEW FEATURES:
 * If specified in the config, the game will automatically select ONLINE or LAN upon launch.
 * Using the up/down arrow keys at the terminal will navigate through the previous (n) commands. (n) may range from 0-100 in the config.
 * Using the left/right arrow keys at the terminal while viewing the radar will quickly cycle through available targets.
-* [Host only] Adds an option to specify starting money per player, as well as define a minumum credit amount. Accepts ranges from -1 (disabled/default) to 1000.
+* [Host Only] Adds an option to specify starting money per player, as well as define a minumum credit amount. Accepts ranges from -1 (disabled/default) to 1000.
 * [Host Only] Adds an option to prevent tools from getting struck by lightning. This is a bit of a cheat in some opinions, so I recommend leaving it off. If the host/server player has this enabled, it will apply to all clients.
 * Adds an option to display text under the 'Deadline' monitor with the current ship loot total.
 * [Host Required] Adds an option to roll over surplus credits to the next quota. If clients do NOT have this enabled, there will be visual desyncs only.
