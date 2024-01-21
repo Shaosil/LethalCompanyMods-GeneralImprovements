@@ -1,5 +1,13 @@
 # Changelog
 
+### v1.0.26 - More fixes and improvements
+* Added an option (defaults ON) to center align text on the small monitors in the ship.
+* Fixing ScannableTools not accepting "All" (and fixing the config description).
+* [Host Requires Mod] Adding the ability to toggle the fancy lamp on and off while holding it.
+* Fixing the med station sound clip playing globally.
+* Fixing the med station staying floating in the level when the ship lands/takes off.
+* Fixed the ship total monitor power state not syncing with the others.
+
 ### v1.0.25 - More fixes and improvements
 * Fixing compatibility with custom made levels when the level does not contain a scannable ship node.
 * Added a setting to hide scan subtext if it is blank or has no value.

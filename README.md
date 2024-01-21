@@ -25,6 +25,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds an option to show a small reticle on the HUD UI so you can see where you are pointing.
 * Adds an option to hide scan node subtext if it has no scrap value or description.
 * Adds an option to scan tools.
+* [Host Must Have Mod] Adds the ability to toggle the fancy lamp on and off while holding it.
 
 ### NEW FEATURES:
 * If specified in the config, the game will automatically select ONLINE or LAN upon launch.

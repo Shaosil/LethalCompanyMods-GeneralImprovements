@@ -22,9 +22,10 @@ namespace GeneralImprovements
         public static ConfigEntry<int> ShipTotalMonitorNum { get; private set; }
         public static ConfigEntry<int> ShipTimeMonitorNum { get; private set; }
         public static ConfigEntry<int> ShipWeatherMonitorNum { get; private set; }
-        public static ConfigEntry<bool> FancyWeatherMonitor { get; private set; }
         public static ConfigEntry<int> ShipSalesMonitorNum { get; private set; }
+        public static ConfigEntry<bool> FancyWeatherMonitor { get; private set; }
         public static ConfigEntry<bool> SyncExtraMonitorsPower { get; private set; }
+        public static ConfigEntry<bool> CenterAlignMonitorText { get; private set; }
 
         private const string FixesSection = "Fixes";
         public static ConfigEntry<bool> FixInternalFireExits { get; private set; }
@@ -82,7 +83,7 @@ namespace GeneralImprovements
 
             var validToolTypes = new List<Type> { typeof(BoomboxItem), typeof(ExtensionLadderItem), typeof(FlashlightItem), typeof(JetpackItem), typeof(LockPicker), typeof(RadarBoosterItem),
                                                 typeof(Shovel), typeof(SprayPaintItem), typeof(StunGrenadeItem), typeof(TetraChemicalItem), typeof(WalkieTalkie), typeof(PatcherTool) };
-            var validToolStrings = string.Join(", ", "All", validToolTypes.ToArray());
+            var validToolStrings = string.Join(", ", new[] { "All" }.Concat(validToolTypes.Select(t => t.Name)));
 
             MLS = Logger;
 
@@ -95,6 +96,7 @@ namespace GeneralImprovements
             ShipSalesMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipSalesMonitorNum), 0, new ConfigDescription($"Displays info about current sales on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 6)));
             FancyWeatherMonitor = Config.Bind(ExtraMonitorsSection, nameof(FancyWeatherMonitor), true, "If set to true and paired with ShowShipWeatherMonitor, the weather monitor will display ASCII art instead of text descriptions.");
             SyncExtraMonitorsPower = Config.Bind(ExtraMonitorsSection, nameof(SyncExtraMonitorsPower), true, "If set to true, The smaller monitors above the map screen will turn off and on when the map screen power is toggled.");
+            CenterAlignMonitorText = Config.Bind(ExtraMonitorsSection, nameof(CenterAlignMonitorText), true, "If set to true, all small monitors in the ship will have their text center aligned, instead of left.");
 
             // Fixes
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");

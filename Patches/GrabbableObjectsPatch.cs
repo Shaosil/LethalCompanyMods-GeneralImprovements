@@ -87,7 +87,7 @@ namespace GeneralImprovements.Patches
             }
 
             // Add scan nodes to tools if requested
-            if (Plugin.ScannableTools.Value.Split(",").Any(t => __instance.GetType().Name == t) && __instance.GetComponent<ScanNodeProperties>() == null)
+            if (Plugin.ScannableToolVals.Any(t => __instance.GetType() == t) && __instance.GetComponent<ScanNodeProperties>() == null)
             {
                 var newScanNode = __instance.gameObject.AddComponent<ScanNodeProperties>();
                 newScanNode.nodeType = 0;

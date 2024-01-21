@@ -36,6 +36,8 @@ namespace GeneralImprovements.Patches
                 AssetBundleHelper.MedStationPrefab.AddComponent<MedStationItem>();
                 NetworkManager.Singleton.AddNetworkPrefab(AssetBundleHelper.MedStationPrefab);
             }
+
+            ItemHelper.AlterFancyLampPrefab();
         }
 
         [HarmonyPatch(typeof(GameNetworkManager), nameof(Disconnect))]

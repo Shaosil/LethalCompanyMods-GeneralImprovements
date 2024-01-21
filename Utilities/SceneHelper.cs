@@ -53,6 +53,12 @@ namespace GeneralImprovements.Utilities
             deadlineText.fontSize = deadlineText.fontSize * 0.9f;
             deadlineText.margin = Vector4.one * 5;
 
+            if (Plugin.CenterAlignMonitorText.Value)
+            {
+                quotaText.alignment = TextAlignmentOptions.Center;
+                deadlineText.alignment = TextAlignmentOptions.Center;
+            }
+
             // Copy everything from the existing quota monitor
             if (Plugin.ShipTotalMonitorNum.Value > 0)
             {
@@ -60,7 +66,6 @@ namespace GeneralImprovements.Utilities
                 _totalMonitorBg.name = "TotalMonitorBG";
                 _totalMonitorText = Object.Instantiate(quotaText, quotaText.transform.parent);
                 _totalMonitorText.name = "TotalMonitorText";
-                _totalMonitorText.alignment = TextAlignmentOptions.Center;
             }
             if (Plugin.ShipTimeMonitorNum.Value > 0)
             {
@@ -68,7 +73,6 @@ namespace GeneralImprovements.Utilities
                 _timeMonitorBG.name = "TimeMonitorBG";
                 _timeMonitorText = Object.Instantiate(quotaText, quotaText.transform.parent);
                 _timeMonitorText.name = "TimeMonitorText";
-                _timeMonitorText.alignment = TextAlignmentOptions.Center;
             }
             if (Plugin.ShipWeatherMonitorNum.Value > 0)
             {
@@ -76,7 +80,12 @@ namespace GeneralImprovements.Utilities
                 _weatherMonitorBG.name = "WeatherMonitorBG";
                 _weatherMonitorText = Object.Instantiate(quotaText, quotaText.transform.parent);
                 _weatherMonitorText.name = "WeatherMonitorText";
-                _weatherMonitorText.rectTransform.localPosition += new Vector3(10, 0, 0);
+                if (Plugin.FancyWeatherMonitor.Value)
+                {
+                    _weatherMonitorText.alignment = TextAlignmentOptions.MidlineLeft;
+                    _weatherMonitorText.transform.localPosition += new Vector3(25, 0, -3);
+                    _weatherMonitorText.transform.localEulerAngles += new Vector3(-2, 0, 0);
+                }
             }
             if (Plugin.ShipSalesMonitorNum.Value > 0)
             {
@@ -293,6 +302,8 @@ namespace GeneralImprovements.Utilities
             if (Plugin.SyncExtraMonitorsPower.Value)
             {
                 bool displayBackgrounds = Plugin.ShowBlueMonitorBackground.Value;
+                if (_totalMonitorBg != null && displayBackgrounds) _totalMonitorBg.gameObject.SetActive(on);
+                if (_totalMonitorText != null) _totalMonitorText.gameObject.SetActive(on);
                 if (_timeMonitorBG != null && displayBackgrounds) _timeMonitorBG.gameObject.SetActive(on);
                 if (_timeMonitorText != null) _timeMonitorText.gameObject.SetActive(on);
                 if (_weatherMonitorBG != null && displayBackgrounds) _weatherMonitorBG.gameObject.SetActive(on);
@@ -311,7 +322,7 @@ namespace GeneralImprovements.Utilities
                 if (StartOfRound.Instance.IsHost)
                 {
                     // If we are the host, spawn it as a network object
-                    Plugin.MLS.LogInfo("Adding medical station to ship");
+                    Plugin.MLS.LogInfo("Adding medical station to ship.");
                     MedStation = Object.Instantiate(AssetBundleHelper.MedStationPrefab, new Vector3(2.75f, 3.4f, -16.561f), Quaternion.Euler(-90, 0, 0), StartOfRound.Instance.elevatorTransform);
                     medStationItem = MedStation.GetComponent<MedStationItem>();
                     medStationItem.NetworkObject.Spawn();
