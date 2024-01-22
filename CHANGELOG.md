@@ -1,5 +1,12 @@
 # Changelog
 
+### v1.0.27 - More fixes and improvements
+* Fixed my personal scanner fix picking up inactive or hidden nodes.
+* Added an option to scan held player items, if FixPersonalScanner is also true.
+* Fixed the med station not scanning for the vanilla personal scanner.
+* Fixed the weather ASCII art clipping through the background on certain screens.
+* Fixing tool scan nodes not scanning for the vanilla personal scanner.
+
 ### v1.0.26 - More fixes and improvements
 * Added an option (defaults ON) to center align text on the small monitors in the ship.
 * Fixing ScannableTools not accepting "All" (and fixing the config description).

@@ -31,6 +31,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> FixInternalFireExits { get; private set; }
         public static ConfigEntry<bool> FixItemsFallingThrough { get; private set; }
         public static ConfigEntry<bool> FixPersonalScanner { get; private set; }
+        public static ConfigEntry<bool> ScanHeldPlayerItems { get; private set; }
 
         private const string GameLaunchSection = "GameLaunch";
         public static ConfigEntry<bool> SkipStartupScreen { get; private set; }
@@ -102,6 +103,7 @@ namespace GeneralImprovements
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
             FixItemsFallingThrough = Config.Bind(FixesSection, nameof(FixItemsFallingThrough), true, "Fixes items falling through furniture on the ship when loading the game.");
             FixPersonalScanner = Config.Bind(FixesSection, nameof(FixPersonalScanner), false, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you, and the ship/main entrance.");
+            ScanHeldPlayerItems = Config.Bind(FixesSection, nameof(ScanHeldPlayerItems), false, "If this and FixPersonalScanner are set to true, the scanner will also ping items in other players' hands.");
 
             // Game Launch
             SkipStartupScreen = Config.Bind(GameLaunchSection, nameof(SkipStartupScreen), true, "Skips the main menu loading screen bootup animation.");

@@ -83,8 +83,8 @@ namespace GeneralImprovements.Utilities
                 if (Plugin.FancyWeatherMonitor.Value)
                 {
                     _weatherMonitorText.alignment = TextAlignmentOptions.MidlineLeft;
-                    _weatherMonitorText.transform.localPosition += new Vector3(25, 0, -3);
-                    _weatherMonitorText.transform.localEulerAngles += new Vector3(-2, 0, 0);
+                    _weatherMonitorText.transform.localPosition += new Vector3(25, 0, -10);
+                    _weatherMonitorText.transform.localEulerAngles += new Vector3(-2, 1, 0);
                 }
             }
             if (Plugin.ShipSalesMonitorNum.Value > 0)
@@ -103,7 +103,7 @@ namespace GeneralImprovements.Utilities
                 new KeyValuePair<Vector3, Vector3>(new Vector3(970, 485, -128), new Vector3(-18, 25, 5)),   // Monitor 3
                 new KeyValuePair<Vector3, Vector3>(new Vector3(1390, 525, -329), new Vector3(-18, 25, 5)),  // Monitor 4
                 new KeyValuePair<Vector3, Vector3>(new Vector3(1025, 30, -115), new Vector3(-1, 25, 5)),    // Monitor 5
-                new KeyValuePair<Vector3, Vector3>(new Vector3(1445, 72, -320), new Vector3(-1, 25, 5))     // Monitor 6
+                new KeyValuePair<Vector3, Vector3>(new Vector3(1445, 72, -320), new Vector3(-1, 27, 5))     // Monitor 6
             };
 
             // Store the new monitor objects in a separate list
@@ -366,6 +366,7 @@ namespace GeneralImprovements.Utilities
 
                 // Add scan node
                 var scanNode = MedStation.transform.Find("ScanNode").gameObject.AddComponent<ScanNodeProperties>();
+                scanNode.gameObject.layer = LayerMask.NameToLayer("ScanNode");
                 scanNode.minRange = 0;
                 scanNode.maxRange = 6;
                 scanNode.nodeType = 0;
