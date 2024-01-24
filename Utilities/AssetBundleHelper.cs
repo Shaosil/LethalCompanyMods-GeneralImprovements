@@ -8,6 +8,7 @@ namespace GeneralImprovements.Utilities
     {
         private static AssetBundle _bundle;
 
+        public static GameObject MonitorsPrefab { get; private set; }
         public static Sprite Reticle { get; private set; }
         public static GameObject MedStationPrefab { get; private set; }
 
@@ -26,6 +27,7 @@ namespace GeneralImprovements.Utilities
 
                 // Load assets into memory
                 Plugin.MLS.LogInfo("Loading assets...");
+                MonitorsPrefab = _bundle.LoadAsset<GameObject>("MonitorGroup.prefab");
                 Reticle = _bundle.LoadAsset<Sprite>("reticle.png");
                 MedStationPrefab = _bundle.LoadAsset<GameObject>("MedStation.prefab");
             }

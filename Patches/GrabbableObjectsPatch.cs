@@ -24,7 +24,7 @@ namespace GeneralImprovements.Patches
                 // Otherwise, pin the clipboard to the wall when loading in
                 else if (__instance is ClipboardItem)
                 {
-                    __instance.transform.SetPositionAndRotation(new Vector3(11.02f, 2.45f, -13.4f), Quaternion.Euler(0, 180, 90));
+                    __instance.transform.SetLocalPositionAndRotation(new Vector3(2, 2.25f, -9.125f), Quaternion.Euler(0, -90, 90));
                 }
 
                 // Fix this being set elsewhere

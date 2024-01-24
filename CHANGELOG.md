@@ -1,5 +1,14 @@
 # Changelog
 
+### v1.1.0 - More monitors!
+* Completely reworked the in game ship monitor system! There are now 14 monitors (12 small and two big) instead of 8, each of which can be used with both the in game profit quota and deadline monitors, or any of my extra monitors.
+	* In theory this should work with other mods that overlay extra things onto monitors as well, but those will still look like overlays instead of integrated into the screen itself.
+	* Added options to specifiy which monitors the base profit quota and deadline monitors show up on. This may require you to shift existing settings around if you had things on monitors 5 or 6 before updating.
+	* Added options to specify which monitors the internal and external ship cams show up on. This is only applicable if using the new style monitors.
+	* Added more options for the ship's internal cam, such as resolution multipliers and FPS limiting
+	* Added an option to show the blue background on all screens, not just active ones. Works well with mods like [Corporate Restructure.](https://thunderstore.io/c/lethal-company/p/Jamil/Corporate_Restructure/)
+* Moved the clipboard starting position (again) to be near the charger since the new big monitor would have covered it up.
+
 ### v1.0.27 - More fixes and improvements
 * Fixed my personal scanner fix picking up inactive or hidden nodes.
 * Added an option to scan held player items, if FixPersonalScanner is also true.

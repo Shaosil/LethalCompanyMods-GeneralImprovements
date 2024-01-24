@@ -27,15 +27,27 @@ namespace GeneralImprovements.Patches
         }
         private static float _originalCursorScale = 0;
 
-        [HarmonyPatch(typeof(PlayerControllerB), nameof(ConnectClientToPlayerObject))]
-        [HarmonyPostfix]
+        [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
+        [HarmonyPrefix]
         [HarmonyPriority(Priority.High)]
-        private static void ConnectClientToPlayerObject(PlayerControllerB __instance)
+        private static void ConnectClientToPlayerObjectPre(PlayerControllerB __instance)
         {
             _originalCursorScale = __instance.cursorIcon.transform.localScale.x;
 
             // Store max health on creation
-            SceneHelper.MaxHealth = __instance.health;
+            ItemHelper.MaxHealth = __instance.health;
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
+        [HarmonyPriority(Priority.Low)]
+        [HarmonyFinalizer] // Need a finalizer because CorporateRestructure sometimes has an exception before this, stopping our hide code
+        private static void ConnectClientToPlayerObjectPost(PlayerControllerB __instance)
+        {
+            // If using the new monitors, hide the old text objects HERE in order to let other mods utilize them first
+            if (Plugin.UseBetterMonitors.Value)
+            {
+                MonitorsHelper.HideOldMonitors();
+            }
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(FirstEmptyItemSlot))]
@@ -180,7 +192,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SetItemInElevator()
         {
-            SceneHelper.UpdateShipTotalMonitor();
+            MonitorsHelper.UpdateShipTotalMonitor();
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SetHoverTipAndCurrentInteractTrigger))]
@@ -211,15 +223,15 @@ namespace GeneralImprovements.Patches
                 }
             }
 
-            if (Plugin.AddHealthRechargeStation.Value && SceneHelper.MedStation != null && __instance.hoveringOverTrigger?.transform.parent == SceneHelper.MedStation.transform)
+            if (Plugin.AddHealthRechargeStation.Value && ItemHelper.MedStation != null && __instance.hoveringOverTrigger?.transform.parent == ItemHelper.MedStation.transform)
             {
-                if (__instance.health > SceneHelper.MaxHealth)
+                if (__instance.health > ItemHelper.MaxHealth)
                 {
-                    SceneHelper.MaxHealth = __instance.health;
+                    ItemHelper.MaxHealth = __instance.health;
                 }
                 else
                 {
-                    __instance.hoveringOverTrigger.interactable = __instance.health < SceneHelper.MaxHealth;
+                    __instance.hoveringOverTrigger.interactable = __instance.health < ItemHelper.MaxHealth;
                 }
             }
         }

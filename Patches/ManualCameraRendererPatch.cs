@@ -29,17 +29,33 @@ namespace GeneralImprovements.Patches
         }
 
         [HarmonyPatch(typeof(ManualCameraRenderer), nameof(SwitchScreenOn))]
-        [HarmonyPostfix]
-        private static void SwitchScreenOn(bool on)
+        [HarmonyPrefix]
+        private static bool SwitchScreenOn(bool on, ManualCameraRenderer __instance, ref bool ___isScreenOn)
         {
             if (Plugin.SyncExtraMonitorsPower.Value)
             {
-                if (StartOfRound.Instance.profitQuotaMonitorBGImage != null) StartOfRound.Instance.profitQuotaMonitorBGImage.gameObject.SetActive(on);
+                bool displayBackgrounds = Plugin.ShowBlueMonitorBackground.Value;
+                if (StartOfRound.Instance.profitQuotaMonitorBGImage != null && displayBackgrounds) StartOfRound.Instance.profitQuotaMonitorBGImage.gameObject.SetActive(on);
                 if (StartOfRound.Instance.profitQuotaMonitorText != null) StartOfRound.Instance.profitQuotaMonitorText.gameObject.SetActive(on);
+                if (StartOfRound.Instance.deadlineMonitorBGImage != null && displayBackgrounds) StartOfRound.Instance.deadlineMonitorBGImage.gameObject.SetActive(on);
                 if (StartOfRound.Instance.deadlineMonitorText != null) StartOfRound.Instance.deadlineMonitorText.gameObject.SetActive(on);
-                if (StartOfRound.Instance.deadlineMonitorBGImage != null) StartOfRound.Instance.deadlineMonitorBGImage.gameObject.SetActive(on);
-                SceneHelper.ToggleExtraMonitorPower(on);
+                MonitorsHelper.ToggleExtraMonitorPower(on);
             }
+
+            // Manually handle this if we are using our own monitors
+            if (Plugin.UseBetterMonitors.Value)
+            {
+                MonitorsHelper.UpdateMapMaterial(on ? __instance.onScreenMat : __instance.offScreenMat);
+                ___isScreenOn = on;
+                __instance.currentCameraDisabled = !on;
+                if (on)
+                {
+                    __instance.mapCameraAnimator.SetTrigger("Transition");
+                }
+                return false;
+            }
+
+            return true;
         }
     }
 }

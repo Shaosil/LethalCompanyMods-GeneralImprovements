@@ -43,7 +43,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void DespawnPropsAtEndOfRound()
         {
-            SceneHelper.UpdateTimeMonitor();
+            MonitorsHelper.UpdateTimeMonitor();
         }
 
         public static void EnableAndAttachShipScanNode()

@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using GeneralImprovements.Utilities;
+using HarmonyLib;
 
 namespace GeneralImprovements.Patches
 {
@@ -47,6 +48,16 @@ namespace GeneralImprovements.Patches
                 // At this point, we will have the surplus set whether we are server or client
                 Plugin.MLS.LogInfo($"Applying surplus quota to fulfilled: ${_leftoverFunds}");
                 __instance.quotaFulfilled = _leftoverFunds;
+            }
+        }
+
+        [HarmonyPatch(typeof(TimeOfDay), nameof(UpdateProfitQuotaCurrentTime))]
+        [HarmonyPostfix]
+        private static void UpdateProfitQuotaCurrentTime()
+        {
+            if (Plugin.UseBetterMonitors.Value)
+            {
+                MonitorsHelper.CopyProfitQuotaAndDeadlineText();
             }
         }
     }

@@ -28,6 +28,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * [Host Must Have Mod] Adds the ability to toggle the fancy lamp on and off while holding it.
 
 ### NEW FEATURES:
+* A total of 14 customizable, screen-integrated monitors for the ship (instead of the vanilla 8)! Choose which monitor to put what item, including ship cams and background color.
 * If specified in the config, the game will automatically select ONLINE or LAN upon launch.
 * Using the up/down arrow keys at the terminal will navigate through the previous (n) commands. (n) may range from 0-100 in the config.
 * Using the left/right arrow keys at the terminal while viewing the radar will quickly cycle through available targets.

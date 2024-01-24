@@ -50,10 +50,10 @@ namespace GeneralImprovements.Patches
             }
 
             // Create new monitors
-            SceneHelper.CreateExtraMonitors();
+            MonitorsHelper.CreateExtraMonitors();
 
             // Add medical charging station
-            SceneHelper.CreateMedStation();
+            ItemHelper.CreateMedStation();
 
             // Fix max items allowed to be stored
             __instance.maxShipItemCapacity = 999;
@@ -93,7 +93,7 @@ namespace GeneralImprovements.Patches
         private static void SetMapScreenInfoToCurrentLevel()
         {
             // Update weather monitor text
-            SceneHelper.UpdateWeatherMonitor();
+            MonitorsHelper.UpdateWeatherMonitor();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(SwitchMapMonitorPurpose))]
@@ -142,30 +142,30 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SyncShipUnlockablesClientRpc()
         {
-            SceneHelper.UpdateShipTotalMonitor();
+            MonitorsHelper.UpdateShipTotalMonitor();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(ResetShip))]
         [HarmonyPostfix]
         private static void ResetShip(StartOfRound __instance)
         {
-            SceneHelper.UpdateShipTotalMonitor();
+            MonitorsHelper.UpdateShipTotalMonitor();
             TerminalPatch.SetStartingMoneyPerPlayer(true);
-            SceneHelper.MaxHealth = __instance.localPlayerController?.health ?? 100;
+            ItemHelper.MaxHealth = __instance.localPlayerController?.health ?? 100;
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(LoadShipGrabbableItems))]
         [HarmonyPostfix]
         private static void LoadShipGrabbableItems()
         {
-            SceneHelper.UpdateShipTotalMonitor();
+            MonitorsHelper.UpdateShipTotalMonitor();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(Update))]
         [HarmonyPostfix]
         private static void Update()
         {
-            SceneHelper.AnimateWeatherMonitor();
+            MonitorsHelper.AnimateWeatherMonitor();
         }
     }
 }

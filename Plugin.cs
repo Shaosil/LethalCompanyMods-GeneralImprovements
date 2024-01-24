@@ -18,14 +18,22 @@ namespace GeneralImprovements
         public static ManualLogSource MLS { get; private set; }
 
         private const string ExtraMonitorsSection = "ExtraMonitors";
+        public static ConfigEntry<bool> UseBetterMonitors { get; private set; }
         public static ConfigEntry<bool> ShowBlueMonitorBackground { get; private set; }
+        public static ConfigEntry<bool> ShowBackgroundOnAllScreens { get; private set; }
+        public static ConfigEntry<int> ShipProfitQuotaMonitorNum { get; private set; }
+        public static ConfigEntry<int> ShipDeadlineMonitorNum { get; private set; }
         public static ConfigEntry<int> ShipTotalMonitorNum { get; private set; }
         public static ConfigEntry<int> ShipTimeMonitorNum { get; private set; }
         public static ConfigEntry<int> ShipWeatherMonitorNum { get; private set; }
         public static ConfigEntry<int> ShipSalesMonitorNum { get; private set; }
+        public static ConfigEntry<int> ShipInternalCamMonitorNum { get; private set; }
+        public static ConfigEntry<int> ShipExternalCamMonitorNum { get; private set; }
         public static ConfigEntry<bool> FancyWeatherMonitor { get; private set; }
         public static ConfigEntry<bool> SyncExtraMonitorsPower { get; private set; }
         public static ConfigEntry<bool> CenterAlignMonitorText { get; private set; }
+        public static ConfigEntry<int> ShipInternalCamSizeMultiplier { get; private set; }
+        public static ConfigEntry<int> ShipInternalCamFPS { get; private set; }
 
         private const string FixesSection = "Fixes";
         public static ConfigEntry<bool> FixInternalFireExits { get; private set; }
@@ -89,15 +97,23 @@ namespace GeneralImprovements
             MLS = Logger;
 
             // Extra monitors
-            string numDesc = "0 = DISABLED. 1-4 are the top row monitors above the ship starting lever, from left to right. 5-6 are below 3 and 4, respectively.";
+            string numDesc = "0 = DISABLED. If UseBetterMonitors = True, 1-6 are the top, 7-12 are the bottom, and 13-14 are the big ones beside the terminal. Otherwise, 1-4 are the top, and 5-8 are on the bottom.";
+            UseBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(UseBetterMonitors), false, "If set to true, uses 12 fully customizable and integrated monitors instead of the 8 vanilla ones with overlays.");
             ShowBlueMonitorBackground = Config.Bind(ExtraMonitorsSection, nameof(ShowBlueMonitorBackground), true, "If set to true, keeps the vanilla blue backgrounds on the extra monitors. Set to false for black.");
-            ShipTotalMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipTotalMonitorNum), 0, new ConfigDescription($"Displays the sum of all scrap value on the ship on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 6)));
-            ShipTimeMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipTimeMonitorNum), 0, new ConfigDescription($"Displays current time on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 6)));
-            ShipWeatherMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipWeatherMonitorNum), 0, new ConfigDescription($"Displays the current moon's weather on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 6)));
-            ShipSalesMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipSalesMonitorNum), 0, new ConfigDescription($"Displays info about current sales on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 6)));
+            ShowBackgroundOnAllScreens = Config.Bind(ExtraMonitorsSection, nameof(ShowBackgroundOnAllScreens), false, "If paired with ShowBlueMonitorBackground, Shows the background color on ALL monitors when they are on, not just used ones.");
+            ShipProfitQuotaMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipProfitQuotaMonitorNum), 5, new ConfigDescription($"Which monitor to show the profit quota on. Vanilla = 5. {numDesc}", new AcceptableValueRange<int>(0, 14)));
+            ShipDeadlineMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipDeadlineMonitorNum), 6, new ConfigDescription($"Which monitor to show the deadline on. Vanilla = 6. {numDesc}", new AcceptableValueRange<int>(0, 14)));
+            ShipTotalMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipTotalMonitorNum), 0, new ConfigDescription($"Displays the sum of all scrap value on the ship on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 14)));
+            ShipTimeMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipTimeMonitorNum), 0, new ConfigDescription($"Displays current time on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 14)));
+            ShipWeatherMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipWeatherMonitorNum), 0, new ConfigDescription($"Displays the current moon's weather on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 14)));
+            ShipSalesMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipSalesMonitorNum), 0, new ConfigDescription($"Displays info about current sales on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 14)));
+            ShipInternalCamMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipInternalCamMonitorNum), 11, new ConfigDescription($"(Only applies if UseBetterMonitors = true) Which monitor to display the internal ship cam on. Vanilla = 11. {numDesc}", new AcceptableValueRange<int>(0, 14)));
+            ShipExternalCamMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipExternalCamMonitorNum), 14, new ConfigDescription($"(Only applies if UseBetterMonitors = true) Which monitor to display the external ship cam on. Vanilla = 14. {numDesc}", new AcceptableValueRange<int>(0, 14)));
             FancyWeatherMonitor = Config.Bind(ExtraMonitorsSection, nameof(FancyWeatherMonitor), true, "If set to true and paired with ShowShipWeatherMonitor, the weather monitor will display ASCII art instead of text descriptions.");
             SyncExtraMonitorsPower = Config.Bind(ExtraMonitorsSection, nameof(SyncExtraMonitorsPower), true, "If set to true, The smaller monitors above the map screen will turn off and on when the map screen power is toggled.");
             CenterAlignMonitorText = Config.Bind(ExtraMonitorsSection, nameof(CenterAlignMonitorText), true, "If set to true, all small monitors in the ship will have their text center aligned, instead of left.");
+            ShipInternalCamSizeMultiplier = Config.Bind(ExtraMonitorsSection, nameof(ShipInternalCamSizeMultiplier), 1, new ConfigDescription($"How many times to double the internal ship cam's resolution.", new AcceptableValueRange<int>(1, 5)));
+            ShipInternalCamFPS = Config.Bind(ExtraMonitorsSection, nameof(ShipInternalCamFPS), 5, new ConfigDescription($"Limits the FPS of the internal ship cam for performance. 0 = Unrestricted.", new AcceptableValueRange<int>(0, 60)));
 
             // Fixes
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");

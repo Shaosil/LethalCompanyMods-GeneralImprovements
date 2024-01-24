@@ -9,7 +9,7 @@ namespace GeneralImprovements.Items
     {
         public void HealLocalPlayer()
         {
-            if (StartOfRound.Instance.localPlayerController.health <= SceneHelper.MaxHealth)
+            if (StartOfRound.Instance.localPlayerController.health <= ItemHelper.MaxHealth)
             {
                 StartOfRound.Instance.localPlayerController.StartCoroutine(HealLocalPlayerCoroutine());
             }
@@ -20,8 +20,8 @@ namespace GeneralImprovements.Items
             PlayHealSoundServerRpc();
             yield return new WaitForSeconds(0.75f);
 
-            Plugin.MLS.LogInfo($"Healing back to {SceneHelper.MaxHealth}...");
-            StartOfRound.Instance.localPlayerController.DamagePlayer(-(SceneHelper.MaxHealth - StartOfRound.Instance.localPlayerController.health), false, true);
+            Plugin.MLS.LogInfo($"Healing back to {ItemHelper.MaxHealth}...");
+            StartOfRound.Instance.localPlayerController.DamagePlayer(-(ItemHelper.MaxHealth - StartOfRound.Instance.localPlayerController.health), false, true);
             StartOfRound.Instance.localPlayerController.MakeCriticallyInjured(false);
 
             yield break;
@@ -36,9 +36,9 @@ namespace GeneralImprovements.Items
         [ClientRpc]
         private void PlayHealSoundClientRpc()
         {
-            if (SceneHelper.MedStation != null)
+            if (ItemHelper.MedStation != null)
             {
-                SceneHelper.MedStation.GetComponentInChildren<AudioSource>().Play();
+                ItemHelper.MedStation.GetComponentInChildren<AudioSource>().Play();
             }
         }
     }
