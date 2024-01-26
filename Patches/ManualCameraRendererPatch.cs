@@ -34,11 +34,6 @@ namespace GeneralImprovements.Patches
         {
             if (Plugin.SyncExtraMonitorsPower.Value)
             {
-                bool displayBackgrounds = Plugin.ShowBlueMonitorBackground.Value;
-                if (StartOfRound.Instance.profitQuotaMonitorBGImage != null && displayBackgrounds) StartOfRound.Instance.profitQuotaMonitorBGImage.gameObject.SetActive(on);
-                if (StartOfRound.Instance.profitQuotaMonitorText != null) StartOfRound.Instance.profitQuotaMonitorText.gameObject.SetActive(on);
-                if (StartOfRound.Instance.deadlineMonitorBGImage != null && displayBackgrounds) StartOfRound.Instance.deadlineMonitorBGImage.gameObject.SetActive(on);
-                if (StartOfRound.Instance.deadlineMonitorText != null) StartOfRound.Instance.deadlineMonitorText.gameObject.SetActive(on);
                 MonitorsHelper.ToggleExtraMonitorPower(on);
             }
 
@@ -56,6 +51,17 @@ namespace GeneralImprovements.Patches
             }
 
             return true;
+        }
+
+        [HarmonyPatch(typeof(ManualCameraRenderer), nameof(MeetsCameraEnabledConditions))]
+        [HarmonyPostfix]
+        private static void MeetsCameraEnabledConditions(ManualCameraRenderer __instance, ref bool __result)
+        {
+            // View monitor will break in some cases, perhaps related to culling, if the internal ship security cam is manually rendering
+            if (!__result && __instance.mesh != null && !__instance.mesh.isVisible)
+            {
+                __result = true;
+            }
         }
     }
 }

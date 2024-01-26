@@ -25,6 +25,7 @@ namespace GeneralImprovements.Utilities
         private static TextMeshProUGUI _weatherMonitorText;
         private static Image _salesMonitorBG;
         private static TextMeshProUGUI _salesMonitorText;
+        private static List<Image> _extraBackgrounds = new List<Image>();
 
         private static Monitors _newMonitors;
 
@@ -42,14 +43,19 @@ namespace GeneralImprovements.Utilities
         private static Transform _oldMonitorsObject;
         private static Transform _oldBigMonitors;
         private static Transform _UIContainer;
+        private static ScanNodeProperties _profitQuotaScanNode;
 
         public static void CreateExtraMonitors()
         {
             // Resize the two extra monitor texts to be the same as their respective backgrounds, and give them padding
             _profitQuotaBG = StartOfRound.Instance.profitQuotaMonitorBGImage;
+            _profitQuotaBG.color = Plugin.MonitorBackgroundColorVal;
             _profitQuotaText = StartOfRound.Instance.profitQuotaMonitorText;
+            _profitQuotaText.color = Plugin.MonitorTextColorVal;
             _deadlineBG = StartOfRound.Instance.deadlineMonitorBGImage;
+            _deadlineBG.color = Plugin.MonitorBackgroundColorVal;
             _deadlineText = StartOfRound.Instance.deadlineMonitorText;
+            _deadlineText.color = Plugin.MonitorTextColorVal;
             _profitQuotaText.rectTransform.sizeDelta = _profitQuotaBG.rectTransform.sizeDelta;
             _profitQuotaText.transform.position = _profitQuotaBG.transform.TransformPoint(Vector3.back);
             _profitQuotaText.fontSize = _profitQuotaText.fontSize * 0.9f;
@@ -65,24 +71,20 @@ namespace GeneralImprovements.Utilities
                 _deadlineText.alignment = TextAlignmentOptions.Center;
             }
 
-            // Increase internal ship cam resolution and FPS if specified
-            var shipCamObj = StartOfRound.Instance.elevatorTransform.Find("Cameras/ShipCamera");
-            var shipCam = shipCamObj.GetComponent<Camera>();
-            var camRenderer = shipCamObj.GetComponent<ManualCameraRenderer>();
-            camRenderer.renderAtLowerFramerate = Plugin.ShipInternalCamFPS.Value > 0;
-            camRenderer.fps = Plugin.ShipInternalCamFPS.Value;
-            if (Plugin.ShipInternalCamSizeMultiplier.Value > 1)
-            {
-                var newCamRT = new RenderTexture(shipCam.targetTexture);
-                for (int i = 0; i < Plugin.ShipInternalCamSizeMultiplier.Value; i++)
-                {
-                    newCamRT.width *= 2;
-                    newCamRT.height *= 2;
-                }
-                shipCam.targetTexture = newCamRT;
+            // Find our monitor objects
+            _UIContainer = StartOfRound.Instance.profitQuotaMonitorBGImage.transform.parent;
+            _oldMonitorsObject = _UIContainer.parent.parent;
+            _oldBigMonitors = _oldMonitorsObject.parent.GetComponentInChildren<ManualCameraRenderer>().transform.parent;
 
-                StartOfRound.Instance.profitQuotaMonitorText.transform.parent.parent.parent.GetComponent<MeshRenderer>().sharedMaterials[2].mainTexture = newCamRT;
-            }
+            // Increase internal ship cam resolution and FPS if specified
+            var internalShipCamObj = StartOfRound.Instance.elevatorTransform.Find("Cameras/ShipCamera");
+            var newRT = UpdateSecurityCamFPSAndResolution(internalShipCamObj, Plugin.ShipInternalCamFPS.Value, Plugin.ShipInternalCamSizeMultiplier.Value);
+            _oldMonitorsObject.GetComponent<MeshRenderer>().sharedMaterials[2].mainTexture = newRT;
+
+            // Increase external ship cam resolution and FPS if specified
+            var externalShipCamObj = StartOfRound.Instance.elevatorTransform.Find("Cameras/FrontDoorSecurityCam/SecurityCamera");
+            newRT = UpdateSecurityCamFPSAndResolution(externalShipCamObj, Plugin.ShipExternalCamFPS.Value, Plugin.ShipExternalCamSizeMultiplier.Value);
+            _oldBigMonitors.GetComponent<MeshRenderer>().sharedMaterials[2].mainTexture = newRT;
 
             if (Plugin.UseBetterMonitors.Value)
             {
@@ -92,6 +94,44 @@ namespace GeneralImprovements.Utilities
             {
                 CreateOldStyleMonitors();
             }
+
+            // Remove or update profit quota scan node
+            _profitQuotaScanNode = StartOfRound.Instance.elevatorTransform.GetComponentsInChildren<ScanNodeProperties>().FirstOrDefault(s => s.headerText == "Quota");
+            if (_profitQuotaScanNode != null)
+            {
+                // Remove scan node
+                if (Plugin.ShipProfitQuotaMonitorNum.Value == 0)
+                {
+                    Object.Destroy(_profitQuotaScanNode.gameObject);
+                }
+                else if (!Plugin.UseBetterMonitors.Value && _profitQuotaText != null)
+                {
+                    // Update scan node position immediately (better monitors do it delayed)
+                    _profitQuotaScanNode.transform.parent = _profitQuotaText.transform;
+                    _profitQuotaScanNode.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                }
+            }
+        }
+
+        private static RenderTexture UpdateSecurityCamFPSAndResolution(Transform cam, int fps, int resMultiplier)
+        {
+            var shipCam = cam.GetComponent<Camera>();
+            var camRenderer = cam.GetComponent<ManualCameraRenderer>();
+
+            camRenderer.renderAtLowerFramerate = fps > 0;
+            camRenderer.fps = fps;
+            if (resMultiplier > 1)
+            {
+                var newCamRT = new RenderTexture(shipCam.targetTexture);
+                for (int i = 0; i < resMultiplier; i++)
+                {
+                    newCamRT.width *= 2;
+                    newCamRT.height *= 2;
+                }
+                shipCam.targetTexture = newCamRT;
+            }
+
+            return shipCam.targetTexture;
         }
 
         private static void CreateOldStyleMonitors()
@@ -135,12 +175,6 @@ namespace GeneralImprovements.Utilities
                 _weatherMonitorBG.name = "WeatherMonitorBG";
                 _weatherMonitorText = Object.Instantiate(_profitQuotaText, _profitQuotaText.transform.parent);
                 _weatherMonitorText.name = "WeatherMonitorText";
-                if (Plugin.FancyWeatherMonitor.Value)
-                {
-                    _weatherMonitorText.alignment = TextAlignmentOptions.MidlineLeft;
-                    _weatherMonitorText.transform.localPosition += new Vector3(25, 0, -10);
-                    _weatherMonitorText.transform.localEulerAngles += new Vector3(-2, 1, 0);
-                }
             }
             if (Plugin.ShipSalesMonitorNum.Value > 0)
             {
@@ -151,6 +185,8 @@ namespace GeneralImprovements.Utilities
             }
 
             // Store positions and rotations by offset based on monitor index
+            var originalPos = _profitQuotaBG.transform.localPosition;
+            var originalRot = _profitQuotaBG.transform.localEulerAngles;
             var offsets = new List<KeyValuePair<Vector3, Vector3>>
             {
                 new KeyValuePair<Vector3, Vector3>(new Vector3(0, 465, -22), new Vector3(-18, 0, 0)),       // Monitor 1
@@ -164,37 +200,57 @@ namespace GeneralImprovements.Utilities
             };
 
             // Store the new monitor objects in a separate list
-            var monitors = new List<Tuple<int, Component, Component>>
+            var monitors = new List<Tuple<int, Image, TextMeshProUGUI>>
             {
-                new Tuple<int, Component, Component>(Plugin.ShipProfitQuotaMonitorNum.Value, _profitQuotaBG, _profitQuotaText),
-                new Tuple<int, Component, Component>(Plugin.ShipDeadlineMonitorNum.Value, _deadlineBG, _deadlineText),
-                new Tuple<int, Component, Component>(Plugin.ShipTotalMonitorNum.Value, _totalMonitorBg, _totalMonitorText),
-                new Tuple<int, Component, Component>(Plugin.ShipTimeMonitorNum.Value, _timeMonitorBG, _timeMonitorText),
-                new Tuple<int, Component, Component>(Plugin.ShipWeatherMonitorNum.Value, _weatherMonitorBG, _weatherMonitorText),
-                new Tuple<int, Component, Component>(Plugin.ShipSalesMonitorNum.Value, _salesMonitorBG, _salesMonitorText)
+                new Tuple<int, Image, TextMeshProUGUI>(Plugin.ShipProfitQuotaMonitorNum.Value, _profitQuotaBG, _profitQuotaText),
+                new Tuple<int, Image, TextMeshProUGUI>(Plugin.ShipDeadlineMonitorNum.Value, _deadlineBG, _deadlineText),
+                new Tuple<int, Image, TextMeshProUGUI>(Plugin.ShipTotalMonitorNum.Value, _totalMonitorBg, _totalMonitorText),
+                new Tuple<int, Image, TextMeshProUGUI>(Plugin.ShipTimeMonitorNum.Value, _timeMonitorBG, _timeMonitorText),
+                new Tuple<int, Image, TextMeshProUGUI>(Plugin.ShipWeatherMonitorNum.Value, _weatherMonitorBG, _weatherMonitorText),
+                new Tuple<int, Image, TextMeshProUGUI>(Plugin.ShipSalesMonitorNum.Value, _salesMonitorBG, _salesMonitorText)
             };
 
             // Assign monitors to the positions that were specified, ensuring to not overlap
             for (int i = 1; i <= offsets.Count; i++)
             {
                 var targetMonitors = monitors.Where(m => m.Item1 == i);
+                Tuple<int, Image, TextMeshProUGUI> targetMonitor = null;
                 if (targetMonitors.Any())
                 {
                     if (targetMonitors.Count() == 1)
                     {
-                        var targetMonitor = targetMonitors.First();
                         Plugin.MLS.LogInfo($"Creating overlay monitor at position {i}");
-
-                        var positionOffset = offsets[i - 1].Key;
-                        var rotationOffset = offsets[i - 1].Value;
-                        targetMonitor.Item2.transform.localPosition += positionOffset;
-                        targetMonitor.Item2.transform.localEulerAngles += rotationOffset;
-                        targetMonitor.Item3.transform.localPosition += positionOffset + new Vector3(0, 0, -1);
-                        targetMonitor.Item3.transform.localEulerAngles += rotationOffset;
+                        targetMonitor = targetMonitors.First();
                     }
                     else
                     {
                         Plugin.MLS.LogError($"Multiple monitors specified at position {i}! Check your config to ensure you do not have duplicate monitor assignments. Taking first found.");
+                    }
+                }
+                else if (Plugin.ShowBlueMonitorBackground.Value && Plugin.ShowBackgroundOnAllScreens.Value)
+                {
+                    targetMonitor = new Tuple<int, Image, TextMeshProUGUI>(i, Object.Instantiate(_profitQuotaBG, _profitQuotaBG.transform.parent), null);
+                    _extraBackgrounds.Add(targetMonitor.Item2);
+                    targetMonitor.Item2.name = $"ExtraBG{_extraBackgrounds.Count}";
+                }
+
+                if (targetMonitor != null)
+                {
+                    var positionOffset = offsets[i - 1].Key;
+                    var rotationOffset = offsets[i - 1].Value;
+                    targetMonitor.Item2.transform.localPosition = originalPos + positionOffset;
+                    targetMonitor.Item2.transform.localEulerAngles = originalRot + rotationOffset;
+                    if (targetMonitor.Item3 != null)
+                    {
+                        targetMonitor.Item3.transform.localPosition = originalPos + positionOffset + new Vector3(0, 0, -1);
+                        targetMonitor.Item3.transform.localEulerAngles = originalRot + rotationOffset;
+
+                        if (targetMonitor.Item3 == _weatherMonitorText && Plugin.FancyWeatherMonitor.Value)
+                        {
+                            _weatherMonitorText.alignment = TextAlignmentOptions.MidlineLeft;
+                            _weatherMonitorText.transform.localPosition += new Vector3(25, 0, -10);
+                            _weatherMonitorText.transform.localEulerAngles += new Vector3(-2, 1, 0);
+                        }
                     }
                 }
             }
@@ -219,23 +275,28 @@ namespace GeneralImprovements.Utilities
         private static void CreateNewStyleMonitors()
         {
             Plugin.MLS.LogInfo("Overwriting monitors with new model");
-            _UIContainer = StartOfRound.Instance.profitQuotaMonitorBGImage.transform.parent;
-            _oldMonitorsObject = _UIContainer.parent.parent;
-            _oldBigMonitors = _oldMonitorsObject.parent.GetComponentInChildren<ManualCameraRenderer>().transform.parent;
 
             var newMonitorsObj = Object.Instantiate(AssetBundleHelper.MonitorsPrefab, _oldMonitorsObject.transform.parent);
             newMonitorsObj.transform.SetLocalPositionAndRotation(_oldMonitorsObject.localPosition, Quaternion.identity);
 
             _newMonitors = newMonitorsObj.AddComponent<Monitors>();
             _newMonitors.StartingMapMaterial = _oldBigMonitors.GetComponent<MeshRenderer>().sharedMaterials[1];
-            _newMonitors.BackgroundColor = Plugin.ShowBlueMonitorBackground.Value ? StartOfRound.Instance.profitQuotaMonitorBGImage.color : new Color(0.1f, 0.1f, 0.1f);
             _newMonitors.HullMaterial = _oldMonitorsObject.GetComponent<MeshRenderer>().materials[0];
             _newMonitors.BlankScreenMat = _oldMonitorsObject.GetComponent<MeshRenderer>().materials[1];
 
             // Assign specified TMP objects to the monitor indexes specified
             var monitorAssignments = new List<KeyValuePair<int, Action<TextMeshProUGUI>>>
             {
-                new KeyValuePair<int, Action<TextMeshProUGUI>>(Plugin.ShipProfitQuotaMonitorNum.Value, o => { _profitQuotaText = o; CopyProfitQuotaAndDeadlineText(); }),
+                new KeyValuePair<int, Action<TextMeshProUGUI>>(Plugin.ShipProfitQuotaMonitorNum.Value, o =>
+                {
+                    _profitQuotaText = o;
+                    if (_profitQuotaScanNode != null)
+                    {
+                        _profitQuotaScanNode.transform.parent = _newMonitors.GetMonitorTransform(o);
+                        _profitQuotaScanNode.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                    }
+                    CopyProfitQuotaAndDeadlineText();
+                }),
                 new KeyValuePair<int, Action<TextMeshProUGUI>>(Plugin.ShipDeadlineMonitorNum.Value, o => { _deadlineText = o; CopyProfitQuotaAndDeadlineText(); }),
                 new KeyValuePair<int, Action<TextMeshProUGUI>>(Plugin.ShipTotalMonitorNum.Value, o => { _totalMonitorText = o; UpdateShipTotalMonitor(); }),
                 new KeyValuePair<int, Action<TextMeshProUGUI>>(Plugin.ShipTimeMonitorNum.Value, o => { _timeMonitorText = o; UpdateTimeMonitor(); }),
@@ -284,7 +345,7 @@ namespace GeneralImprovements.Utilities
                 }
             }
 
-            var newMesh = newMonitorsObj.transform.Find("BigMonitors/Middle").GetComponent<MeshRenderer>();
+            var newMesh = newMonitorsObj.transform.Find("Monitors/BigMiddle").GetComponent<MeshRenderer>();
             StartOfRound.Instance.mapScreen.mesh = newMesh;
             StartOfRound.Instance.elevatorTransform.Find("Cameras/ShipCamera").GetComponent<ManualCameraRenderer>().mesh = newMesh;
             StartOfRound.Instance.elevatorTransform.Find("Cameras/FrontDoorSecurityCam/SecurityCamera").GetComponent<ManualCameraRenderer>().mesh = newMesh;
@@ -511,6 +572,11 @@ namespace GeneralImprovements.Utilities
                 else
                 {
                     bool displayBackgrounds = Plugin.ShowBlueMonitorBackground.Value;
+
+                    if (_profitQuotaBG != null && displayBackgrounds) _profitQuotaBG.gameObject.SetActive(on);
+                    if (_profitQuotaText != null) _profitQuotaText.gameObject.SetActive(on);
+                    if (_deadlineBG != null && displayBackgrounds) _deadlineBG.gameObject.SetActive(on);
+                    if (_deadlineText != null) _deadlineText.gameObject.SetActive(on);
                     if (_totalMonitorBg != null && displayBackgrounds) _totalMonitorBg.gameObject.SetActive(on);
                     if (_totalMonitorText != null) _totalMonitorText.gameObject.SetActive(on);
                     if (_timeMonitorBG != null && displayBackgrounds) _timeMonitorBG.gameObject.SetActive(on);
@@ -519,6 +585,11 @@ namespace GeneralImprovements.Utilities
                     if (_weatherMonitorText != null) _weatherMonitorText.gameObject.SetActive(on);
                     if (_salesMonitorBG != null && displayBackgrounds) _salesMonitorBG.gameObject.SetActive(on);
                     if (_salesMonitorText != null) _salesMonitorText.gameObject.SetActive(on);
+
+                    foreach (var extraBG in _extraBackgrounds)
+                    {
+                        extraBG.gameObject.SetActive(on);
+                    }
                 }
             }
         }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -16,19 +17,18 @@ namespace GeneralImprovements.Assets
         private MeshRenderer _mapRenderer;
 
         // Set these before Start() is called
-        public Color BackgroundColor;
         public Material HullMaterial;
         public Material BlankScreenMat;
         public Material StartingMapMaterial;
 
         private void Start()
         {
-            var structureL = transform.Find("Monitors/StructureL");
-            var structureM = transform.Find("Monitors/StructureM");
-            var structureR = transform.Find("Monitors/StructureR");
-            var bigScreenL = transform.Find("BigMonitors/Left");
-            var bigScreenM = transform.Find("BigMonitors/Middle");
-            var bigScreenR = transform.Find("BigMonitors/Right");
+            var structureL = transform.Find("Monitors/TopGroupL");
+            var structureM = transform.Find("Monitors/TopGroupM");
+            var structureR = transform.Find("Monitors/TopGroupR");
+            var bigScreenL = transform.Find("Monitors/BigLeft");
+            var bigScreenM = transform.Find("Monitors/BigMiddle");
+            var bigScreenR = transform.Find("Monitors/BigRight");
 
             // Assign the correct material to the base structures
             structureL.GetComponent<MeshRenderer>().material = HullMaterial;
@@ -61,7 +61,7 @@ namespace GeneralImprovements.Assets
             foreach (var screen in allScreens)
             {
                 var renderer = screen.GetComponent<MeshRenderer>();
-                _originalScreenMaterials.Add(new KeyValuePair<MeshRenderer, Material>(renderer, renderer.sharedMaterial));
+                _originalScreenMaterials.Add(new KeyValuePair<MeshRenderer, Material>(renderer, renderer.material));
             }
 
             // Get the text and camera objects
@@ -69,7 +69,7 @@ namespace GeneralImprovements.Assets
             _camera = transform.GetComponentInChildren<Camera>();
 
             // Adjust the background color
-            transform.Find("Canvas/Background").GetComponent<Image>().color = BackgroundColor;
+            transform.Find("Canvas/Background").GetComponent<Image>().color = Plugin.MonitorBackgroundColorVal;
 
             // Store the texts for later and finalize the assignments
             for (int i = 0; i < allTexts.Length; i++)
@@ -77,7 +77,7 @@ namespace GeneralImprovements.Assets
                 var screenText = allTexts[i];
                 screenText.font = StartOfRound.Instance.profitQuotaMonitorText.font;
                 screenText.spriteAsset = StartOfRound.Instance.profitQuotaMonitorText.spriteAsset;
-                screenText.color = StartOfRound.Instance.profitQuotaMonitorText.color;
+                screenText.color = Plugin.MonitorTextColorVal;
 
                 // Store the material associated with this object so we can snapshot it as needed, then call the invocation
                 if (_initialMaterialAssignments.ContainsKey(i))
@@ -165,6 +165,18 @@ namespace GeneralImprovements.Assets
             {
                 _mapRenderer.material = newMaterial;
             }
+        }
+
+        public Transform GetMonitorTransform(TextMeshProUGUI text)
+        {
+            Transform matchingTransform = null;
+
+            if (_textsToMats.TryGetValue(text, out var mat))
+            {
+                matchingTransform = _originalScreenMaterials.FirstOrDefault(m => m.Value == mat).Key?.transform;
+            }
+
+            return matchingTransform;
         }
     }
 }

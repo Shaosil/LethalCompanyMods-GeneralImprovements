@@ -199,7 +199,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SetHoverTipAndCurrentInteractTrigger(PlayerControllerB __instance)
         {
-            if (Plugin.ShowUIReticle.Value && AssetBundleHelper.Reticle != null)
+            if (Plugin.ShowUIReticle.Value && AssetBundleHelper.Reticle != null && __instance.isPlayerControlled && !__instance.inTerminalMenu)
             {
                 // Use our reticle and resize
                 if (!__instance.cursorIcon.enabled)

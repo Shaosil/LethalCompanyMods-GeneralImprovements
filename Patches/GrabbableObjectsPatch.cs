@@ -87,7 +87,7 @@ namespace GeneralImprovements.Patches
             }
 
             // Add scan nodes to tools if requested
-            if (Plugin.ScannableToolVals.Any(t => __instance.GetType() == t) && __instance.GetComponent<ScanNodeProperties>() == null)
+            if (Plugin.ScannableToolVals.Any(t => __instance.GetType() == t) && __instance.GetComponentInChildren<ScanNodeProperties>() == null)
             {
                 var scanNodeObj = new GameObject("ScanNode", typeof(ScanNodeProperties), typeof(BoxCollider));
                 scanNodeObj.layer = LayerMask.NameToLayer("ScanNode");

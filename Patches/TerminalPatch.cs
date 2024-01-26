@@ -25,7 +25,10 @@ namespace GeneralImprovements.Patches
 
             _historyCount = Math.Clamp(Plugin.TerminalHistoryItemCount.Value, 0, 100);
 
-            SetStartingMoneyPerPlayer(false);
+            if (!StartOfRound.Instance.isChallengeFile)
+            {
+                SetStartingMoneyPerPlayer();
+            }
 
             // Clear out the plain "Switched to player" text from the switch node
             var switchNodes = __instance.terminalNodes?.specialNodes?.Where(n => n.displayText.Contains("Switched radar to player.") || n.terminalEvent == "switchCamera");
@@ -46,6 +49,21 @@ namespace GeneralImprovements.Patches
             __instance.screenText.Select();
             __instance.screenText.ActivateInputField();
             _curHistoryIndex = _commandHistory.Count;
+
+            if (Plugin.LockCameraAtTerminal.Value && StartOfRound.Instance.localPlayerController != null)
+            {
+                StartOfRound.Instance.localPlayerController.disableLookInput = true;
+            }
+        }
+
+        [HarmonyPatch(typeof(Terminal), nameof(QuitTerminal))]
+        [HarmonyPrefix]
+        private static void QuitTerminal()
+        {
+            if (StartOfRound.Instance.localPlayerController != null)
+            {
+                StartOfRound.Instance.localPlayerController.disableLookInput = false;
+            }
         }
 
         [HarmonyPatch(typeof(Terminal), nameof(OnSubmit))]
@@ -150,20 +168,19 @@ namespace GeneralImprovements.Patches
             }
         }
 
-        public static void SetStartingMoneyPerPlayer(bool force)
+        public static void SetStartingMoneyPerPlayer()
         {
             // Grab initial credits value if this is the server
             if (Instance.IsServer && Plugin.StartingMoneyPerPlayerVal >= 0)
             {
-                bool hasSave = ES3.KeyExists("GroupCredits", GameNetworkManager.Instance.currentSaveFileName);
-
-                // Set initial credits value if they don't already have one, or this is a force reset
-                if (!hasSave || force)
+                // Set initial credits value if this is a new game
+                if (StartOfRound.Instance.gameStats.daysSpent == 0)
                 {
                     _currentCredits = Math.Clamp(Plugin.StartingMoneyPerPlayerVal * (StartOfRound.Instance.connectedPlayersAmount + 1), Plugin.MinimumStartingMoneyVal, int.MaxValue);
                     Plugin.MLS.LogInfo($"Setting starting money to {_currentCredits} ({Plugin.StartingMoneyPerPlayerVal} per player x {StartOfRound.Instance.connectedPlayersAmount + 1} current players), with a minimium of {Plugin.MinimumStartingMoneyVal}.");
                     TimeOfDay.Instance.quotaVariables.startingCredits = _currentCredits;
                     Instance.groupCredits = Math.Clamp(_currentCredits, 0, _currentCredits);
+                    ES3.Save("GroupCredits", Plugin.StartingMoneyPerPlayerVal, GameNetworkManager.Instance.currentSaveFileName);
                     Instance.SyncGroupCreditsServerRpc(Instance.groupCredits, Instance.numberOfItemsInDropship);
                 }
                 else

@@ -92,7 +92,7 @@
 
     <Target Name="CopyFilesToGamePath" AfterTargets="PostBuildEvent" Condition="$(Configuration) != 'Debug'">
         <Message Text="Patching netcode..." Importance="high" />
-        <Exec Command="netcode-patch &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')"/>
+        <Exec Command="netcode-patch &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" />
         <Message Text="Copying DLL to $(GamePath)..." Importance="high" />
         <Exec Command="copy $(TargetPath) &quot;$(GamePath)&quot;" />
         <Message Text="Copying assets to $(GamePath)..." Importance="high" />

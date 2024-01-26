@@ -23,9 +23,10 @@ namespace GeneralImprovements.Utilities
                 {
                     // If we are the host, spawn it as a network object
                     Plugin.MLS.LogInfo("Adding medical station to ship.");
-                    MedStation = Object.Instantiate(AssetBundleHelper.MedStationPrefab, new Vector3(2.75f, 3.4f, -16.561f), Quaternion.Euler(-90, 0, 0), StartOfRound.Instance.elevatorTransform);
+                    MedStation = Object.Instantiate(AssetBundleHelper.MedStationPrefab, new Vector3(2.75f, 3.4f, -16.561f), Quaternion.Euler(-90, 0, 0));
                     medStationItem = MedStation.GetComponent<MedStationItem>();
                     medStationItem.NetworkObject.Spawn();
+                    medStationItem.NetworkObject.TrySetParent(StartOfRound.Instance.elevatorTransform);
                 }
                 else
                 {

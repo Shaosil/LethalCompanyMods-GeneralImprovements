@@ -26,6 +26,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds an option to hide scan node subtext if it has no scrap value or description.
 * Adds an option to scan tools.
 * [Host Must Have Mod] Adds the ability to toggle the fancy lamp on and off while holding it.
+* Locks the camera while at the terminal so it doesn't keep getting pulled back if you try to move it. Behavior may be disabled in config.
 
 ### NEW FEATURES:
 * A total of 14 customizable, screen-integrated monitors for the ship (instead of the vanilla 8)! Choose which monitor to put what item, including ship cams and background color.

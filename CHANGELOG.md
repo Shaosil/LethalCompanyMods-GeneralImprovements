@@ -1,5 +1,20 @@
 # Changelog
 
+### v1.1.1 - Fixes and more customization
+* Fixed the medkit not parented to the ship for client players.
+* Attached the profit quota scan node to the profit quota monitor, wherever it is.
+* Added options for adjusting the FPS and resolution multiplier for the external ship cam.
+* Fixed certain tools (such as the DIY flashbang) having an extra scan node when ScannableTools was set.
+* Fixed a bug with StartingMoneyPerPlayer where you could keep loading an unstarted game and connecting clients would add more to the group credits.
+* Added color customization options to the config for monitor background and text.
+* Updated ShowBackgroundOnAllScreens to work on the old style monitors as well.
+* Added an option to disable the speaker playing the intro for new games.
+* Fixed some bugs with the free rotate and CCW modifier keys, and when they were set to "None"
+* Added an option to lock the camera while at the terminal.
+* Fixed the reticle (if enabled) displaying while using the terminal or not controlling the player.
+* Fixing the terminal view monitor command not updating the map when the internal security cam's FPS is limited.
+* Added code to support the automatic migration and removal of old config entries, since more changes may be coming soon...
+
 ### v1.1.0 - More monitors!
 * Completely reworked the in game ship monitor system! There are now 14 monitors (12 small and two big) instead of 8, each of which can be used with both the in game profit quota and deadline monitors, or any of my extra monitors.
 	* In theory this should work with other mods that overlay extra things onto monitors as well, but those will still look like overlays instead of integrated into the screen itself.

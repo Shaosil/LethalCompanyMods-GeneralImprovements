@@ -16,7 +16,7 @@ namespace GeneralImprovements.Patches
         private static int _snapObjectsByDegrees;
         private static float _curObjectDegrees;
 
-        private static string _rotateKey, _freeRotateModifierKey, _ccwModifierKey;
+        private static string _rotateKeyDesc, _freeRotateModifierKey, _ccwModifierKey;
         private static InputAction _rotateAction;
         private static Func<bool> _freeRotateHeld;
         private static Func<bool> _ccwHeld;
@@ -37,6 +37,8 @@ namespace GeneralImprovements.Patches
 
             // Set the keybinds - default to LAlt and LShift for Free Rotate Modifier and CCW Modifier, respectively
             UpdateRotateAction(__instance);
+            bool hasFreeRotateModifier = Plugin.FreeRotateKey.Value != Key.None.ToString();
+            bool hasCCWModifier = Plugin.CounterClockwiseKey.Value != Key.None.ToString();
             if (Enum.TryParse<MouseButton>(Plugin.FreeRotateKey.Value, out var freeRotateMouseButton))
             {
                 _freeRotateModifierKey = freeRotateMouseButton.ToString();
@@ -44,9 +46,9 @@ namespace GeneralImprovements.Patches
             }
             else
             {
-                var control = Keyboard.current[Enum.TryParse<Key>(Plugin.FreeRotateKey.Value, out var freeRotateKey) ? freeRotateKey : Key.LeftAlt];
-                _freeRotateModifierKey = control.keyCode.ToString();
-                _freeRotateHeld = () => control.isPressed;
+                var control = hasFreeRotateModifier ? Keyboard.current[Enum.TryParse<Key>(Plugin.FreeRotateKey.Value, out var freeRotateKey) ? freeRotateKey : Key.LeftAlt] : null;
+                _freeRotateModifierKey = control?.keyCode.ToString();
+                _freeRotateHeld = () => hasFreeRotateModifier && control.isPressed;
             }
             if (Enum.TryParse<MouseButton>(Plugin.CounterClockwiseKey.Value, out var ccwMouseButton))
             {
@@ -55,11 +57,11 @@ namespace GeneralImprovements.Patches
             }
             else
             {
-                var control = Keyboard.current[Enum.TryParse<Key>(Plugin.CounterClockwiseKey.Value, out var ccwKey) ? ccwKey : Key.LeftShift];
-                _ccwModifierKey = control.keyCode.ToString();
-                _ccwHeld = () => control.isPressed;
+                var control = hasCCWModifier ? Keyboard.current[Enum.TryParse<Key>(Plugin.CounterClockwiseKey.Value, out var ccwKey) ? ccwKey : Key.LeftShift] : null;
+                _ccwModifierKey = control?.keyCode.ToString();
+                _ccwHeld = () => hasCCWModifier && control.isPressed;
             }
-            Plugin.MLS.LogInfo($"Snap keys initialized. Rotate: {_rotateKey}. Free rotate modifier: {_freeRotateModifierKey}. CCW modifier: {_ccwModifierKey}");
+            Plugin.MLS.LogInfo($"Snap keys initialized. Rotate: {_rotateKeyDesc}. Free rotate modifier: {_freeRotateModifierKey}. CCW modifier: {_ccwModifierKey}");
 
             // Find all intervals of 15 that go into 360
             var validNumbers = Enumerable.Range(0, 360 / 15).Select(n => n * 15).Where(n => n == 0 || 360 % n == 0).ToList();
@@ -83,7 +85,13 @@ namespace GeneralImprovements.Patches
             // Update the text tips
             if (!StartOfRound.Instance.localPlayerUsingController)
             {
-                HUDManager.Instance.buildModeControlTip.text = $"Confirm: [B]   |   Rotate: [{_rotateKey}]   |   Store: [X]\nFree Rotate: Hold [{_freeRotateModifierKey}]   |   CCW: Hold [{_ccwModifierKey}]";
+                string vanillaDesc = $"Confirm: [B]   |   Rotate: [{_rotateKeyDesc}]   |   Store: [X]";
+                var combinedNewDescs = new List<string>();
+                if (_freeRotateModifierKey != null) combinedNewDescs.Add($"Free Rotate: Hold [{_freeRotateModifierKey}]");
+                if (_ccwModifierKey != null) combinedNewDescs.Add($"CCW: Hold [{_ccwModifierKey}]");
+                if (combinedNewDescs.Any()) vanillaDesc += '\n';
+
+                HUDManager.Instance.buildModeControlTip.text = $"{vanillaDesc}{string.Join("  |  ", combinedNewDescs.ToArray())}";
             }
 
             // Set the initial degrees (and snap immediately unless they are already holding the free rotate modifier)
@@ -142,7 +150,7 @@ namespace GeneralImprovements.Patches
                 ? instance.playerActions.Movement.InspectItem
                 : IngamePlayerSettings.Instance.playerInput.actions.FindAction("ReloadBatteries", false);
 
-            _rotateKey = _rotateAction.GetBindingDisplayString();
+            _rotateKeyDesc = _rotateAction.GetBindingDisplayString();
         }
     }
 }

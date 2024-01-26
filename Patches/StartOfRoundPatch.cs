@@ -59,6 +59,13 @@ namespace GeneralImprovements.Patches
             __instance.maxShipItemCapacity = 999;
         }
 
+        [HarmonyPatch(typeof(StartOfRound), nameof(PlayFirstDayShipAnimation))]
+        [HarmonyPrefix]
+        private static bool PlayFirstDayShipAnimation()
+        {
+            return Plugin.SpeakerPlaysIntroVoice.Value;
+        }
+
         [HarmonyPatch(typeof(StartOfRound), nameof(OnShipLandedMiscEvents))]
         [HarmonyPostfix]
         private static void OnShipLandedMiscEvents()
@@ -150,7 +157,7 @@ namespace GeneralImprovements.Patches
         private static void ResetShip(StartOfRound __instance)
         {
             MonitorsHelper.UpdateShipTotalMonitor();
-            TerminalPatch.SetStartingMoneyPerPlayer(true);
+            TerminalPatch.SetStartingMoneyPerPlayer();
             ItemHelper.MaxHealth = __instance.localPlayerController?.health ?? 100;
         }
 
