@@ -33,9 +33,6 @@ namespace GeneralImprovements.Patches
         private static void ConnectClientToPlayerObjectPre(PlayerControllerB __instance)
         {
             _originalCursorScale = __instance.cursorIcon.transform.localScale.x;
-
-            // Store max health on creation
-            ItemHelper.MaxHealth = __instance.health;
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
@@ -96,6 +93,16 @@ namespace GeneralImprovements.Patches
 
             // Move things over
             ShiftRightFromSlot(__instance, 0);
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(GrabObjectClientRpc))]
+        [HarmonyPostfix]
+        private static void GrabObjectClientRpc(PlayerControllerB __instance)
+        {
+            if (__instance.currentlyHeldObjectServer.isInShipRoom)
+            {
+                MonitorsHelper.UpdateShipScrapMonitors();
+            }
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), "PlaceObjectClientRpc")]
@@ -190,9 +197,12 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SetItemInElevator))]
         [HarmonyPostfix]
-        private static void SetItemInElevator()
+        private static void SetItemInElevator(bool droppedInShipRoom)
         {
-            MonitorsHelper.UpdateShipTotalMonitor();
+            if (droppedInShipRoom)
+            {
+                MonitorsHelper.UpdateShipScrapMonitors();
+            }
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SetHoverTipAndCurrentInteractTrigger))]
@@ -225,14 +235,7 @@ namespace GeneralImprovements.Patches
 
             if (Plugin.AddHealthRechargeStation.Value && ItemHelper.MedStation != null && __instance.hoveringOverTrigger?.transform.parent == ItemHelper.MedStation.transform)
             {
-                if (__instance.health > ItemHelper.MaxHealth)
-                {
-                    ItemHelper.MaxHealth = __instance.health;
-                }
-                else
-                {
-                    __instance.hoveringOverTrigger.interactable = __instance.health < ItemHelper.MaxHealth;
-                }
+                __instance.hoveringOverTrigger.interactable = __instance.health < ItemHelper.MedStation.MaxLocalPlayerHealth;
             }
         }
 

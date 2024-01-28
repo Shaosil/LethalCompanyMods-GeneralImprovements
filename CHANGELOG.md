@@ -1,5 +1,18 @@
 # Changelog
 
+### v1.1.2 - Tweaks
+* Updated the way the config sets monitor positions (don't worry, your old settings will be migrated and cleaned up). You now specify which displays go in which position - for example: "ShipMonitor1 = ProfitQuota" instead of "ProfitQuotaShipMonitorNum = 1". See UseBetterMonitors for a description of what the numbers mean.
+* Separated "Weather" and "FancyWeather" into two unique monitor display options.
+* Improving performance with the radar map rendering too often from the more monitors update.
+* Now defaulting the inventory management options to false since it can cause desyncs with people who don't use the same config options or have the mod.
+* Improving compatibility with [LCVR](https://thunderstore.io/c/lethal-company/p/DaXcess/LethalCompanyVR/) regarding occluded scan nodes.
+* Added more custom RPC calls for the med station item to try improving compatibility with other mods that modify health.
+* Fixed MinimumStartingMoney not working.
+* Fixed compatibility with [UnlockOnStart](https://thunderstore.io/c/lethal-company/p/mrov/UnlockOnStart/) when SpeakerPlaysIntroVoice was set to False.
+* Trying to optimize when the ship scrap monitor is calculated/updated by moving its calls to when things are only dropped in ship or picked up while in the ship.
+* Fixed a case where the ship scrap display would not update after a reset.
+* Fixed a bug where extra monitors would not work on further hosts from the main menu during the same game session.
+
 ### v1.1.1 - Fixes and more customization
 * Fixed the medkit not parented to the ship for client players.
 * Attached the profit quota scan node to the profit quota monitor, wherever it is.

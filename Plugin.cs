@@ -14,6 +14,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static GeneralImprovements.Utilities.MonitorsHelper;
 
 namespace GeneralImprovements
 {
@@ -30,15 +31,7 @@ namespace GeneralImprovements
         public static ConfigEntry<string> MonitorTextColor { get; private set; }
         public static Color MonitorTextColorVal { get; private set; }
         public static ConfigEntry<bool> ShowBackgroundOnAllScreens { get; private set; }
-        public static ConfigEntry<int> ShipProfitQuotaMonitorNum { get; private set; }
-        public static ConfigEntry<int> ShipDeadlineMonitorNum { get; private set; }
-        public static ConfigEntry<int> ShipTotalMonitorNum { get; private set; }
-        public static ConfigEntry<int> ShipTimeMonitorNum { get; private set; }
-        public static ConfigEntry<int> ShipWeatherMonitorNum { get; private set; }
-        public static ConfigEntry<int> ShipSalesMonitorNum { get; private set; }
-        public static ConfigEntry<int> ShipInternalCamMonitorNum { get; private set; }
-        public static ConfigEntry<int> ShipExternalCamMonitorNum { get; private set; }
-        public static ConfigEntry<bool> FancyWeatherMonitor { get; private set; }
+        public static ConfigEntry<string>[] ShipMonitorAssignments { get; private set; }
         public static ConfigEntry<bool> SyncExtraMonitorsPower { get; private set; }
         public static ConfigEntry<bool> CenterAlignMonitorText { get; private set; }
         public static ConfigEntry<int> ShipInternalCamSizeMultiplier { get; private set; }
@@ -98,6 +91,8 @@ namespace GeneralImprovements
 
         private void Awake()
         {
+            string[] validMonitors = new[] { "" }.Concat(typeof(MonitorNames).GetFields(BindingFlags.Static | BindingFlags.Public).Select(f => f.Name)).ToArray();
+
             var validKeys = Enum.GetValues(typeof(Key)).Cast<int>().Where(e => e < (int)Key.OEM1).Select(e => Enum.GetName(typeof(Key), e))
                 .Concat(Enum.GetValues(typeof(ShipBuildModeManagerPatch.MouseButton)).Cast<int>().Select(e => Enum.GetName(typeof(ShipBuildModeManagerPatch.MouseButton), e))).ToArray();
 
@@ -110,21 +105,16 @@ namespace GeneralImprovements
             MLS = Logger;
 
             // Extra monitors
-            string numDesc = "0 = DISABLED. If UseBetterMonitors = True, 1-6 are the top, 7-12 are the bottom, and 13-14 are the big ones beside the terminal. Otherwise, 1-4 are the top, and 5-8 are on the bottom.";
-            UseBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(UseBetterMonitors), false, "If set to true, uses 12 fully customizable and integrated monitors instead of the 8 vanilla ones with overlays.");
+            UseBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(UseBetterMonitors), false, "If set to true, uses 12 fully customizable and integrated monitors instead of the 8 vanilla ones with overlays. If true, 1-6 are top, 7-12 are bottom, and 13-14 are the big ones beside the terminal. Otherwise, 1-4 are the top, and 5-8 are on the bottom.");
             ShowBlueMonitorBackground = Config.Bind(ExtraMonitorsSection, nameof(ShowBlueMonitorBackground), true, "If set to true and NOT using UseBetterMonitors, keeps the vanilla blue backgrounds on the extra monitors. Set to false to hide.");
             MonitorBackgroundColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorBackgroundColor), "160959", "The hex color code of what the backgrounds of the monitors should be. A recommended value close to black is 050505.");
             MonitorTextColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorTextColor), "00FF2C", "The hex color code of what the text on the monitors should be.");
             ShowBackgroundOnAllScreens = Config.Bind(ExtraMonitorsSection, nameof(ShowBackgroundOnAllScreens), false, "If set to true, will show the MonitorBackgroundColor on ALL monitors when they are on, not just used ones.");
-            ShipProfitQuotaMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipProfitQuotaMonitorNum), 5, new ConfigDescription($"Which monitor to show the profit quota on. Vanilla = 5. {numDesc}", new AcceptableValueRange<int>(0, 14)));
-            ShipDeadlineMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipDeadlineMonitorNum), 6, new ConfigDescription($"Which monitor to show the deadline on. Vanilla = 6. {numDesc}", new AcceptableValueRange<int>(0, 14)));
-            ShipTotalMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipTotalMonitorNum), 0, new ConfigDescription($"Displays the sum of all scrap value on the ship on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 14)));
-            ShipTimeMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipTimeMonitorNum), 0, new ConfigDescription($"Displays current time on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 14)));
-            ShipWeatherMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipWeatherMonitorNum), 0, new ConfigDescription($"Displays the current moon's weather on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 14)));
-            ShipSalesMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipSalesMonitorNum), 0, new ConfigDescription($"Displays info about current sales on the specified monitor. {numDesc}", new AcceptableValueRange<int>(0, 14)));
-            ShipInternalCamMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipInternalCamMonitorNum), 11, new ConfigDescription($"(Only applies if UseBetterMonitors = true) Which monitor to display the internal ship cam on. Vanilla = 11. {numDesc}", new AcceptableValueRange<int>(0, 14)));
-            ShipExternalCamMonitorNum = Config.Bind(ExtraMonitorsSection, nameof(ShipExternalCamMonitorNum), 14, new ConfigDescription($"(Only applies if UseBetterMonitors = true) Which monitor to display the external ship cam on. Vanilla = 14. {numDesc}", new AcceptableValueRange<int>(0, 14)));
-            FancyWeatherMonitor = Config.Bind(ExtraMonitorsSection, nameof(FancyWeatherMonitor), true, "If set to true and paired with ShowShipWeatherMonitor, the weather monitor will display ASCII art instead of text descriptions.");
+            ShipMonitorAssignments = new ConfigEntry<string>[MonitorCount];
+            for (int i = 0; i < ShipMonitorAssignments.Length; i++)
+            {
+                ShipMonitorAssignments[i] = Config.Bind(ExtraMonitorsSection, $"ShipMonitor{i + 1}", string.Empty, new ConfigDescription($"What to display on the ship monitor at position {i + 1}, if anything.", new AcceptableValueList<string>(validMonitors)));
+            }
             SyncExtraMonitorsPower = Config.Bind(ExtraMonitorsSection, nameof(SyncExtraMonitorsPower), true, "If set to true, The smaller monitors above the map screen will turn off and on when the map screen power is toggled.");
             CenterAlignMonitorText = Config.Bind(ExtraMonitorsSection, nameof(CenterAlignMonitorText), true, "If set to true, all small monitors in the ship will have their text center aligned, instead of left.");
             ShipInternalCamSizeMultiplier = Config.Bind(ExtraMonitorsSection, nameof(ShipInternalCamSizeMultiplier), 1, new ConfigDescription($"How many times to double the internal ship cam's resolution.", new AcceptableValueRange<int>(1, 5)));
@@ -143,9 +133,9 @@ namespace GeneralImprovements
             AutoSelectLaunchMode = Config.Bind(GameLaunchSection, nameof(AutoSelectLaunchMode), string.Empty, new ConfigDescription("If set to 'ONLINE' or 'LAN', will automatically launch the correct mode, saving you from having to click the menu option when the game loads.", new AcceptableValueList<string>(string.Empty, "ONLINE", "LAN")));
 
             // Inventory
-            PickupInOrder = Config.Bind(InventorySection, nameof(PickupInOrder), true, "When picking up items, will always put them in left - right order.");
-            RearrangeOnDrop = Config.Bind(InventorySection, nameof(RearrangeOnDrop), true, "When dropping items, will rearrange other inventory items to ensure slots are filled left - right.");
-            TwoHandedInSlotOne = Config.Bind(InventorySection, nameof(TwoHandedInSlotOne), true, $"When picking up a two handed item, it will always place it in slot 1 and shift things to the right if needed. Makes selling quicker when paired with RearrangeOnDrop.");
+            PickupInOrder = Config.Bind(InventorySection, nameof(PickupInOrder), false, "When picking up items, will always put them in left - right order.");
+            RearrangeOnDrop = Config.Bind(InventorySection, nameof(RearrangeOnDrop), false, "When dropping items, will rearrange other inventory items to ensure slots are filled left - right.");
+            TwoHandedInSlotOne = Config.Bind(InventorySection, nameof(TwoHandedInSlotOne), false, $"When picking up a two handed item, it will always place it in slot 1 and shift things to the right if needed. Makes selling quicker when paired with RearrangeOnDrop.");
             ScrollDelay = Config.Bind(InventorySection, nameof(ScrollDelay), 0.1f, new ConfigDescription("The minimum time you must wait to scroll to another item in your inventory. Vanilla: 0.3.", new AcceptableValueRange<float>(0.05f, 0.3f)));
 
             // Mechanics
@@ -357,8 +347,36 @@ namespace GeneralImprovements
         {
             MLS.LogMessage($"Found unused config value: {entry.Name}. Migrating and removing if possible...");
 
+            Action<string> convertMonitor = s =>
+            {
+                if (int.TryParse(entry.Value, out var num))
+                {
+                    MLS.LogInfo($"Migrating {s} to monitor position {num}.");
+                    ShipMonitorAssignments[num - 1].Value = s;
+                }
+            };
+
             switch (entry.Name)
             {
+                // Ship monitors
+                case "ShipProfitQuotaMonitorNum": convertMonitor(MonitorNames.ProfitQuota); break;
+                case "ShipDeadlineMonitorNum": convertMonitor(MonitorNames.Deadline); break;
+                case "ShipTotalMonitorNum": convertMonitor(MonitorNames.ShipScrap); break;
+                case "ShipTimeMonitorNum": convertMonitor(MonitorNames.Time); break;
+                case "ShipWeatherMonitorNum": convertMonitor(MonitorNames.Weather); break;
+                case "FancyWeatherMonitor":
+                    int existingWeatherIndex = MonitorNames.GetMonitorIndex(MonitorNames.Weather);
+                    if (entry.Value.ToUpper() == "TRUE" && existingWeatherIndex >= 0)
+                    {
+                        // Unless manually modified, the new weather monitor would have been migrated at this point so it's safe to overwrite it here
+                        MLS.LogInfo($"Migrating fancy weather to override weather at monitor position {existingWeatherIndex + 1}");
+                        ShipMonitorAssignments[existingWeatherIndex].Value = MonitorNames.FancyWeather;
+                    }
+                    break;
+                case "ShipSalesMonitorNum": convertMonitor(MonitorNames.Sales); break;
+                case "ShipInternalCamMonitorNum": convertMonitor(MonitorNames.InternalCam); break;
+                case "ShipExternalCamMonitorNum": convertMonitor(MonitorNames.ExternalCam); break;
+
                 default:
                     MLS.LogDebug("No matching migration");
                     break;

@@ -180,7 +180,7 @@ namespace GeneralImprovements.Patches
                     Plugin.MLS.LogInfo($"Setting starting money to {_currentCredits} ({Plugin.StartingMoneyPerPlayerVal} per player x {StartOfRound.Instance.connectedPlayersAmount + 1} current players), with a minimium of {Plugin.MinimumStartingMoneyVal}.");
                     TimeOfDay.Instance.quotaVariables.startingCredits = _currentCredits;
                     Instance.groupCredits = Math.Clamp(_currentCredits, 0, _currentCredits);
-                    ES3.Save("GroupCredits", Plugin.StartingMoneyPerPlayerVal, GameNetworkManager.Instance.currentSaveFileName);
+                    ES3.Save("GroupCredits", _currentCredits, GameNetworkManager.Instance.currentSaveFileName);
                     Instance.SyncGroupCreditsServerRpc(Instance.groupCredits, Instance.numberOfItemsInDropship);
                 }
                 else

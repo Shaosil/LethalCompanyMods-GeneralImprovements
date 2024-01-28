@@ -15,13 +15,6 @@ namespace GeneralImprovements.Patches
         private static MethodInfo _attemptScanNodeMethod;
         private static MethodInfo AttemptScanNodeMethod => _attemptScanNodeMethod ?? (_attemptScanNodeMethod = typeof(HUDManager).GetMethod("AttemptScanNode", BindingFlags.NonPublic | BindingFlags.Instance));
 
-        [HarmonyPatch(typeof(HUDManager), nameof(Start))]
-        [HarmonyPostfix]
-        private static void Start(ref float ___playerPingingScan)
-        {
-            ___playerPingingScan = -1f;
-        }
-
         [HarmonyPatch(typeof(HUDManager), nameof(AssignNewNodes))]
         [HarmonyPrefix]
         private static bool AssignNewNodes(HUDManager __instance, PlayerControllerB playerScript, ref int ___scannedScrapNum, List<ScanNodeProperties> ___nodesOnScreen)
@@ -85,7 +78,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SetClock(TextMeshProUGUI ___clockNumber)
         {
-            MonitorsHelper.UpdateTimeMonitor();
+            MonitorsHelper.UpdateTimeMonitors();
         }
 
         [HarmonyPatch(typeof(HUDManager), nameof(CanPlayerScan))]

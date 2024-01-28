@@ -1,4 +1,5 @@
-﻿using GeneralImprovements.Utilities;
+﻿using GeneralImprovements.OtherMods;
+using GeneralImprovements.Utilities;
 using HarmonyLib;
 
 namespace GeneralImprovements.Patches
@@ -34,7 +35,7 @@ namespace GeneralImprovements.Patches
         {
             if (Plugin.SyncExtraMonitorsPower.Value)
             {
-                MonitorsHelper.ToggleExtraMonitorPower(on);
+                MonitorsHelper.ToggleExtraMonitorsPower(on);
             }
 
             // Manually handle this if we are using our own monitors
@@ -58,7 +59,7 @@ namespace GeneralImprovements.Patches
         private static void MeetsCameraEnabledConditions(ManualCameraRenderer __instance, ref bool __result)
         {
             // View monitor will break in some cases, perhaps related to culling, if the internal ship security cam is manually rendering
-            if (!__result && __instance.mesh != null && !__instance.mesh.isVisible)
+            if (!__result && __instance == StartOfRound.Instance.mapScreen && !TwoRadarCamsHelper.IsActive && TerminalPatch.Instance.terminalUIScreen.enabled)
             {
                 __result = true;
             }

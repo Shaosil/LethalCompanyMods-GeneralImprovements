@@ -57,13 +57,12 @@ namespace GeneralImprovements.Patches
 
             // Fix max items allowed to be stored
             __instance.maxShipItemCapacity = 999;
-        }
 
-        [HarmonyPatch(typeof(StartOfRound), nameof(PlayFirstDayShipAnimation))]
-        [HarmonyPrefix]
-        private static bool PlayFirstDayShipAnimation()
-        {
-            return Plugin.SpeakerPlaysIntroVoice.Value;
+            // Remove the intro sound effects if needed
+            if (!Plugin.SpeakerPlaysIntroVoice.Value)
+            {
+                StartOfRound.Instance.shipIntroSpeechSFX = null;
+            }
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(OnShipLandedMiscEvents))]
@@ -100,7 +99,7 @@ namespace GeneralImprovements.Patches
         private static void SetMapScreenInfoToCurrentLevel()
         {
             // Update weather monitor text
-            MonitorsHelper.UpdateWeatherMonitor();
+            MonitorsHelper.UpdateWeatherMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(SwitchMapMonitorPurpose))]
@@ -149,30 +148,39 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SyncShipUnlockablesClientRpc()
         {
-            MonitorsHelper.UpdateShipTotalMonitor();
+            MonitorsHelper.UpdateShipScrapMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(ResetShip))]
         [HarmonyPostfix]
         private static void ResetShip(StartOfRound __instance)
         {
-            MonitorsHelper.UpdateShipTotalMonitor();
             TerminalPatch.SetStartingMoneyPerPlayer();
-            ItemHelper.MaxHealth = __instance.localPlayerController?.health ?? 100;
+            if (ItemHelper.MedStation != null)
+            {
+                ItemHelper.MedStation.MaxLocalPlayerHealth = __instance.localPlayerController?.health ?? 100;
+            }
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(AllPlayersHaveRevivedClientRpc))]
+        [HarmonyPostfix]
+        private static void AllPlayersHaveRevivedClientRpc()
+        {
+            MonitorsHelper.UpdateShipScrapMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(LoadShipGrabbableItems))]
         [HarmonyPostfix]
         private static void LoadShipGrabbableItems()
         {
-            MonitorsHelper.UpdateShipTotalMonitor();
+            MonitorsHelper.UpdateShipScrapMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(Update))]
         [HarmonyPostfix]
         private static void Update()
         {
-            MonitorsHelper.AnimateWeatherMonitor();
+            MonitorsHelper.AnimateWeatherMonitors();
         }
     }
 }

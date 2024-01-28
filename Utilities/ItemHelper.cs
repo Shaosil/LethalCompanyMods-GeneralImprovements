@@ -10,30 +10,26 @@ namespace GeneralImprovements.Utilities
     {
         private static IReadOnlyList<NetworkPrefab> AllPrefabs => NetworkManager.Singleton.NetworkConfig.Prefabs.Prefabs;
 
-        public static GameObject MedStation;
-        public static int MaxHealth;
+        public static MedStationItem MedStation = null;
 
         public static void CreateMedStation()
         {
             if (Plugin.AddHealthRechargeStation.Value && AssetBundleHelper.MedStationPrefab != null)
             {
-                MedStationItem medStationItem = null;
-
                 if (StartOfRound.Instance.IsHost)
                 {
                     // If we are the host, spawn it as a network object
                     Plugin.MLS.LogInfo("Adding medical station to ship.");
-                    MedStation = Object.Instantiate(AssetBundleHelper.MedStationPrefab, new Vector3(2.75f, 3.4f, -16.561f), Quaternion.Euler(-90, 0, 0));
-                    medStationItem = MedStation.GetComponent<MedStationItem>();
-                    medStationItem.NetworkObject.Spawn();
-                    medStationItem.NetworkObject.TrySetParent(StartOfRound.Instance.elevatorTransform);
+                    var medStationObj = Object.Instantiate(AssetBundleHelper.MedStationPrefab, new Vector3(2.75f, 3.4f, -16.561f), Quaternion.Euler(-90, 0, 0));
+                    MedStation = medStationObj.GetComponent<MedStationItem>();
+                    MedStation.NetworkObject.Spawn();
+                    MedStation.NetworkObject.TrySetParent(StartOfRound.Instance.elevatorTransform);
                 }
                 else
                 {
                     // If we are a client, try to find it in the scene first
                     Plugin.MLS.LogInfo("Finding medical station in ship");
-                    medStationItem = Object.FindObjectOfType<MedStationItem>();
-                    MedStation = medStationItem?.gameObject;
+                    MedStation = Object.FindObjectOfType<MedStationItem>();
 
                     if (MedStation == null)
                     {
@@ -63,7 +59,7 @@ namespace GeneralImprovements.Utilities
                 interactScript.onInteract = new InteractEvent();
                 interactScript.onCancelAnimation = new InteractEvent();
                 interactScript.onInteractEarly = new InteractEvent();
-                interactScript.onInteractEarly.AddListener(_ => medStationItem.HealLocalPlayer());
+                interactScript.onInteractEarly.AddListener(_ => MedStation.HealLocalPlayer());
 
                 // Add scan node
                 var scanNode = MedStation.transform.Find("ScanNode").gameObject.AddComponent<ScanNodeProperties>();

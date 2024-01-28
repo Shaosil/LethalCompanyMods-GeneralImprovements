@@ -57,7 +57,7 @@ namespace GeneralImprovements.Patches
         {
             if (Plugin.UseBetterMonitors.Value)
             {
-                MonitorsHelper.CopyProfitQuotaAndDeadlineText();
+                MonitorsHelper.CopyProfitQuotaAndDeadlineTexts();
             }
         }
     }

@@ -92,6 +92,7 @@ namespace GeneralImprovements.Assets
 
                     if (_initialTextAssignments.ContainsKey(i))
                     {
+                        // Call the action (it should handle adding this screenText object to its own list and calling the update text method)
                         _initialTextAssignments[i](screenText);
                     }
                     else
@@ -112,13 +113,13 @@ namespace GeneralImprovements.Assets
         public void AssignTextMonitor(int index, Action<TextMeshProUGUI> textAssignment)
         {
             // Store the assignment for later when Start() runs
-            _initialTextAssignments.Add(index, textAssignment);
+            _initialTextAssignments[index] = textAssignment;
         }
 
         public void AssignMaterialMonitor(int index, Material materialAssignment)
         {
             // Store the assignment for later when Start() runs
-            _initialMaterialAssignments.Add(index, materialAssignment);
+            _initialMaterialAssignments[index] = materialAssignment;
         }
 
         public void RenderCameraAfterTextChange(TextMeshProUGUI text)
