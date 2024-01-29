@@ -96,7 +96,7 @@
         <Message Text="Copying DLL to $(GamePath)..." Importance="high" />
         <Exec Command="copy $(TargetPath) &quot;$(GamePath)&quot;" />
         <Message Text="Copying assets to $(GamePath)..." Importance="high" />
-        <Exec Command="copy Assets\assets &quot;$(GamePath)&quot;" />
+        <Exec Command="copy Assets\GeneralImprovementsAssets &quot;$(GamePath)&quot;" />
     </Target>
 
     <Target Name="ZipMod" AfterTargets="PostBuildEvent" Condition="$(Configuration) == 'Deploy'">
@@ -104,7 +104,7 @@
         <RemoveDir Directories="$(PackageDir)" />
 
         <Message Text="Copying mod files to $(PackageDir)..." Importance="high" />
-        <Copy SourceFiles="$(TargetPath);Assets\assets;icon.png;manifest.json;CHANGELOG.md;README.md" DestinationFolder="$(PackageDir)" />
+        <Copy SourceFiles="$(TargetPath);Assets\GeneralImprovementsAssets;icon.png;manifest.json;CHANGELOG.md;README.md" DestinationFolder="$(PackageDir)" />
 
         <ZipDirectory SourceDirectory="$(PackageDir)" DestinationFile="..\PACKAGED\$(MSBuildProjectName).zip" Overwrite="true" />
     </Target>

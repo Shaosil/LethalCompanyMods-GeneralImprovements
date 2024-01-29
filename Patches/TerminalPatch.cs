@@ -1,4 +1,5 @@
 ﻿using GameNetcodeStuff;
+using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
@@ -92,6 +93,13 @@ namespace GeneralImprovements.Patches
             _curHistoryIndex = _commandHistory.Count;
         }
 
+        [HarmonyPatch(typeof(Terminal), nameof(LoadNewNodeIfAffordable))]
+        [HarmonyPostfix]
+        private static void LoadNewNodeIfAffordable(Terminal __instance)
+        {
+            MonitorsHelper.UpdateCreditsMonitors();
+        }
+
         [HarmonyPatch(typeof(Terminal), "TextPostProcess")]
         [HarmonyPrefix]
         private static void TextPostProcess_Pre(ref string modifiedDisplayText, TerminalNode node)
@@ -114,6 +122,13 @@ namespace GeneralImprovements.Patches
         private static void TextPostProcess_Post(string modifiedDisplayText, ref string __result)
         {
             __result = __result.Replace("\nn\n", "\n\n\n");
+        }
+
+        [HarmonyPatch(typeof(Terminal), nameof(SetItemSales))]
+        [HarmonyPostfix]
+        private static void SetItemSales(Terminal __instance)
+        {
+            MonitorsHelper.UpdateSalesMonitors();
         }
 
         [HarmonyPatch(typeof(Terminal), nameof(Update))]
@@ -187,6 +202,8 @@ namespace GeneralImprovements.Patches
                 {
                     _currentCredits = ES3.Load("GroupCredits", GameNetworkManager.Instance.currentSaveFileName, Plugin.StartingMoneyPerPlayerVal);
                 }
+
+                MonitorsHelper.UpdateCreditsMonitors();
             }
         }
 
@@ -211,6 +228,8 @@ namespace GeneralImprovements.Patches
                 {
                     Instance.SyncGroupCreditsServerRpc(Instance.groupCredits, Instance.numberOfItemsInDropship);
                 }
+
+                MonitorsHelper.UpdateCreditsMonitors();
             }
         }
     }

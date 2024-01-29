@@ -16,7 +16,7 @@ namespace GeneralImprovements.Items
                 return;
             }
 
-            if (StartOfRound.Instance.localPlayerController.health < MaxLocalPlayerHealth)
+            if (StartOfRound.Instance.localPlayerController.health > MaxLocalPlayerHealth)
             {
                 Plugin.MLS.LogInfo($"Setting max local player health to {StartOfRound.Instance.localPlayerController.health}");
                 MaxLocalPlayerHealth = StartOfRound.Instance.localPlayerController.health;

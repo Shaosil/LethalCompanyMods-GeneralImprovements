@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using GeneralImprovements.Utilities;
+using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -112,6 +113,16 @@ namespace GeneralImprovements.Patches
                 __instance.reachedFloorTarget = false;
                 __instance.targetFloorPosition = __instance.transform.localPosition;
                 _itemsToKeepInPlace.Remove(__instance);
+            }
+        }
+
+        [HarmonyPatch(typeof(GrabbableObject), nameof(OnHitGround))]
+        [HarmonyPostfix]
+        private static void OnHitGround(GrabbableObject __instance)
+        {
+            if (__instance.isInShipRoom)
+            {
+                MonitorsHelper.UpdateShipScrapMonitors();
             }
         }
     }

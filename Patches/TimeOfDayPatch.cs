@@ -49,16 +49,15 @@ namespace GeneralImprovements.Patches
                 Plugin.MLS.LogInfo($"Applying surplus quota to fulfilled: ${_leftoverFunds}");
                 __instance.quotaFulfilled = _leftoverFunds;
             }
+
+            MonitorsHelper.UpdateCreditsMonitors();
         }
 
         [HarmonyPatch(typeof(TimeOfDay), nameof(UpdateProfitQuotaCurrentTime))]
         [HarmonyPostfix]
         private static void UpdateProfitQuotaCurrentTime()
         {
-            if (Plugin.UseBetterMonitors.Value)
-            {
-                MonitorsHelper.CopyProfitQuotaAndDeadlineTexts();
-            }
+            MonitorsHelper.CopyProfitQuotaAndDeadlineTexts();
         }
     }
 }

@@ -97,7 +97,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(GrabObjectClientRpc))]
         [HarmonyPostfix]
-        private static void GrabObjectClientRpc(PlayerControllerB __instance)
+        private static void GrabObjectClientRpc(PlayerControllerB __instance, NetworkObjectReference grabbedObject)
         {
             if (__instance.currentlyHeldObjectServer.isInShipRoom)
             {
@@ -193,16 +193,6 @@ namespace GeneralImprovements.Patches
             }
 
             return true;
-        }
-
-        [HarmonyPatch(typeof(PlayerControllerB), nameof(SetItemInElevator))]
-        [HarmonyPostfix]
-        private static void SetItemInElevator(bool droppedInShipRoom)
-        {
-            if (droppedInShipRoom)
-            {
-                MonitorsHelper.UpdateShipScrapMonitors();
-            }
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SetHoverTipAndCurrentInteractTrigger))]

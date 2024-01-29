@@ -1,4 +1,5 @@
 ﻿using GeneralImprovements.Assets;
+using GeneralImprovements.Patches;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,6 +25,8 @@ namespace GeneralImprovements.Utilities
             public const string Weather = "Weather";
             public const string FancyWeather = "FancyWeather";
             public const string Sales = "Sales";
+            public const string Credits = "Credits";
+            public const string DoorPower = "DoorPower";
             public const string InternalCam = "InternalCam";
             public const string ExternalCam = "ExternalCam";
 
@@ -65,21 +68,36 @@ namespace GeneralImprovements.Utilities
         private static List<TextMeshProUGUI> _fancyWeatherMonitorTexts = new List<TextMeshProUGUI>();
         private static List<Image> _salesMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _salesMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<Image> _creditsMonitorBGs = new List<Image>();
+        private static List<TextMeshProUGUI> _creditsMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<Image> _doorPowerMonitorBGs = new List<Image>();
+        private static List<TextMeshProUGUI> _doorPowerMonitorTexts = new List<TextMeshProUGUI>();
         private static List<Image> _extraBackgrounds = new List<Image>();
 
+        private static bool _usingAnyMonitorTweaks = false;
+        private static int _lastUpdatedCredits = -1;
+        private static float _lastUpdatedDoorPower = -1;
         private static Monitors _newMonitors;
 
+
+        // Weather animation
         private static int _curWeatherAnimIndex = 0;
         private static int _curWeatherOverlayIndex = 0;
         private static string[] _curWeatherAnimations = new string[0];
         private static string[] _curWeatherOverlays = new string[0];
+        private static float _weatherAnimTimer = 0;
+        private static float _weatherAnimCycle = 0.25f; // In seconds
+        private static bool _weatherHasOverlays = false;
+        private static float _weatherOverlayTimer = 0;
+        private static bool _weatherShowingOverlay = false;
+        private static float _weatherOverlayCycle; // In seconds, randomly assigned each time
 
-        private static float _animTimer = 0;
-        private static float _animCycle = 0.2f; // In seconds
-        private static bool _hasOverlays = false;
-        private static float _overlayTimer = 0;
-        private static bool _showingOverlay = false;
-        private static float _overlayCycle; // In seconds, randomly assigned each time
+        // Sales animation
+        private static int _curSalesAnimIndex = 0;
+        private static List<string> _curSalesAnimations = new List<string>();
+        private static float _salesAnimTimer = 0;
+        private static float _salesAnimCycle = 1f; // In seconds
+
         private static Transform _oldMonitorsObject;
         private static Transform _oldBigMonitors;
         private static Transform _UIContainer;
@@ -87,6 +105,8 @@ namespace GeneralImprovements.Utilities
 
         public static void CreateExtraMonitors()
         {
+            _usingAnyMonitorTweaks = true;
+
             // Initialize things each time StartOfRound starts up
             _profitQuotaBGs = new List<Image>();
             _profitQuotaTexts = new List<TextMeshProUGUI>();
@@ -102,6 +122,10 @@ namespace GeneralImprovements.Utilities
             _fancyWeatherMonitorTexts = new List<TextMeshProUGUI>();
             _salesMonitorBGs = new List<Image>();
             _salesMonitorTexts = new List<TextMeshProUGUI>();
+            _creditsMonitorBGs = new List<Image>();
+            _creditsMonitorTexts = new List<TextMeshProUGUI>();
+            _doorPowerMonitorBGs = new List<Image>();
+            _doorPowerMonitorTexts = new List<TextMeshProUGUI>();
             _extraBackgrounds = new List<Image>();
 
             // Resize the two extra monitor texts to be the same as their respective backgrounds, and give them padding
@@ -179,12 +203,9 @@ namespace GeneralImprovements.Utilities
             camRenderer.fps = fps;
             if (resMultiplier > 1)
             {
-                var newCamRT = new RenderTexture(shipCam.targetTexture);
-                for (int i = 0; i < resMultiplier; i++)
-                {
-                    newCamRT.width *= 2;
-                    newCamRT.height *= 2;
-                }
+                int targetWidth = shipCam.targetTexture.width * (2 * resMultiplier);
+                int targetHeight = shipCam.targetTexture.height * (2 * resMultiplier);
+                var newCamRT = new RenderTexture(targetWidth, targetHeight, shipCam.targetTexture.depth, shipCam.targetTexture.format);
                 shipCam.targetTexture = newCamRT;
             }
 
@@ -194,10 +215,10 @@ namespace GeneralImprovements.Utilities
         private static void CreateOldStyleMonitors()
         {
             // Copy everything from the existing quota monitor
-            _originalProfitQuotaBG.gameObject.SetActive(false);
-            _originalProfitQuotaText.gameObject.SetActive(false);
-            _originalDeadlineBG.gameObject.SetActive(false);
-            _originalDeadlineText.gameObject.SetActive(false);
+            _originalProfitQuotaBG.enabled = false;
+            _originalProfitQuotaText.enabled = false;
+            _originalDeadlineBG.enabled = false;
+            _originalDeadlineText.enabled = false;
             _originalDeadlineBG.transform.localPosition = _originalProfitQuotaBG.transform.localPosition;
             _originalDeadlineBG.transform.localPosition = _originalProfitQuotaBG.transform.localPosition;
             _originalDeadlineText.transform.localPosition = _originalProfitQuotaText.transform.localPosition;
@@ -234,6 +255,8 @@ namespace GeneralImprovements.Utilities
                     case MonitorNames.Weather: curBGs = _weatherMonitorBGs; curTexts = _weatherMonitorTexts; break;
                     case MonitorNames.FancyWeather: curBGs = _fancyWeatherMonitorBGs; curTexts = _fancyWeatherMonitorTexts; break;
                     case MonitorNames.Sales: curBGs = _salesMonitorBGs; curTexts = _salesMonitorTexts; break;
+                    case MonitorNames.Credits: curBGs = _creditsMonitorBGs; curTexts = _creditsMonitorTexts; break;
+                    case MonitorNames.DoorPower: curBGs = _doorPowerMonitorBGs; curTexts = _doorPowerMonitorTexts; break;
                 }
 
                 if ((curBGs == null || curTexts == null) && Plugin.ShowBlueMonitorBackground.Value && Plugin.ShowBackgroundOnAllScreens.Value)
@@ -249,11 +272,11 @@ namespace GeneralImprovements.Utilities
                 var positionOffset = offsets[i].Key;
                 var rotationOffset = offsets[i].Value;
 
-                // Only create a background if we have one assigned, or we want to show extra backgrounds
-                if (curBGs != null && (curBGs != _extraBackgrounds || Plugin.ShowBlueMonitorBackground.Value))
+                // Only create a background if we have one assigned and we want to show the blue backgrounds
+                if (curBGs != null && Plugin.ShowBlueMonitorBackground.Value)
                 {
                     var newBG = Object.Instantiate(_originalProfitQuotaBG, _originalProfitQuotaBG.transform.parent);
-                    newBG.gameObject.SetActive(true);
+                    newBG.enabled = true;
                     newBG.name = $"{(string.IsNullOrWhiteSpace(curAssignment) ? "ExtraBackground" : curAssignment)}BG{i + 1}";
 
                     newBG.transform.localPosition = originalPos + positionOffset;
@@ -266,7 +289,7 @@ namespace GeneralImprovements.Utilities
                 {
                     Plugin.MLS.LogInfo($"Creating {curAssignment} monitor at position {i + 1}");
                     var newText = Object.Instantiate(_originalProfitQuotaText, _originalProfitQuotaText.transform.parent);
-                    newText.gameObject.SetActive(true);
+                    newText.enabled = true;
                     newText.name = $"{curAssignment}Text{i + 1}";
 
                     newText.transform.localPosition = originalPos + positionOffset + new Vector3(0, 0, -1);
@@ -275,6 +298,11 @@ namespace GeneralImprovements.Utilities
                 }
             }
 
+            // Modify specialized text fields
+            foreach (var sales in _salesMonitorTexts)
+            {
+                sales.overflowMode = TextOverflowModes.Ellipsis;
+            }
             foreach (var fancyWeather in _fancyWeatherMonitorTexts)
             {
                 fancyWeather.alignment = TextAlignmentOptions.MidlineLeft;
@@ -311,7 +339,15 @@ namespace GeneralImprovements.Utilities
 
                 switch (curAssignment)
                 {
-                    case MonitorNames.ProfitQuota: curAction = t => { _profitQuotaTexts.Add(t); CopyProfitQuotaAndDeadlineTexts(); }; break;
+                    case MonitorNames.ProfitQuota:
+                        curAction = t =>
+                    {
+                        _profitQuotaTexts.Add(t);
+                        _profitQuotaScanNode.transform.parent = _newMonitors.GetMonitorTransform(t);
+                        _profitQuotaScanNode.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                        CopyProfitQuotaAndDeadlineTexts();
+                    };
+                        break;
                     case MonitorNames.Deadline: curAction = t => { _deadlineTexts.Add(t); CopyProfitQuotaAndDeadlineTexts(); }; break;
                     case MonitorNames.ShipScrap: curAction = t => { _shipScrapMonitorTexts.Add(t); UpdateShipScrapMonitors(); }; break;
                     case MonitorNames.Time: curAction = t => { _timeMonitorTexts.Add(t); UpdateTimeMonitors(); }; break;
@@ -325,7 +361,9 @@ namespace GeneralImprovements.Utilities
                         UpdateWeatherMonitors();
                     };
                         break;
-                    case MonitorNames.Sales: curAction = t => { _salesMonitorTexts.Add(t); UpdateSalesMonitors(); }; break;
+                    case MonitorNames.Sales: curAction = t => { t.overflowMode = TextOverflowModes.Ellipsis; _salesMonitorTexts.Add(t); UpdateSalesMonitors(); }; break;
+                    case MonitorNames.Credits: curAction = t => { _creditsMonitorTexts.Add(t); UpdateCreditsMonitors(); }; break;
+                    case MonitorNames.DoorPower: curAction = t => { _doorPowerMonitorTexts.Add(t); UpdateDoorPowerMonitors(); }; break;
 
                     case MonitorNames.InternalCam: targetMat = _oldMonitorsObject.GetComponent<MeshRenderer>().materials[2]; break;
                     case MonitorNames.ExternalCam: targetMat = _oldBigMonitors.GetComponent<MeshRenderer>().materials[2]; break;
@@ -382,8 +420,12 @@ namespace GeneralImprovements.Utilities
 
         public static void CopyProfitQuotaAndDeadlineTexts()
         {
-            UpdateGenericTextList(_profitQuotaTexts, StartOfRound.Instance.profitQuotaMonitorText?.text);
-            UpdateGenericTextList(_deadlineTexts, StartOfRound.Instance.deadlineMonitorText?.text);
+            if (_profitQuotaTexts.Any() || _deadlineTexts.Any())
+            {
+                UpdateGenericTextList(_profitQuotaTexts, StartOfRound.Instance.profitQuotaMonitorText?.text);
+                UpdateGenericTextList(_deadlineTexts, StartOfRound.Instance.deadlineMonitorText?.text);
+                Plugin.MLS.LogInfo("Updated profit quota and deadline monitors");
+            }
         }
 
         public static void UpdateShipScrapMonitors()
@@ -404,7 +446,6 @@ namespace GeneralImprovements.Utilities
         {
             if (HUDManager.Instance?.clockNumber != null && _timeMonitorTexts.Any())
             {
-                Plugin.MLS.LogDebug("Updating time display.");
                 string time;
                 if (TimeOfDay.Instance.movingGlobalTimeForward)
                 {
@@ -415,6 +456,7 @@ namespace GeneralImprovements.Utilities
                     time = "TIME:\nPENDING";
                 }
                 UpdateGenericTextList(_timeMonitorTexts, time);
+                Plugin.MLS.LogDebug("Updated time display.");
             }
         }
 
@@ -422,8 +464,6 @@ namespace GeneralImprovements.Utilities
         {
             if (_weatherMonitorTexts.Any() || _fancyWeatherMonitorTexts.Any())
             {
-                Plugin.MLS.LogInfo("Updating weather monitor");
-
                 if (_weatherMonitorTexts.Any())
                 {
                     UpdateGenericTextList(_weatherMonitorTexts, $"WEATHER:\n{(StartOfRound.Instance.currentLevel?.currentWeather.ToString() ?? string.Empty)}");
@@ -443,89 +483,146 @@ namespace GeneralImprovements.Utilities
                         _ => new string[] { string.Empty }
                     };
 
-                    _hasOverlays = StartOfRound.Instance.currentLevel?.currentWeather == LevelWeatherType.Stormy;
-                    if (_hasOverlays)
+                    _weatherHasOverlays = StartOfRound.Instance.currentLevel?.currentWeather == LevelWeatherType.Stormy;
+                    if (_weatherHasOverlays)
                     {
-                        _overlayTimer = 0;
-                        _overlayCycle = Random.Range(0.1f, 3);
+                        _weatherOverlayTimer = 0;
+                        _weatherOverlayCycle = Random.Range(0.1f, 3);
                         _curWeatherOverlays = WeatherASCIIArt.LightningOverlays;
                         _curWeatherOverlayIndex = Random.Range(0, _curWeatherOverlays.Length);
                     }
-                    _showingOverlay = false;
+                    _weatherShowingOverlay = false;
 
                     _curWeatherAnimIndex = 0;
-                    _animTimer = 0;
+                    _weatherAnimTimer = 0;
                     UpdateGenericTextList(_fancyWeatherMonitorTexts, _curWeatherAnimations[_curWeatherAnimIndex]);
                 }
+
+                Plugin.MLS.LogInfo("Updated weather monitor");
             }
         }
 
-        public static void AnimateWeatherMonitors()
+        public static void AnimateSpecialMonitors()
         {
-            if (!_fancyWeatherMonitorTexts.Any() || _curWeatherAnimations.Length < 2)
+            if (_fancyWeatherMonitorTexts.Any() && _curWeatherAnimations.Length >= 2)
             {
-                return;
-            }
-
-            Action drawWeather = () =>
-            {
-                var sb = new StringBuilder();
-                string[] animLines = _curWeatherAnimations[_curWeatherAnimIndex].Split(Environment.NewLine);
-                string[] overlayLines = (_showingOverlay ? _curWeatherOverlays[_curWeatherOverlayIndex] : string.Empty).Split(Environment.NewLine);
-
-                // Loop through each line of the current animation frame, overwriting any characters with a matching overlay character if one exists
-                for (int l = 0; l < animLines.Length; l++)
+                Action drawWeather = () =>
                 {
-                    string curAnimLine = animLines[l];
-                    string overlayLine = overlayLines.ElementAtOrDefault(l);
+                    var sb = new StringBuilder();
+                    string[] animLines = _curWeatherAnimations[_curWeatherAnimIndex].Split(Environment.NewLine);
+                    string[] overlayLines = (_weatherShowingOverlay ? _curWeatherOverlays[_curWeatherOverlayIndex] : string.Empty).Split(Environment.NewLine);
 
-                    for (int c = 0; c < curAnimLine.Length; c++)
+                    // Loop through each line of the current animation frame, overwriting any characters with a matching overlay character if one exists
+                    for (int l = 0; l < animLines.Length; l++)
                     {
-                        bool isOverlayChar = !string.IsNullOrWhiteSpace(overlayLine) && overlayLine.Length > c && overlayLine[c] != ' ';
-                        sb.Append(isOverlayChar ? $"<color=#ffe100>{overlayLine[c]}</color>" : $"{curAnimLine[c]}");
+                        string curAnimLine = animLines[l];
+                        string overlayLine = overlayLines.ElementAtOrDefault(l);
+
+                        for (int c = 0; c < curAnimLine.Length; c++)
+                        {
+                            bool isOverlayChar = !string.IsNullOrWhiteSpace(overlayLine) && overlayLine.Length > c && overlayLine[c] != ' ';
+                            sb.Append(isOverlayChar ? $"<color=#ffe100>{overlayLine[c]}</color>" : $"{curAnimLine[c]}");
+                        }
+                        sb.AppendLine();
                     }
-                    sb.AppendLine();
+
+                    UpdateGenericTextList(_fancyWeatherMonitorTexts, sb.ToString());
+                };
+
+                // Cycle through our current animation pattern 'sprites'
+                _weatherAnimTimer += Time.deltaTime;
+                if (_weatherAnimTimer >= _weatherAnimCycle)
+                {
+                    _curWeatherAnimIndex = (_curWeatherAnimIndex + 1) % _curWeatherAnimations.Length;
+                    _weatherAnimTimer = 0;
+                    drawWeather();
                 }
 
-                UpdateGenericTextList(_fancyWeatherMonitorTexts, sb.ToString());
-            };
+                // Handle random overlays
+                if (_weatherHasOverlays)
+                {
+                    _weatherOverlayTimer += Time.deltaTime;
+                    if (_weatherOverlayTimer >= (_weatherShowingOverlay ? 0.5f : _weatherOverlayCycle))
+                    {
+                        _weatherOverlayTimer = 0;
+                        _weatherShowingOverlay = !_weatherShowingOverlay;
 
-            // Cycle through our current animation pattern 'sprites'
-            _animTimer += Time.deltaTime;
-            if (_animTimer >= _animCycle)
-            {
-                _curWeatherAnimIndex = (_curWeatherAnimIndex + 1) % _curWeatherAnimations.Length;
-                _animTimer = 0;
-                drawWeather();
+                        if (!_weatherShowingOverlay)
+                        {
+                            // Reset the counter for the next overlay
+                            _weatherOverlayCycle = Random.Range(0.1f, 3);
+                            _curWeatherOverlayIndex = Random.Range(0, _curWeatherOverlays.Length);
+                        }
+
+                        drawWeather();
+                    }
+                }
             }
 
-            // Handle random overlays
-            if (_hasOverlays)
+            if (_salesMonitorTexts.Any() && _curSalesAnimations.Count >= 2)
             {
-                _overlayTimer += Time.deltaTime;
-                if (_overlayTimer >= (_showingOverlay ? 0.5f : _overlayCycle))
+                _salesAnimTimer += Time.deltaTime;
+                if (_salesAnimTimer >= _salesAnimCycle)
                 {
-                    _overlayTimer = 0;
-                    _showingOverlay = !_showingOverlay;
-
-                    if (!_showingOverlay)
-                    {
-                        // Reset the counter for the next overlay
-                        _overlayCycle = Random.Range(0.1f, 3);
-                        _curWeatherOverlayIndex = Random.Range(0, _curWeatherOverlays.Length);
-                    }
-
-                    drawWeather();
+                    _salesAnimTimer = 0;
+                    _curSalesAnimIndex = (1 + _curSalesAnimIndex) % _curSalesAnimations.Count;
+                    string firstLine = _salesMonitorTexts.First().text.Split('\n')[0];
+                    UpdateGenericTextList(_salesMonitorTexts, $"{firstLine}\n{_curSalesAnimations[_curSalesAnimIndex]}");
                 }
             }
         }
 
         public static void UpdateSalesMonitors()
         {
-            if (MonitorNames.MonitorExists(MonitorNames.Sales) && _salesMonitorTexts != null)
+            if (_salesMonitorTexts.Any() && TerminalPatch.Instance != null)
             {
-                Plugin.MLS.LogDebug("Updating sales display.");
-                UpdateGenericTextList(_salesMonitorTexts, "SALES COMING SOON!");
+                var instance = TerminalPatch.Instance;
+                int numSales = instance.itemSalesPercentages.Count(s => s < 100);
+                _curSalesAnimIndex = 0;
+                _curSalesAnimations = new List<string>();
+
+                if (numSales > 0)
+                {
+                    for (int i = 0; i < instance.itemSalesPercentages.Length; i++)
+                    {
+                        if (instance.itemSalesPercentages[i] < 100)
+                        {
+                            _curSalesAnimations.Add($"{instance.itemSalesPercentages[i]}% OFF {instance.buyableItemsList[i].itemName}s");
+                        }
+                    }
+                }
+                if (numSales <= 0)
+                {
+                    UpdateGenericTextList(_salesMonitorTexts, "NO SALES TODAY");
+                }
+                else
+                {
+                    UpdateGenericTextList(_salesMonitorTexts, $"{numSales} SALE{(numSales == 1 ? string.Empty : "S")}:\n{_curSalesAnimations[0]}");
+                }
+                Plugin.MLS.LogInfo("Updated sales display.");
+            }
+        }
+
+        public static void UpdateCreditsMonitors()
+        {
+            // Only update if there is a change
+            var groupCredits = TerminalPatch.Instance?.groupCredits ?? -1;
+            if (_creditsMonitorTexts.Any() && groupCredits != _lastUpdatedCredits)
+            {
+                _lastUpdatedCredits = groupCredits;
+                UpdateGenericTextList(_creditsMonitorTexts, $"CREDITS:\n${_lastUpdatedCredits}");
+                Plugin.MLS.LogInfo("Updated credits display");
+            }
+        }
+
+        public static void UpdateDoorPowerMonitors()
+        {
+            // Only update if there is a change
+            float doorPower = HangarShipDoorPatch.Instance?.doorPower ?? 1;
+            if (_doorPowerMonitorTexts.Any() && _lastUpdatedDoorPower != doorPower)
+            {
+                _lastUpdatedDoorPower = doorPower;
+                UpdateGenericTextList(_doorPowerMonitorTexts, $"DOOR POWER:\n{Mathf.RoundToInt(_lastUpdatedDoorPower * 100)}%");
             }
         }
 
@@ -554,6 +651,15 @@ namespace GeneralImprovements.Utilities
                 }
                 else
                 {
+                    // Handle vanilla settings if needed
+                    if (!_usingAnyMonitorTweaks)
+                    {
+                        StartOfRound.Instance.profitQuotaMonitorBGImage.enabled = on;
+                        StartOfRound.Instance.profitQuotaMonitorText.enabled = on;
+                        StartOfRound.Instance.deadlineMonitorBGImage.enabled = on;
+                        StartOfRound.Instance.deadlineMonitorText.enabled = on;
+                    }
+
                     if (Plugin.ShowBlueMonitorBackground.Value)
                     {
                         foreach (var background in _profitQuotaBGs.Concat(_deadlineBGs).Concat(_shipScrapMonitorBGs).Concat(_timeMonitorBGs)

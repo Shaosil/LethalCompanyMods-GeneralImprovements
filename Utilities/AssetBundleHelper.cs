@@ -17,7 +17,7 @@ namespace GeneralImprovements.Utilities
             if (_bundle == null)
             {
                 // Find our directory
-                string assetPath = Path.Combine(new FileInfo(Assembly.GetExecutingAssembly().Location).DirectoryName, "assets");
+                string assetPath = Path.Combine(new FileInfo(Assembly.GetExecutingAssembly().Location).DirectoryName, "GeneralImprovementsAssets");
                 if (!new FileInfo(assetPath).Exists)
                 {
                     Plugin.MLS.LogError("Could not find asset bundle!");

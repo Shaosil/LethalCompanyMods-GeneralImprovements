@@ -1,5 +1,19 @@
 # Changelog
 
+### v1.1.3 - Bugfixing my code
+* I am now ensuring that any monitor tweaks are disabled if none of the monitor settings have been changed, to prevent any monitor bugs from affecting users who do not use them at all.
+* Added two new display monitor options (current credits & door power).
+* Finally implemented the sales monitor.
+* Fixed a bug in monitor migration if you had old monitor settings set to "0"
+* Fixed the profit quota monitor scan node being in the wrong spot again if using better monitors.
+* Fixed the ship loot monitor not updating properly when things were dropped in the ship.
+* The new style monitors now adhere to the CenterAlignMonitorText setting.
+* Renaming the asset bundle to something more specific to improve compatiblity and naming conflicts.
+* Fixed ShowBlueMonitorBackground not working if UseBetterMonitors was false.
+* Fixed the profit quota and deadline texts not updating if monitor tweaks were made while not using the new style monitors.
+* Changed the default FPS of the internal and external cams to be 0, or unrestricted, since that may actually improve performance in some cases.
+* Fixed medkit not working from v1.1.2.
+
 ### v1.1.2 - Tweaks
 * Updated the way the config sets monitor positions (don't worry, your old settings will be migrated and cleaned up). You now specify which displays go in which position - for example: "ShipMonitor1 = ProfitQuota" instead of "ProfitQuotaShipMonitorNum = 1". See UseBetterMonitors for a description of what the numbers mean.
 * Separated "Weather" and "FancyWeather" into two unique monitor display options.

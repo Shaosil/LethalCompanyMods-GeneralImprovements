@@ -49,8 +49,15 @@ namespace GeneralImprovements.Patches
                 __instance.mapScreen.mapCamera.transform.rotation = Quaternion.Euler(curAngles.x, 90, curAngles.z);
             }
 
-            // Create new monitors
-            MonitorsHelper.CreateExtraMonitors();
+            // Create new monitors only if any changes are specified
+            if (Plugin.UseBetterMonitors.Value || !Plugin.ShowBlueMonitorBackground.Value || Plugin.ShowBackgroundOnAllScreens.Value
+                || Plugin.MonitorBackgroundColor.Value != Plugin.MonitorBackgroundColor.DefaultValue.ToString() || Plugin.MonitorTextColor.Value != Plugin.MonitorTextColor.DefaultValue.ToString()
+                || Plugin.ShipInternalCamFPS.Value != (int)Plugin.ShipInternalCamFPS.DefaultValue || Plugin.ShipInternalCamSizeMultiplier.Value != (int)Plugin.ShipInternalCamSizeMultiplier.DefaultValue
+                || Plugin.ShipExternalCamFPS.Value != (int)Plugin.ShipExternalCamFPS.DefaultValue || Plugin.ShipExternalCamSizeMultiplier.Value != (int)Plugin.ShipExternalCamSizeMultiplier.DefaultValue
+                || Plugin.ShipMonitorAssignments.Any(m => m.Value != m.DefaultValue.ToString()))
+            {
+                MonitorsHelper.CreateExtraMonitors();
+            }
 
             // Add medical charging station
             ItemHelper.CreateMedStation();
@@ -61,6 +68,7 @@ namespace GeneralImprovements.Patches
             // Remove the intro sound effects if needed
             if (!Plugin.SpeakerPlaysIntroVoice.Value)
             {
+                Plugin.MLS.LogInfo("Nulling out intro audio SFX");
                 StartOfRound.Instance.shipIntroSpeechSFX = null;
             }
         }
@@ -162,6 +170,13 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        [HarmonyPatch(typeof(StartOfRound), nameof(ResetPooledObjects))]
+        [HarmonyPostfix]
+        private static void ResetPooledObjects(StartOfRound __instance)
+        {
+            MonitorsHelper.UpdateCreditsMonitors();
+        }
+
         [HarmonyPatch(typeof(StartOfRound), nameof(AllPlayersHaveRevivedClientRpc))]
         [HarmonyPostfix]
         private static void AllPlayersHaveRevivedClientRpc()
@@ -180,7 +195,8 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void Update()
         {
-            MonitorsHelper.AnimateWeatherMonitors();
+            MonitorsHelper.AnimateSpecialMonitors();
+            MonitorsHelper.UpdateDoorPowerMonitors();
         }
     }
 }

@@ -78,6 +78,7 @@ namespace GeneralImprovements.Assets
                 screenText.font = StartOfRound.Instance.profitQuotaMonitorText.font;
                 screenText.spriteAsset = StartOfRound.Instance.profitQuotaMonitorText.spriteAsset;
                 screenText.color = Plugin.MonitorTextColorVal;
+                screenText.alignment = Plugin.CenterAlignMonitorText.Value ? TextAlignmentOptions.Center : TextAlignmentOptions.TopLeft;
 
                 // Store the material associated with this object so we can snapshot it as needed, then call the invocation
                 if (_initialMaterialAssignments.ContainsKey(i))

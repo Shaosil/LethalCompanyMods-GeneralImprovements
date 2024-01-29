@@ -87,5 +87,12 @@ namespace GeneralImprovements.Patches
         {
             __result = __result && !(ShipBuildModeManager.Instance?.InBuildMode ?? false);
         }
+
+        [HarmonyPatch(typeof(HUDManager), nameof(ApplyPenalty))]
+        [HarmonyPostfix]
+        private static void ApplyPenalty()
+        {
+            MonitorsHelper.UpdateCreditsMonitors();
+        }
     }
 }

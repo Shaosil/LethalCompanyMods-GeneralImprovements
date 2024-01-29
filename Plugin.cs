@@ -113,14 +113,15 @@ namespace GeneralImprovements
             ShipMonitorAssignments = new ConfigEntry<string>[MonitorCount];
             for (int i = 0; i < ShipMonitorAssignments.Length; i++)
             {
-                ShipMonitorAssignments[i] = Config.Bind(ExtraMonitorsSection, $"ShipMonitor{i + 1}", string.Empty, new ConfigDescription($"What to display on the ship monitor at position {i + 1}, if anything.", new AcceptableValueList<string>(validMonitors)));
+                string defaultVal = i == 4 ? MonitorNames.ProfitQuota : i == 5 ? MonitorNames.Deadline : i == 11 ? MonitorNames.InternalCam : i == 14 ? MonitorNames.ExternalCam : string.Empty;
+                ShipMonitorAssignments[i] = Config.Bind(ExtraMonitorsSection, $"ShipMonitor{i + 1}", defaultVal, new ConfigDescription($"What to display on the ship monitor at position {i + 1}, if anything.", new AcceptableValueList<string>(validMonitors)));
             }
             SyncExtraMonitorsPower = Config.Bind(ExtraMonitorsSection, nameof(SyncExtraMonitorsPower), true, "If set to true, The smaller monitors above the map screen will turn off and on when the map screen power is toggled.");
             CenterAlignMonitorText = Config.Bind(ExtraMonitorsSection, nameof(CenterAlignMonitorText), true, "If set to true, all small monitors in the ship will have their text center aligned, instead of left.");
             ShipInternalCamSizeMultiplier = Config.Bind(ExtraMonitorsSection, nameof(ShipInternalCamSizeMultiplier), 1, new ConfigDescription($"How many times to double the internal ship cam's resolution.", new AcceptableValueRange<int>(1, 5)));
-            ShipInternalCamFPS = Config.Bind(ExtraMonitorsSection, nameof(ShipInternalCamFPS), 5, new ConfigDescription($"Limits the FPS of the internal ship cam for performance. 0 = Unrestricted.", new AcceptableValueRange<int>(0, 60)));
+            ShipInternalCamFPS = Config.Bind(ExtraMonitorsSection, nameof(ShipInternalCamFPS), 0, new ConfigDescription($"Limits the FPS of the internal ship cam for performance. 0 = Unrestricted.", new AcceptableValueRange<int>(0, 30)));
             ShipExternalCamSizeMultiplier = Config.Bind(ExtraMonitorsSection, nameof(ShipExternalCamSizeMultiplier), 1, new ConfigDescription($"How many times to double the external ship cam's resolution.", new AcceptableValueRange<int>(1, 5)));
-            ShipExternalCamFPS = Config.Bind(ExtraMonitorsSection, nameof(ShipExternalCamFPS), 5, new ConfigDescription($"Limits the FPS of the external ship cam for performance. 0 = Unrestricted.", new AcceptableValueRange<int>(0, 60)));
+            ShipExternalCamFPS = Config.Bind(ExtraMonitorsSection, nameof(ShipExternalCamFPS), 0, new ConfigDescription($"Limits the FPS of the external ship cam for performance. 0 = Unrestricted.", new AcceptableValueRange<int>(0, 30)));
 
             // Fixes
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
@@ -224,6 +225,9 @@ namespace GeneralImprovements
 
             Harmony.CreateAndPatchAll(typeof(GrabbableObjectsPatch));
             MLS.LogDebug("GrabbableObjects patched.");
+
+            Harmony.CreateAndPatchAll(typeof(HangarShipDoorPatch));
+            MLS.LogDebug("HangarShipDoor patched.");
 
             Harmony.CreateAndPatchAll(typeof(HUDManagerPatch));
             MLS.LogDebug("HUDManager patched.");
@@ -349,7 +353,7 @@ namespace GeneralImprovements
 
             Action<string> convertMonitor = s =>
             {
-                if (int.TryParse(entry.Value, out var num))
+                if (int.TryParse(entry.Value, out var num) && num >= 1 && num <= ShipMonitorAssignments.Length)
                 {
                     MLS.LogInfo($"Migrating {s} to monitor position {num}.");
                     ShipMonitorAssignments[num - 1].Value = s;
