@@ -30,6 +30,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 
 ### NEW FEATURES:
 * A total of 14 customizable, screen-integrated monitors for the ship (instead of the vanilla 8)! Choose which monitor to put what item, including ship cams and background color.
+* Available monitors to customize are things like weather, sales, time, credits, door power, ship cams, total days, total quotas, scrap remaining, etc. Work in progress, may be enabled individually in the config.
 * If specified in the config, the game will automatically select ONLINE or LAN upon launch.
 * Using the up/down arrow keys at the terminal will navigate through the previous (n) commands. (n) may range from 0-100 in the config.
 * Using the left/right arrow keys at the terminal while viewing the radar will quickly cycle through available targets.
@@ -37,7 +38,6 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * [Host Only] Adds an option to prevent tools from getting struck by lightning. This is a bit of a cheat in some opinions, so I recommend leaving it off. If the host/server player has this enabled, it will apply to all clients.
 * Adds an option to display text under the 'Deadline' monitor with the current ship loot total.
 * [Host Required] Adds an option to roll over surplus credits to the next quota. If clients do NOT have this enabled, there will be visual desyncs only.
-* Adds an option to add more little monitors above the profit quota and deadline monitors, with information like weather, sales, time, etc. Work in progress, may be enabled individually in the config.
 * Adds an option for adding a little medical station above the ship's charging station that heals you back to full health when used.
 
 ### MINOR BUGFIXES:

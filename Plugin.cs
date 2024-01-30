@@ -88,6 +88,7 @@ namespace GeneralImprovements
         private const string UISection = "UI";
         public static ConfigEntry<bool> ShowUIReticle { get; private set; }
         public static ConfigEntry<bool> HideEmptySubtextOfScanNodes { get; private set; }
+        public static ConfigEntry<bool> ShowHitPoints { get; private set; }
 
         private void Awake()
         {
@@ -169,6 +170,7 @@ namespace GeneralImprovements
             // UI
             HideEmptySubtextOfScanNodes = Config.Bind(UISection, nameof(HideEmptySubtextOfScanNodes), true, "If set to true, will hide the subtext section of scannables that do not have subtext or scrap value.");
             ShowUIReticle = Config.Bind(UISection, nameof(ShowUIReticle), false, "If set to true, the HUD will display a small dot so you can see exactly where you are pointing at all times.");
+            ShowHitPoints = Config.Bind(UISection, nameof(ShowHitPoints), true, "If set to true, the HUD will display your current remaining hitpoints.");
 
             // Sanitize where needed
             string backgroundHex = Regex.Match(MonitorBackgroundColor.Value, "([a-fA-F0-9]{6})").Groups[1].Value.ToUpper();
@@ -265,6 +267,7 @@ namespace GeneralImprovements
             // Load info about any external mods
             ReservedItemSlotCoreHelper.Initialize();
             AdvancedCompanyHelper.Initialize();
+            TwoRadarCamsHelper.Initialize();
             AssetBundleHelper.Initialize();
             GameNetworkManagerPatch.PatchNetcode();
 

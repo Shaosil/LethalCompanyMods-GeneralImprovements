@@ -1,5 +1,4 @@
-﻿using GeneralImprovements.Utilities;
-using HarmonyLib;
+﻿using HarmonyLib;
 
 namespace GeneralImprovements.Patches
 {
@@ -10,13 +9,6 @@ namespace GeneralImprovements.Patches
         private static void Start(DepositItemsDesk __instance)
         {
             __instance.GetComponentInChildren<InteractTrigger>().cooldownTime = 0.1f;
-        }
-
-        [HarmonyPatch(typeof(DepositItemsDesk), nameof(SellItemsClientRpc))]
-        [HarmonyPostfix]
-        private static void SellItemsClientRpc()
-        {
-            MonitorsHelper.UpdateCreditsMonitors();
         }
     }
 }

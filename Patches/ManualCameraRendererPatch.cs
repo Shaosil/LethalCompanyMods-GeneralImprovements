@@ -58,8 +58,13 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void MeetsCameraEnabledConditions(ManualCameraRenderer __instance, ref bool __result)
         {
+            if (StartOfRound.Instance == null || TerminalPatch.Instance == null || TerminalPatch.Instance.terminalUIScreen == null)
+            {
+                return;
+            }
+
             // View monitor will break in some cases, perhaps related to culling, if the internal ship security cam is manually rendering
-            if (!__result && __instance == StartOfRound.Instance.mapScreen && !TwoRadarCamsHelper.IsActive && TerminalPatch.Instance.terminalUIScreen.enabled)
+            if (!__result && __instance == StartOfRound.Instance.mapScreen && !TwoRadarCamsHelper.IsActive && TerminalPatch.Instance.terminalUIScreen.isActiveAndEnabled)
             {
                 __result = true;
             }

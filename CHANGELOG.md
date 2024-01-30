@@ -1,5 +1,15 @@
 # Changelog
 
+### v1.1.4 - Fixes and more monitor displays
+* Fixed credits and ship scrap not updating properly if old style monitors were used.
+* Fixed sales showing inverted percentages.
+* Updated the credits monitor to refresh a few times a second to guarantee it catches any credits changes, whether from vanilla or other mods.
+* Added the option to display current hitpoints remaining (defaults to on).
+* Added new "Total Days", "Quota Number", "Scrap Left", and "DaysSinceDeath" options to the monitor displays.
+	* Note that the scrap left monitor gives the same results as the scan command in the terminal, and is an *approximate* value.
+* Fixed several cases of white backgrounds with better monitors when they are first loaded.
+* Slight potential performance improvement when paired with [OpenBodyCams.](https://thunderstore.io/c/lethal-company/p/Zaggy1024/OpenBodyCams/v/1.0.24/)
+
 ### v1.1.3 - Bugfixing my code
 * I am now ensuring that any monitor tweaks are disabled if none of the monitor settings have been changed, to prevent any monitor bugs from affecting users who do not use them at all.
 * Added two new display monitor options (current credits & door power).

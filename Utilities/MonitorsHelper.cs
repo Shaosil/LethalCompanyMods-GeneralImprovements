@@ -21,12 +21,16 @@ namespace GeneralImprovements.Utilities
             public const string ProfitQuota = "ProfitQuota";
             public const string Deadline = "Deadline";
             public const string ShipScrap = "ShipScrap";
+            public const string ScrapLeft = "ScrapLeft";
             public const string Time = "Time";
             public const string Weather = "Weather";
             public const string FancyWeather = "FancyWeather";
             public const string Sales = "Sales";
             public const string Credits = "Credits";
             public const string DoorPower = "DoorPower";
+            public const string TotalDays = "TotalDays";
+            public const string TotalQuotas = "TotalQuotas";
+            public const string DaysSinceDeath = "DaysSinceDeath";
             public const string InternalCam = "InternalCam";
             public const string ExternalCam = "ExternalCam";
 
@@ -60,6 +64,8 @@ namespace GeneralImprovements.Utilities
         private static List<TextMeshProUGUI> _deadlineTexts = new List<TextMeshProUGUI>();
         private static List<Image> _shipScrapMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _shipScrapMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<Image> _scrapLeftMonitorBGs = new List<Image>();
+        private static List<TextMeshProUGUI> _scrapLeftMonitorTexts = new List<TextMeshProUGUI>();
         private static List<Image> _timeMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _timeMonitorTexts = new List<TextMeshProUGUI>();
         private static List<Image> _weatherMonitorBGs = new List<Image>();
@@ -72,13 +78,19 @@ namespace GeneralImprovements.Utilities
         private static List<TextMeshProUGUI> _creditsMonitorTexts = new List<TextMeshProUGUI>();
         private static List<Image> _doorPowerMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _doorPowerMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<Image> _totalDaysMonitorBGs = new List<Image>();
+        private static List<TextMeshProUGUI> _totalDaysMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<Image> _totalQuotasMonitorBGs = new List<Image>();
+        private static List<TextMeshProUGUI> _totalQuotasMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<Image> _daysSinceDeathMonitorBGs = new List<Image>();
+        private static List<TextMeshProUGUI> _daysSinceDeathMonitorTexts = new List<TextMeshProUGUI>();
         private static List<Image> _extraBackgrounds = new List<Image>();
 
         private static bool _usingAnyMonitorTweaks = false;
         private static int _lastUpdatedCredits = -1;
         private static float _lastUpdatedDoorPower = -1;
+        private static int _daysSinceLastDeath = -1;
         private static Monitors _newMonitors;
-
 
         // Weather animation
         private static int _curWeatherAnimIndex = 0;
@@ -98,6 +110,8 @@ namespace GeneralImprovements.Utilities
         private static float _salesAnimTimer = 0;
         private static float _salesAnimCycle = 1f; // In seconds
 
+        private static float _curCreditsUpdateCounter = 0;
+
         private static Transform _oldMonitorsObject;
         private static Transform _oldBigMonitors;
         private static Transform _UIContainer;
@@ -107,13 +121,21 @@ namespace GeneralImprovements.Utilities
         {
             _usingAnyMonitorTweaks = true;
 
+            // Load days since last death from the current save file
+            var anyDeaths = StartOfRound.Instance.gameStats.deaths > 0;
+            _daysSinceLastDeath = ES3.Load("Stats_DaysSinceLastDeath", GameNetworkManager.Instance.currentSaveFileName, anyDeaths ? 0 : -1);
+
             // Initialize things each time StartOfRound starts up
+            _lastUpdatedCredits = -1;
+            _lastUpdatedDoorPower = -1;
             _profitQuotaBGs = new List<Image>();
             _profitQuotaTexts = new List<TextMeshProUGUI>();
             _deadlineBGs = new List<Image>();
             _deadlineTexts = new List<TextMeshProUGUI>();
             _shipScrapMonitorBGs = new List<Image>();
             _shipScrapMonitorTexts = new List<TextMeshProUGUI>();
+            _scrapLeftMonitorBGs = new List<Image>();
+            _scrapLeftMonitorTexts = new List<TextMeshProUGUI>();
             _timeMonitorBGs = new List<Image>();
             _timeMonitorTexts = new List<TextMeshProUGUI>();
             _weatherMonitorBGs = new List<Image>();
@@ -126,6 +148,12 @@ namespace GeneralImprovements.Utilities
             _creditsMonitorTexts = new List<TextMeshProUGUI>();
             _doorPowerMonitorBGs = new List<Image>();
             _doorPowerMonitorTexts = new List<TextMeshProUGUI>();
+            _totalDaysMonitorBGs = new List<Image>();
+            _totalDaysMonitorTexts = new List<TextMeshProUGUI>();
+            _totalQuotasMonitorBGs = new List<Image>();
+            _totalQuotasMonitorTexts = new List<TextMeshProUGUI>();
+            _daysSinceDeathMonitorBGs = new List<Image>();
+            _daysSinceDeathMonitorTexts = new List<TextMeshProUGUI>();
             _extraBackgrounds = new List<Image>();
 
             // Resize the two extra monitor texts to be the same as their respective backgrounds, and give them padding
@@ -251,12 +279,16 @@ namespace GeneralImprovements.Utilities
                     case MonitorNames.ProfitQuota: curBGs = _profitQuotaBGs; curTexts = _profitQuotaTexts; break;
                     case MonitorNames.Deadline: curBGs = _deadlineBGs; curTexts = _deadlineTexts; break;
                     case MonitorNames.ShipScrap: curBGs = _shipScrapMonitorBGs; curTexts = _shipScrapMonitorTexts; break;
+                    case MonitorNames.ScrapLeft: curBGs = _scrapLeftMonitorBGs; curTexts = _scrapLeftMonitorTexts; break;
                     case MonitorNames.Time: curBGs = _timeMonitorBGs; curTexts = _timeMonitorTexts; break;
                     case MonitorNames.Weather: curBGs = _weatherMonitorBGs; curTexts = _weatherMonitorTexts; break;
                     case MonitorNames.FancyWeather: curBGs = _fancyWeatherMonitorBGs; curTexts = _fancyWeatherMonitorTexts; break;
                     case MonitorNames.Sales: curBGs = _salesMonitorBGs; curTexts = _salesMonitorTexts; break;
                     case MonitorNames.Credits: curBGs = _creditsMonitorBGs; curTexts = _creditsMonitorTexts; break;
                     case MonitorNames.DoorPower: curBGs = _doorPowerMonitorBGs; curTexts = _doorPowerMonitorTexts; break;
+                    case MonitorNames.TotalDays: curBGs = _totalDaysMonitorBGs; curTexts = _totalDaysMonitorTexts; break;
+                    case MonitorNames.TotalQuotas: curBGs = _totalQuotasMonitorBGs; curTexts = _totalQuotasMonitorTexts; break;
+                    case MonitorNames.DaysSinceDeath: curBGs = _daysSinceDeathMonitorBGs; curTexts = _daysSinceDeathMonitorTexts; break;
                 }
 
                 if ((curBGs == null || curTexts == null) && Plugin.ShowBlueMonitorBackground.Value && Plugin.ShowBackgroundOnAllScreens.Value)
@@ -310,12 +342,13 @@ namespace GeneralImprovements.Utilities
                 fancyWeather.transform.localEulerAngles += new Vector3(-2, 1, 0);
             }
 
-            // Initialize everything's text
+            // Initialize everything's text (some are initialized elsewhere)
             CopyProfitQuotaAndDeadlineTexts();
             UpdateShipScrapMonitors();
+            UpdateScrapLeftMonitors();
             UpdateTimeMonitors();
             UpdateWeatherMonitors();
-            UpdateSalesMonitors();
+            UpdateDoorPowerMonitors();
         }
 
         private static void CreateNewStyleMonitors()
@@ -350,6 +383,7 @@ namespace GeneralImprovements.Utilities
                         break;
                     case MonitorNames.Deadline: curAction = t => { _deadlineTexts.Add(t); CopyProfitQuotaAndDeadlineTexts(); }; break;
                     case MonitorNames.ShipScrap: curAction = t => { _shipScrapMonitorTexts.Add(t); UpdateShipScrapMonitors(); }; break;
+                    case MonitorNames.ScrapLeft: curAction = t => { _scrapLeftMonitorTexts.Add(t); UpdateScrapLeftMonitors(); }; break;
                     case MonitorNames.Time: curAction = t => { _timeMonitorTexts.Add(t); UpdateTimeMonitors(); }; break;
                     case MonitorNames.Weather: curAction = t => { _weatherMonitorTexts.Add(t); UpdateWeatherMonitors(); }; break;
                     case MonitorNames.FancyWeather:
@@ -362,8 +396,11 @@ namespace GeneralImprovements.Utilities
                     };
                         break;
                     case MonitorNames.Sales: curAction = t => { t.overflowMode = TextOverflowModes.Ellipsis; _salesMonitorTexts.Add(t); UpdateSalesMonitors(); }; break;
-                    case MonitorNames.Credits: curAction = t => { _creditsMonitorTexts.Add(t); UpdateCreditsMonitors(); }; break;
-                    case MonitorNames.DoorPower: curAction = t => { _doorPowerMonitorTexts.Add(t); UpdateDoorPowerMonitors(); }; break;
+                    case MonitorNames.Credits: curAction = t => { _creditsMonitorTexts.Add(t); UpdateCreditsMonitors(true); }; break;
+                    case MonitorNames.DoorPower: curAction = t => { _doorPowerMonitorTexts.Add(t); UpdateDoorPowerMonitors(true); }; break;
+                    case MonitorNames.TotalDays: curAction = t => { _totalDaysMonitorTexts.Add(t); UpdateTotalDaysMonitors(); }; break;
+                    case MonitorNames.TotalQuotas: curAction = t => { _totalQuotasMonitorTexts.Add(t); UpdateTotalQuotasMonitors(); }; break;
+                    case MonitorNames.DaysSinceDeath: curAction = t => { _daysSinceDeathMonitorTexts.Add(t); UpdateDaysSinceDeathMonitors(); }; break;
 
                     case MonitorNames.InternalCam: targetMat = _oldMonitorsObject.GetComponent<MeshRenderer>().materials[2]; break;
                     case MonitorNames.ExternalCam: targetMat = _oldBigMonitors.GetComponent<MeshRenderer>().materials[2]; break;
@@ -440,6 +477,23 @@ namespace GeneralImprovements.Utilities
 
             UpdateGenericTextList(_shipScrapMonitorTexts, $"SCRAP IN SHIP:\n${shipLoot}");
             Plugin.MLS.LogInfo($"Set ship scrap total to ${shipLoot} ({allScrap.Count} items).");
+        }
+
+        public static void UpdateScrapLeftMonitors()
+        {
+            if (_scrapLeftMonitorTexts.Any())
+            {
+                var outsideScrap = GrabbableObjectsPatch.GetOutsideScrap(true);
+                if (outsideScrap.Key > 0)
+                {
+                    UpdateGenericTextList(_scrapLeftMonitorTexts, $"SCRAP LEFT:\n{outsideScrap.Key} ITEMS\n${outsideScrap.Value}");
+                }
+                else
+                {
+                    UpdateGenericTextList(_scrapLeftMonitorTexts, "NO EXTERNAL SCRAP DETECTED");
+                }
+                Plugin.MLS.LogInfo("Updated remaining scrap display.");
+            }
         }
 
         public static void UpdateTimeMonitors()
@@ -581,13 +635,19 @@ namespace GeneralImprovements.Utilities
                 _curSalesAnimIndex = 0;
                 _curSalesAnimations = new List<string>();
 
+                // Update the alignment
+                foreach (var sale in _salesMonitorTexts)
+                {
+                    sale.alignment = numSales > 0 ? TextAlignmentOptions.Top : Plugin.CenterAlignMonitorText.Value ? TextAlignmentOptions.Center : TextAlignmentOptions.TopLeft;
+                }
+
                 if (numSales > 0)
                 {
                     for (int i = 0; i < instance.itemSalesPercentages.Length; i++)
                     {
                         if (instance.itemSalesPercentages[i] < 100)
                         {
-                            _curSalesAnimations.Add($"{instance.itemSalesPercentages[i]}% OFF {instance.buyableItemsList[i].itemName}s");
+                            _curSalesAnimations.Add($"{100 - instance.itemSalesPercentages[i]}% OFF {instance.buyableItemsList[i].itemName}s");
                         }
                     }
                 }
@@ -603,26 +663,72 @@ namespace GeneralImprovements.Utilities
             }
         }
 
-        public static void UpdateCreditsMonitors()
+        public static void UpdateCreditsMonitors(bool force = false)
         {
-            // Only update if there is a change
-            var groupCredits = TerminalPatch.Instance?.groupCredits ?? -1;
-            if (_creditsMonitorTexts.Any() && groupCredits != _lastUpdatedCredits)
+            // This is getting called every frame, so limit the check to a few times per second
+            _curCreditsUpdateCounter += Time.deltaTime;
+            if (_curCreditsUpdateCounter >= 0.25f)
             {
-                _lastUpdatedCredits = groupCredits;
-                UpdateGenericTextList(_creditsMonitorTexts, $"CREDITS:\n${_lastUpdatedCredits}");
-                Plugin.MLS.LogInfo("Updated credits display");
+                _curCreditsUpdateCounter = 0;
+
+                // Only update if there is a change
+                var groupCredits = TerminalPatch.Instance?.groupCredits ?? -1;
+                if (_creditsMonitorTexts.Any() && (force || groupCredits != _lastUpdatedCredits))
+                {
+                    _lastUpdatedCredits = groupCredits;
+                    UpdateGenericTextList(_creditsMonitorTexts, $"CREDITS:\n${_lastUpdatedCredits}");
+                    Plugin.MLS.LogInfo("Updated credits display.");
+                }
             }
         }
 
-        public static void UpdateDoorPowerMonitors()
+        public static void UpdateDoorPowerMonitors(bool force = false)
         {
             // Only update if there is a change
             float doorPower = HangarShipDoorPatch.Instance?.doorPower ?? 1;
-            if (_doorPowerMonitorTexts.Any() && _lastUpdatedDoorPower != doorPower)
+            if (_doorPowerMonitorTexts.Any() && (force || _lastUpdatedDoorPower != doorPower))
             {
                 _lastUpdatedDoorPower = doorPower;
                 UpdateGenericTextList(_doorPowerMonitorTexts, $"DOOR POWER:\n{Mathf.RoundToInt(_lastUpdatedDoorPower * 100)}%");
+            }
+        }
+
+        public static void UpdateTotalDaysMonitors()
+        {
+            if (_totalDaysMonitorTexts.Any() && StartOfRound.Instance.gameStats != null)
+            {
+                UpdateGenericTextList(_totalDaysMonitorTexts, $"DAY {StartOfRound.Instance.gameStats.daysSpent + 1}");
+                Plugin.MLS.LogInfo("Updated total days display.");
+            }
+        }
+
+        public static void UpdateTotalQuotasMonitors()
+        {
+            if (_totalQuotasMonitorTexts.Any() && TimeOfDay.Instance != null)
+            {
+                UpdateGenericTextList(_totalQuotasMonitorTexts, $"QUOTA {TimeOfDay.Instance.timesFulfilledQuota + 1}");
+                Plugin.MLS.LogInfo("Updated total quotas display.");
+            }
+        }
+
+        public static void UpdateDaysSinceDeathMonitors(bool? playersDied = null)
+        {
+            if (_daysSinceDeathMonitorTexts.Any() && StartOfRound.Instance != null)
+            {
+                if (playersDied.HasValue)
+                {
+                    _daysSinceLastDeath = playersDied.Value ? 0 : _daysSinceLastDeath + 1;
+                    ES3.Save("Stats_DaysSinceLastDeath", _daysSinceLastDeath, GameNetworkManager.Instance.currentSaveFileName);
+                }
+                if (_daysSinceLastDeath >= 0)
+                {
+                    UpdateGenericTextList(_daysSinceDeathMonitorTexts, $"{_daysSinceLastDeath} DAY{(_daysSinceLastDeath == 1 ? string.Empty : "S")} WITHOUT DEATHS");
+                }
+                else
+                {
+                    UpdateGenericTextList(_daysSinceDeathMonitorTexts, "ZERO DEATHS (YET)");
+                }
+                Plugin.MLS.LogInfo("Updated days since death display.");
             }
         }
 

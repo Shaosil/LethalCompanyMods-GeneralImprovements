@@ -15,6 +15,27 @@ namespace GeneralImprovements.Patches
         private static MethodInfo _attemptScanNodeMethod;
         private static MethodInfo AttemptScanNodeMethod => _attemptScanNodeMethod ?? (_attemptScanNodeMethod = typeof(HUDManager).GetMethod("AttemptScanNode", BindingFlags.NonPublic | BindingFlags.Instance));
 
+        private static TextMeshProUGUI _hpText;
+
+        [HarmonyPatch(typeof(HUDManager), nameof(Start))]
+        [HarmonyPostfix]
+        private static void Start(HUDManager __instance)
+        {
+            if (Plugin.ShowHitPoints.Value && __instance.weightCounterAnimator != null)
+            {
+                // Copy weight UI object, move it, and remove its animator
+                var hpUI = Object.Instantiate(__instance.weightCounterAnimator.gameObject, __instance.weightCounterAnimator.transform.parent);
+                hpUI.transform.localPosition += new Vector3(-260, 50, 0);
+                hpUI.name = "HPUI";
+                Object.Destroy(hpUI.GetComponent<Animator>());
+
+                // Store the text object and change the alignment
+                _hpText = hpUI.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
+                _hpText.alignment = TextAlignmentOptions.TopRight;
+                _hpText.name = "HP";
+            }
+        }
+
         [HarmonyPatch(typeof(HUDManager), nameof(AssignNewNodes))]
         [HarmonyPrefix]
         private static bool AssignNewNodes(HUDManager __instance, PlayerControllerB playerScript, ref int ___scannedScrapNum, List<ScanNodeProperties> ___nodesOnScreen)
@@ -88,11 +109,14 @@ namespace GeneralImprovements.Patches
             __result = __result && !(ShipBuildModeManager.Instance?.InBuildMode ?? false);
         }
 
-        [HarmonyPatch(typeof(HUDManager), nameof(ApplyPenalty))]
+        [HarmonyPatch(typeof(HUDManager), nameof(Update))]
         [HarmonyPostfix]
-        private static void ApplyPenalty()
+        private static void Update()
         {
-            MonitorsHelper.UpdateCreditsMonitors();
+            if (_hpText != null && StartOfRound.Instance?.localPlayerController != null)
+            {
+                _hpText.text = $"{StartOfRound.Instance.localPlayerController.health} HP";
+            }
         }
     }
 }

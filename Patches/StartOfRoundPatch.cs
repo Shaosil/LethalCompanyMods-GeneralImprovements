@@ -57,6 +57,10 @@ namespace GeneralImprovements.Patches
                 || Plugin.ShipMonitorAssignments.Any(m => m.Value != m.DefaultValue.ToString()))
             {
                 MonitorsHelper.CreateExtraMonitors();
+
+                MonitorsHelper.UpdateTotalDaysMonitors();
+                MonitorsHelper.UpdateTotalQuotasMonitors();
+                MonitorsHelper.UpdateDaysSinceDeathMonitors();
             }
 
             // Add medical charging station
@@ -168,13 +172,19 @@ namespace GeneralImprovements.Patches
             {
                 ItemHelper.MedStation.MaxLocalPlayerHealth = __instance.localPlayerController?.health ?? 100;
             }
+
+            MonitorsHelper.UpdateScrapLeftMonitors();
+            MonitorsHelper.UpdateTotalDaysMonitors();
+            MonitorsHelper.UpdateTotalQuotasMonitors();
+            MonitorsHelper.UpdateDaysSinceDeathMonitors(true);
         }
 
-        [HarmonyPatch(typeof(StartOfRound), nameof(ResetPooledObjects))]
-        [HarmonyPostfix]
-        private static void ResetPooledObjects(StartOfRound __instance)
+        [HarmonyPatch(typeof(StartOfRound), nameof(ReviveDeadPlayers))]
+        [HarmonyPrefix]
+        private static void ReviveDeadPlayers(StartOfRound __instance)
         {
-            MonitorsHelper.UpdateCreditsMonitors();
+            bool playersDied = __instance.allPlayerScripts.Any(p => p.isPlayerDead);
+            MonitorsHelper.UpdateDaysSinceDeathMonitors(playersDied);
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(AllPlayersHaveRevivedClientRpc))]
@@ -182,6 +192,9 @@ namespace GeneralImprovements.Patches
         private static void AllPlayersHaveRevivedClientRpc()
         {
             MonitorsHelper.UpdateShipScrapMonitors();
+            MonitorsHelper.UpdateScrapLeftMonitors();
+            MonitorsHelper.UpdateTotalDaysMonitors();
+            MonitorsHelper.UpdateTotalQuotasMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(LoadShipGrabbableItems))]
@@ -196,6 +209,7 @@ namespace GeneralImprovements.Patches
         private static void Update()
         {
             MonitorsHelper.AnimateSpecialMonitors();
+            MonitorsHelper.UpdateCreditsMonitors();
             MonitorsHelper.UpdateDoorPowerMonitors();
         }
     }

@@ -123,7 +123,20 @@ namespace GeneralImprovements.Patches
             if (__instance.isInShipRoom)
             {
                 MonitorsHelper.UpdateShipScrapMonitors();
+                MonitorsHelper.UpdateScrapLeftMonitors();
             }
+        }
+
+        public static KeyValuePair<int, int> GetOutsideScrap(bool approximate)
+        {
+            var fixedRandom = new System.Random(StartOfRound.Instance.randomMapSeed + 91); // Why 91? Shrug. It's the offset in vanilla code and I kept it.
+            var valuables = UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(o => !o.isInShipRoom && !o.isInElevator && o.itemProperties.minValue > 0).ToList();
+
+            float multiplier = RoundManager.Instance.scrapValueMultiplier;
+            int sum = approximate ? (int)Math.Round(valuables.Sum(i => fixedRandom.Next(i.itemProperties.minValue, i.itemProperties.maxValue) * multiplier))
+                : valuables.Sum(i => i.scrapValue);
+
+            return new KeyValuePair<int, int>(valuables.Count, sum);
         }
     }
 }

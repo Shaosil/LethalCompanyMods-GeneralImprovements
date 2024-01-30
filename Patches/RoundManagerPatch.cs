@@ -15,28 +15,28 @@ namespace GeneralImprovements.Patches
         private static void SyncScrapValuesClientRpc()
         {
             // Update and override the total scrap in level
-            var valuables = Object.FindObjectsOfType<GrabbableObject>().Where(o => !o.isInShipRoom && !o.isInElevator && o.itemProperties.minValue > 0).ToList();
-            RoundManager.Instance.totalScrapValueInLevel = valuables.Sum(i => i.scrapValue);
+            var outsideScrap = GrabbableObjectsPatch.GetOutsideScrap(false);
+            RoundManager.Instance.totalScrapValueInLevel = outsideScrap.Value;
         }
 
         [HarmonyPatch(typeof(RoundManager), nameof(FinishGeneratingNewLevelClientRpc))]
         [HarmonyPostfix]
         private static void FinishGeneratingNewLevelClientRpc(RoundManager __instance)
         {
-            if (_gotShipNode)
+            if (!_gotShipNode)
             {
-                return;
+                CurShipNode = Object.FindObjectsOfType<ScanNodeProperties>().FirstOrDefault(s => s.headerText == "Ship");
+                if (CurShipNode != null)
+                {
+                    // Disable the node for now (it will enable again once the ship is landed)
+                    Plugin.MLS.LogInfo("Disabling ship scan node until landed.");
+                    CurShipNode.gameObject.SetActive(false);
+
+                    _gotShipNode = true;
+                }
             }
 
-            CurShipNode = Object.FindObjectsOfType<ScanNodeProperties>().FirstOrDefault(s => s.headerText == "Ship");
-            if (CurShipNode != null)
-            {
-                // Disable the node for now (it will enable again once the ship is landed)
-                Plugin.MLS.LogInfo("Disabling ship scan node until landed.");
-                CurShipNode.gameObject.SetActive(false);
-
-                _gotShipNode = true;
-            }
+            MonitorsHelper.UpdateScrapLeftMonitors();
         }
 
         [HarmonyPatch(typeof(RoundManager), nameof(DespawnPropsAtEndOfRound))]

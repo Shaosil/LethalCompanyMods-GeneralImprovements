@@ -50,7 +50,7 @@ namespace GeneralImprovements.Patches
                 __instance.quotaFulfilled = _leftoverFunds;
             }
 
-            MonitorsHelper.UpdateCreditsMonitors();
+            MonitorsHelper.UpdateTotalQuotasMonitors();
         }
 
         [HarmonyPatch(typeof(TimeOfDay), nameof(UpdateProfitQuotaCurrentTime))]

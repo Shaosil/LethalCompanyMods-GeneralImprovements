@@ -16,14 +16,14 @@ namespace GeneralImprovements.Patches
         private static int _historyCount;
         private static int _curHistoryIndex = 0;
 
-        public static Terminal Instance;
+        private static Terminal _instance;
+        public static Terminal Instance => _instance ?? (_instance = UnityEngine.Object.FindObjectOfType<Terminal>());
 
         [HarmonyPatch(typeof(Terminal), nameof(Start))]
         [HarmonyPrefix]
         private static void Start(Terminal __instance)
         {
-            Instance = __instance;
-
+            _instance = __instance;
             _historyCount = Math.Clamp(Plugin.TerminalHistoryItemCount.Value, 0, 100);
 
             if (!StartOfRound.Instance.isChallengeFile)
@@ -40,6 +40,13 @@ namespace GeneralImprovements.Patches
                     switchNode.displayText = string.Empty;
                 }
             }
+        }
+
+        [HarmonyPatch(typeof(Terminal), nameof(Start))]
+        [HarmonyPostfix]
+        private static void Start()
+        {
+            MonitorsHelper.UpdateSalesMonitors();
         }
 
         [HarmonyPatch(typeof(Terminal), nameof(BeginUsingTerminal))]
@@ -93,13 +100,6 @@ namespace GeneralImprovements.Patches
             _curHistoryIndex = _commandHistory.Count;
         }
 
-        [HarmonyPatch(typeof(Terminal), nameof(LoadNewNodeIfAffordable))]
-        [HarmonyPostfix]
-        private static void LoadNewNodeIfAffordable(Terminal __instance)
-        {
-            MonitorsHelper.UpdateCreditsMonitors();
-        }
-
         [HarmonyPatch(typeof(Terminal), "TextPostProcess")]
         [HarmonyPrefix]
         private static void TextPostProcess_Pre(ref string modifiedDisplayText, TerminalNode node)
@@ -107,13 +107,8 @@ namespace GeneralImprovements.Patches
             // Improve the scanning
             if (modifiedDisplayText.Contains("[scanForItems]"))
             {
-                var fixedRandom = new System.Random(StartOfRound.Instance.randomMapSeed + 91); // Why 91? Shrug. It's the offset in vanilla code and I kept it.
-                var valuables = UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(o => !o.isInShipRoom && !o.isInElevator && o.itemProperties.minValue > 0).ToList();
-
-                float multiplier = RoundManager.Instance.scrapValueMultiplier;
-                int sum = (int)Math.Round(valuables.Sum(i => fixedRandom.Next(i.itemProperties.minValue, i.itemProperties.maxValue) * multiplier));
-
-                modifiedDisplayText = modifiedDisplayText.Replace("[scanForItems]", $"There are {valuables.Count} objects outside the ship, totalling at an approximate value of ${sum}.");
+                var scannedItems = GrabbableObjectsPatch.GetOutsideScrap(true);
+                modifiedDisplayText = modifiedDisplayText.Replace("[scanForItems]", $"There are {scannedItems.Key} objects outside the ship, totalling at an approximate value of ${scannedItems.Value}.");
             }
         }
 
@@ -202,8 +197,6 @@ namespace GeneralImprovements.Patches
                 {
                     _currentCredits = ES3.Load("GroupCredits", GameNetworkManager.Instance.currentSaveFileName, Plugin.StartingMoneyPerPlayerVal);
                 }
-
-                MonitorsHelper.UpdateCreditsMonitors();
             }
         }
 
@@ -228,8 +221,6 @@ namespace GeneralImprovements.Patches
                 {
                     Instance.SyncGroupCreditsServerRpc(Instance.groupCredits, Instance.numberOfItemsInDropship);
                 }
-
-                MonitorsHelper.UpdateCreditsMonitors();
             }
         }
     }
