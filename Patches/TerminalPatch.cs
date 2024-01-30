@@ -1,4 +1,5 @@
 ﻿using GameNetcodeStuff;
+using GeneralImprovements.OtherMods;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System;
@@ -21,6 +22,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(Terminal), nameof(Start))]
         [HarmonyPrefix]
+        [HarmonyAfter(TwoRadarCamsHelper.GUID)]
         private static void Start(Terminal __instance)
         {
             _instance = __instance;
@@ -40,6 +42,8 @@ namespace GeneralImprovements.Patches
                     switchNode.displayText = string.Empty;
                 }
             }
+
+            TwoRadarCamsHelper.TerminalStarted(__instance);
         }
 
         [HarmonyPatch(typeof(Terminal), nameof(Start))]
@@ -153,7 +157,8 @@ namespace GeneralImprovements.Patches
                 else if (Plugin.TerminalFastCamSwitch.Value && (leftPressed || rightPressed))
                 {
                     // Cycle through cameras
-                    int originalIndex = StartOfRound.Instance.mapScreen.targetTransformIndex;
+                    ManualCameraRenderer mapRenderer = TwoRadarCamsHelper.MapRenderer ?? StartOfRound.Instance.mapScreen;
+                    int originalIndex = mapRenderer.targetTransformIndex;
                     int nextIndex = originalIndex;
                     bool isInactivePlayer;
                     do
@@ -161,17 +166,17 @@ namespace GeneralImprovements.Patches
                         // Find the next target, if there is one
                         nextIndex += (leftPressed ? -1 : 1);
 
-                        if (nextIndex < 0) nextIndex = StartOfRound.Instance.mapScreen.radarTargets.Count - 1;
-                        else if (nextIndex >= StartOfRound.Instance.mapScreen.radarTargets.Count) nextIndex = 0;
+                        if (nextIndex < 0) nextIndex = mapRenderer.radarTargets.Count - 1;
+                        else if (nextIndex >= mapRenderer.radarTargets.Count) nextIndex = 0;
 
-                        var player = StartOfRound.Instance.mapScreen.radarTargets[nextIndex].transform.gameObject.GetComponent<PlayerControllerB>();
+                        var player = mapRenderer.radarTargets[nextIndex].transform.gameObject.GetComponent<PlayerControllerB>();
                         isInactivePlayer = player != null && (!player.isPlayerControlled && !player.isPlayerDead && player.redirectToEnemy == null);
 
                     } while (isInactivePlayer && nextIndex != originalIndex);
 
                     if (nextIndex != originalIndex)
                     {
-                        StartOfRound.Instance.mapScreen.SwitchRadarTargetAndSync(nextIndex);
+                        mapRenderer.SwitchRadarTargetAndSync(nextIndex);
                         __instance.LoadNewNode(__instance.terminalNodes.specialNodes[20]);
                     }
                 }
