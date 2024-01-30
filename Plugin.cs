@@ -19,6 +19,7 @@ using static GeneralImprovements.Utilities.MonitorsHelper;
 namespace GeneralImprovements
 {
     [BepInPlugin(Metadata.GUID, Metadata.PLUGIN_NAME, Metadata.VERSION)]
+    [BepInDependency(TwoRadarCamsHelper.GUID, BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
         public static ManualLogSource MLS { get; private set; }
