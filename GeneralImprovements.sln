@@ -5,6 +5,8 @@ VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneralImprovements", "GeneralImprovements.csproj", "{DC3B0020-5BF8-4CE5-A743-090BAC16953B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WikiBuilder", "WikiBuilder\WikiBuilder.csproj", "{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,6 +20,12 @@ Global
 		{DC3B0020-5BF8-4CE5-A743-090BAC16953B}.Deploy|Any CPU.Build.0 = Deploy|Any CPU
 		{DC3B0020-5BF8-4CE5-A743-090BAC16953B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DC3B0020-5BF8-4CE5-A743-090BAC16953B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Deploy|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Deploy|Any CPU.Build.0 = Debug|Any CPU
+		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

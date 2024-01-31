@@ -181,7 +181,7 @@ namespace GeneralImprovements.Utilities
             }
 
             // Find our monitor objects
-            _UIContainer = StartOfRound.Instance.profitQuotaMonitorBGImage.transform.parent;
+            _UIContainer = _originalProfitQuotaBG.transform.parent;
             _oldMonitorsObject = _UIContainer.parent.parent;
             _oldBigMonitors = _oldMonitorsObject.parent.GetComponentInChildren<ManualCameraRenderer>().transform.parent;
 
@@ -768,17 +768,13 @@ namespace GeneralImprovements.Utilities
 
                     if (Plugin.ShowBlueMonitorBackground.Value)
                     {
-                        foreach (var background in _profitQuotaBGs.Concat(_deadlineBGs).Concat(_shipScrapMonitorBGs).Concat(_timeMonitorBGs)
-                            .Concat(_weatherMonitorBGs).Concat(_fancyWeatherMonitorBGs).Concat(_salesMonitorBGs).Concat(_extraBackgrounds)
-                            .Where(b => b != null))
+                        foreach (var background in _UIContainer.GetComponentsInChildren<Image>())
                         {
                             background.gameObject.SetActive(on);
                         }
                     }
 
-                    foreach (var text in _profitQuotaTexts.Concat(_deadlineTexts).Concat(_shipScrapMonitorTexts).Concat(_timeMonitorTexts)
-                        .Concat(_weatherMonitorTexts).Concat(_fancyWeatherMonitorTexts).Concat(_salesMonitorTexts)
-                        .Where(b => b != null))
+                    foreach (var text in _UIContainer.GetComponentsInChildren<TextMeshProUGUI>())
                     {
                         text.gameObject.SetActive(on);
                     }

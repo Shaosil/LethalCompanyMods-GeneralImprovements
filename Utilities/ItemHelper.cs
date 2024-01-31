@@ -12,6 +12,20 @@ namespace GeneralImprovements.Utilities
 
         public static MedStationItem MedStation = null;
 
+        public static void CreateScanNodeOnObject(GameObject obj, int nodeType, int minRange, int maxRange, string headerText)
+        {
+            var scanNodeObj = new GameObject("ScanNode", typeof(ScanNodeProperties), typeof(BoxCollider));
+            scanNodeObj.layer = LayerMask.NameToLayer("ScanNode");
+            scanNodeObj.transform.parent = obj.transform;
+            scanNodeObj.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+
+            var newScanNode = scanNodeObj.GetComponent<ScanNodeProperties>();
+            newScanNode.nodeType = nodeType;
+            newScanNode.minRange = minRange;
+            newScanNode.maxRange = maxRange;
+            newScanNode.headerText = headerText;
+        }
+
         public static void CreateMedStation()
         {
             if (Plugin.AddHealthRechargeStation.Value && AssetBundleHelper.MedStationPrefab != null)

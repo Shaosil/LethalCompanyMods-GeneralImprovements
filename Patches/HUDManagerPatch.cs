@@ -15,12 +15,19 @@ namespace GeneralImprovements.Patches
         private static MethodInfo _attemptScanNodeMethod;
         private static MethodInfo AttemptScanNodeMethod => _attemptScanNodeMethod ?? (_attemptScanNodeMethod = typeof(HUDManager).GetMethod("AttemptScanNode", BindingFlags.NonPublic | BindingFlags.Instance));
 
+        private static StormyWeather _stormyWeather;
+        private static StormyWeather StormyWeather => _stormyWeather ?? (_stormyWeather = Object.FindObjectOfType<StormyWeather>());
         private static TextMeshProUGUI _hpText;
+        public static GrabbableObject CurrentLightningTarget;
+        private static List<SpriteRenderer> _lightningOverlays;
 
         [HarmonyPatch(typeof(HUDManager), nameof(Start))]
         [HarmonyPostfix]
+        [HarmonyPriority(Priority.Low)]
         private static void Start(HUDManager __instance)
         {
+            _stormyWeather = null;
+
             if (Plugin.ShowHitPoints.Value && __instance.weightCounterAnimator != null)
             {
                 // Copy weight UI object, move it, and remove its animator
@@ -33,6 +40,22 @@ namespace GeneralImprovements.Patches
                 _hpText = hpUI.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
                 _hpText.alignment = TextAlignmentOptions.TopRight;
                 _hpText.name = "HP";
+            }
+
+            // Create lightning overlays on each inventory slot
+            if (Plugin.ShowLightningWarnings.Value)
+            {
+                _lightningOverlays = new List<SpriteRenderer>();
+                for (int i = 0; i < __instance.itemSlotIconFrames.Length; i++)
+                {
+                    var overlay = Object.Instantiate(AssetBundleHelper.LightningOverlay, __instance.itemSlotIconFrames[i].transform);
+                    overlay.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                    overlay.transform.localScale = Vector3.one;
+
+                    var sprite = overlay.GetComponent<SpriteRenderer>();
+                    sprite.enabled = false;
+                    _lightningOverlays.Add(sprite);
+                }
             }
         }
 
@@ -111,11 +134,27 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(HUDManager), nameof(Update))]
         [HarmonyPostfix]
-        private static void Update()
+        private static void Update(HUDManager __instance)
         {
             if (_hpText != null && StartOfRound.Instance?.localPlayerController != null)
             {
                 _hpText.text = $"{StartOfRound.Instance.localPlayerController.health} HP";
+            }
+
+            if ((StormyWeather?.isActiveAndEnabled ?? false) && Plugin.ShowLightningWarnings.Value)
+            {
+                // Toggle lightning overlays on item slots when needed
+                if (_lightningOverlays.Any() && HUDManager.Instance != null && StartOfRound.Instance.localPlayerController != null)
+                {
+                    for (int i = 0; i < Mathf.Min(HUDManager.Instance.itemSlotIconFrames.Length, _lightningOverlays.Count, StartOfRound.Instance.localPlayerController.ItemSlots.Length); i++)
+                    {
+                        bool shouldBeEnabled = CurrentLightningTarget != null && StartOfRound.Instance.localPlayerController.ItemSlots[i] == CurrentLightningTarget;
+                        if (_lightningOverlays[i].enabled != shouldBeEnabled)
+                        {
+                            _lightningOverlays[i].enabled = shouldBeEnabled;
+                        }
+                    }
+                }
             }
         }
     }

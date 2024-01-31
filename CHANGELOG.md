@@ -1,5 +1,15 @@
 # Changelog
 
+### v1.1.5 - Fixes and improvements
+* Fixed compatibility issues with [TwoRadarMaps](https://thunderstore.io/c/lethal-company/p/Zaggy1024/TwoRadarMaps/) (thanks Zaggy).
+* Fixed the problem of always forgetting to add new display types to the power toggle when UseBetterMonitors = False.
+* Added a hash specifier to the asset bundle load, which circumvents a bug that prevents my asset bundle from loading when certain other mods are loaded.
+* Added an option for showing a fancy lightning overlay on item slots that are being targeted by lightning strikes (defaults to true).
+* Added an option to always show the news popup that always displays on the main menu every time (defaults to false - vanilla is true).
+* Added an option to add a scan node to the light switch (defaults to true).
+* Added an option to auto charge all batteries when the ship orbits (defaults to false).
+	* Without making this much more complicated or host only, the best I can do with vanilla code is to only charge the items that you (the mod user) own - or in other words, you were the last one to hold it.
+
 ### v1.1.4 - Fixes and more monitor displays
 * Fixed credits and ship scrap not updating properly if old style monitors were used.
 * Fixed sales showing inverted percentages.

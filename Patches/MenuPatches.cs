@@ -4,6 +4,16 @@ namespace GeneralImprovements.Patches
 {
     internal static class MenuPatches
     {
+        [HarmonyPatch(typeof(MenuManager), "Start")]
+        [HarmonyPrefix]
+        private static void MenuManager_Start()
+        {
+            if (!Plugin.AlwaysShowNews.Value && GameNetworkManager.Instance != null)
+            {
+                GameNetworkManager.Instance.AlwaysDisplayNews = false;
+            }
+        }
+
         [HarmonyPatch(typeof(InitializeGame), "Start")]
         [HarmonyPrefix]
         private static void Start_Initialize(InitializeGame __instance)

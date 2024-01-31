@@ -75,6 +75,12 @@ namespace GeneralImprovements.Patches
                 Plugin.MLS.LogInfo("Nulling out intro audio SFX");
                 StartOfRound.Instance.shipIntroSpeechSFX = null;
             }
+
+            // Create the light switch scan node
+            if (Plugin.LightSwitchScanNode.Value && Object.FindObjectsOfType<InteractTrigger>().FirstOrDefault(t => t.gameObject.name == "LightSwitch") is InteractTrigger light)
+            {
+                ItemHelper.CreateScanNodeOnObject(light.gameObject, 0, 0, 10, "Light Switch");
+            }
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(OnShipLandedMiscEvents))]
@@ -96,13 +102,33 @@ namespace GeneralImprovements.Patches
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(ShipHasLeft))]
-        [HarmonyPrefix]
+        [HarmonyPostfix]
         private static void ShipHasLeft()
         {
             // Manually destroy the node here since it won't be after attaching it to the ship
             if (RoundManagerPatch.CurShipNode != null)
             {
                 Object.Destroy(RoundManagerPatch.CurShipNode.gameObject);
+            }
+
+            // Auto charge owned batteries
+            if (StartOfRound.Instance.IsServer && Plugin.AutoChargeOnOrbit.Value)
+            {
+                var itemsToCharge = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.IsOwner && (o.itemProperties?.requiresBattery ?? false) && o.insertedBattery.charge < 1).ToList();
+                foreach (var batteryItem in itemsToCharge)
+                {
+                    batteryItem.insertedBattery = new Battery(false, 1);
+                    batteryItem.SyncBatteryServerRpc(100);
+                }
+                if (itemsToCharge.Any() && StartOfRound.Instance.localPlayerController != null)
+                {
+                    Plugin.MLS.LogInfo($"Auto charged {itemsToCharge.Count} item{(itemsToCharge.Count == 1 ? string.Empty : "s")}.");
+                    var zapAudio = Object.FindObjectOfType<ItemCharger>()?.zapAudio?.clip;
+                    if (zapAudio != null)
+                    {
+                        StartOfRound.Instance.localPlayerController.itemAudio.PlayOneShot(zapAudio);
+                    }
+                }
             }
         }
 

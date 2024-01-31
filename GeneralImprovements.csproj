@@ -9,6 +9,12 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <Compile Remove="WikiBuilder\**" />
+      <EmbeddedResource Remove="WikiBuilder\**" />
+      <None Remove="WikiBuilder\**" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="BepInEx.Core" Version="5.4.21" />
     </ItemGroup>
 

@@ -90,15 +90,7 @@ namespace GeneralImprovements.Patches
             // Add scan nodes to tools if requested
             if (Plugin.ScannableToolVals.Any(t => __instance.GetType() == t) && __instance.GetComponentInChildren<ScanNodeProperties>() == null)
             {
-                var scanNodeObj = new GameObject("ScanNode", typeof(ScanNodeProperties), typeof(BoxCollider));
-                scanNodeObj.layer = LayerMask.NameToLayer("ScanNode");
-                scanNodeObj.transform.parent = __instance.transform;
-                scanNodeObj.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-                var newScanNode = scanNodeObj.GetComponent<ScanNodeProperties>();
-                newScanNode.nodeType = 0;
-                newScanNode.minRange = 1;
-                newScanNode.maxRange = 13;
-                newScanNode.headerText = __instance.itemProperties.itemName;
+                ItemHelper.CreateScanNodeOnObject(__instance.gameObject, 0, 1, 13, __instance.itemProperties.itemName);
             }
         }
 
