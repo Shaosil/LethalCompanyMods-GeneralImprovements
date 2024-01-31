@@ -33,6 +33,11 @@ namespace GeneralImprovements.Patches
         [HarmonyPrefix]
         private static bool SwitchScreenOn(bool on, ManualCameraRenderer __instance, ref bool ___isScreenOn)
         {
+            if (__instance != StartOfRound.Instance.mapScreen)
+            {
+                return true;
+            }
+
             if (Plugin.SyncExtraMonitorsPower.Value)
             {
                 MonitorsHelper.ToggleExtraMonitorsPower(on);
