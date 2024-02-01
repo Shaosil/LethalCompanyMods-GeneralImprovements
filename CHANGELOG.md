@@ -1,5 +1,8 @@
 # Changelog
 
+### v1.1.6 -  Hotfix
+* Adding more null checks to a couple areas in code that were causing problems (and breaking things since further code would not get executed).
+
 ### v1.1.5 - Fixes and improvements
 * Fixed compatibility issues with [TwoRadarMaps](https://thunderstore.io/c/lethal-company/p/Zaggy1024/TwoRadarMaps/) (thanks Zaggy).
 * Fixed the problem of always forgetting to add new display types to the power toggle when UseBetterMonitors = False.

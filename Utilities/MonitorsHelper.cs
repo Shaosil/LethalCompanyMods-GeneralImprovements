@@ -765,18 +765,20 @@ namespace GeneralImprovements.Utilities
                         StartOfRound.Instance.deadlineMonitorBGImage.enabled = on;
                         StartOfRound.Instance.deadlineMonitorText.enabled = on;
                     }
-
-                    if (Plugin.ShowBlueMonitorBackground.Value)
+                    else if (_UIContainer != null)
                     {
-                        foreach (var background in _UIContainer.GetComponentsInChildren<Image>())
+                        if (Plugin.ShowBlueMonitorBackground.Value)
                         {
-                            background.gameObject.SetActive(on);
+                            foreach (var background in _UIContainer.GetComponentsInChildren<Image>())
+                            {
+                                background.gameObject.SetActive(on);
+                            }
                         }
-                    }
 
-                    foreach (var text in _UIContainer.GetComponentsInChildren<TextMeshProUGUI>())
-                    {
-                        text.gameObject.SetActive(on);
+                        foreach (var text in _UIContainer.GetComponentsInChildren<TextMeshProUGUI>())
+                        {
+                            text.gameObject.SetActive(on);
+                        }
                     }
                 }
             }

@@ -84,7 +84,7 @@ namespace GeneralImprovements.Patches
 
             // Make sure this is a two handed object and we aren't currently processing it
             var grabbableObject = networkObject.gameObject.GetComponentInChildren<GrabbableObject>();
-            if (!grabbableObject.itemProperties.twoHanded)
+            if (!grabbableObject?.itemProperties.twoHanded ?? false)
             {
                 return;
             }
@@ -99,7 +99,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void GrabObjectClientRpc(PlayerControllerB __instance, NetworkObjectReference grabbedObject)
         {
-            if (__instance.currentlyHeldObjectServer.isInShipRoom)
+            if (__instance.currentlyHeldObjectServer?.isInShipRoom ?? false)
             {
                 MonitorsHelper.UpdateShipScrapMonitors();
             }
