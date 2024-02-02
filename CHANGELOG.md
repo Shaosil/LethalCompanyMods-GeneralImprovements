@@ -1,5 +1,11 @@
 # Changelog
 
+### v1.1.7 - More fixes
+* Fixed sale items adding an extra 's' on the sales monitor if it already ended with s.
+* Fixed monitors not coming back on after the being shut off if UseBetterMonitors = false.
+* Doubled the distance required to scan the light switch.
+* Optimizing the monitors code a bit more to try preventing more startup errors in rare cases.
+
 ### v1.1.6 -  Hotfix
 * Adding more null checks to a couple areas in code that were causing problems (and breaking things since further code would not get executed).
 

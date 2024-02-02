@@ -119,7 +119,23 @@ namespace GeneralImprovements.Utilities
 
         public static void CreateExtraMonitors()
         {
+            // Initialize a few necessary variables
             _usingAnyMonitorTweaks = true;
+            _originalProfitQuotaBG = StartOfRound.Instance.profitQuotaMonitorBGImage;
+            _originalProfitQuotaText = StartOfRound.Instance.profitQuotaMonitorText;
+            _originalDeadlineBG = StartOfRound.Instance.deadlineMonitorBGImage;
+            _originalDeadlineText = StartOfRound.Instance.deadlineMonitorText;
+            _UIContainer = _originalProfitQuotaBG?.transform.parent;
+
+            // Do nothing else if none of these are true - that means the user basically hasn't changed any of the default monitor config options
+            if (!(Plugin.UseBetterMonitors.Value || !Plugin.ShowBlueMonitorBackground.Value || Plugin.ShowBackgroundOnAllScreens.Value
+                || Plugin.MonitorBackgroundColor.Value != Plugin.MonitorBackgroundColor.DefaultValue.ToString() || Plugin.MonitorTextColor.Value != Plugin.MonitorTextColor.DefaultValue.ToString()
+                || Plugin.ShipInternalCamFPS.Value != (int)Plugin.ShipInternalCamFPS.DefaultValue || Plugin.ShipInternalCamSizeMultiplier.Value != (int)Plugin.ShipInternalCamSizeMultiplier.DefaultValue
+                || Plugin.ShipExternalCamFPS.Value != (int)Plugin.ShipExternalCamFPS.DefaultValue || Plugin.ShipExternalCamSizeMultiplier.Value != (int)Plugin.ShipExternalCamSizeMultiplier.DefaultValue
+                || Plugin.ShipMonitorAssignments.Any(m => m.Value != m.DefaultValue.ToString())))
+            {
+                return;
+            }
 
             // Load days since last death from the current save file
             var anyDeaths = StartOfRound.Instance.gameStats.deaths > 0;
@@ -157,13 +173,9 @@ namespace GeneralImprovements.Utilities
             _extraBackgrounds = new List<Image>();
 
             // Resize the two extra monitor texts to be the same as their respective backgrounds, and give them padding
-            _originalProfitQuotaBG = StartOfRound.Instance.profitQuotaMonitorBGImage;
             _originalProfitQuotaBG.color = Plugin.MonitorBackgroundColorVal;
-            _originalProfitQuotaText = StartOfRound.Instance.profitQuotaMonitorText;
             _originalProfitQuotaText.color = Plugin.MonitorTextColorVal;
-            _originalDeadlineBG = StartOfRound.Instance.deadlineMonitorBGImage;
             _originalDeadlineBG.color = Plugin.MonitorBackgroundColorVal;
-            _originalDeadlineText = StartOfRound.Instance.deadlineMonitorText;
             _originalDeadlineText.color = Plugin.MonitorTextColorVal;
             _originalProfitQuotaText.rectTransform.sizeDelta = _originalProfitQuotaBG.rectTransform.sizeDelta;
             _originalProfitQuotaText.transform.position = _originalProfitQuotaBG.transform.TransformPoint(Vector3.back);
@@ -181,7 +193,6 @@ namespace GeneralImprovements.Utilities
             }
 
             // Find our monitor objects
-            _UIContainer = _originalProfitQuotaBG.transform.parent;
             _oldMonitorsObject = _UIContainer.parent.parent;
             _oldBigMonitors = _oldMonitorsObject.parent.GetComponentInChildren<ManualCameraRenderer>().transform.parent;
 
@@ -645,9 +656,11 @@ namespace GeneralImprovements.Utilities
                 {
                     for (int i = 0; i < instance.itemSalesPercentages.Length; i++)
                     {
-                        if (instance.itemSalesPercentages[i] < 100)
+                        if (instance.itemSalesPercentages[i] < 100 && instance.buyableItemsList.Length > i)
                         {
-                            _curSalesAnimations.Add($"{100 - instance.itemSalesPercentages[i]}% OFF {instance.buyableItemsList[i].itemName}s");
+                            string item = instance.buyableItemsList[i]?.itemName ?? "???";
+                            item = item.ToUpper().EndsWith('S') ? item : $"{item}s"; // Pluralize when it doesn't end with S
+                            _curSalesAnimations.Add($"{100 - instance.itemSalesPercentages[i]}% OFF {item}");
                         }
                     }
                 }
@@ -755,30 +768,27 @@ namespace GeneralImprovements.Utilities
                         _newMonitors.TogglePower(on);
                     }
                 }
-                else
+                else if (!_usingAnyMonitorTweaks)
                 {
                     // Handle vanilla settings if needed
-                    if (!_usingAnyMonitorTweaks)
+                    if (_originalProfitQuotaBG != null) _originalProfitQuotaBG.enabled = on;
+                    if (_originalProfitQuotaText != null) _originalProfitQuotaText.enabled = on;
+                    if (_originalDeadlineBG != null) _originalDeadlineBG.enabled = on;
+                    if (_originalDeadlineText != null) _originalDeadlineText.enabled = on;
+                }
+                else if (_UIContainer != null)
+                {
+                    if (Plugin.ShowBlueMonitorBackground.Value)
                     {
-                        StartOfRound.Instance.profitQuotaMonitorBGImage.enabled = on;
-                        StartOfRound.Instance.profitQuotaMonitorText.enabled = on;
-                        StartOfRound.Instance.deadlineMonitorBGImage.enabled = on;
-                        StartOfRound.Instance.deadlineMonitorText.enabled = on;
+                        foreach (var background in _UIContainer.GetComponentsInChildren<Image>(on))
+                        {
+                            background.gameObject.SetActive(on);
+                        }
                     }
-                    else if (_UIContainer != null)
-                    {
-                        if (Plugin.ShowBlueMonitorBackground.Value)
-                        {
-                            foreach (var background in _UIContainer.GetComponentsInChildren<Image>())
-                            {
-                                background.gameObject.SetActive(on);
-                            }
-                        }
 
-                        foreach (var text in _UIContainer.GetComponentsInChildren<TextMeshProUGUI>())
-                        {
-                            text.gameObject.SetActive(on);
-                        }
+                    foreach (var text in _UIContainer.GetComponentsInChildren<TextMeshProUGUI>(on))
+                    {
+                        text.gameObject.SetActive(on);
                     }
                 }
             }

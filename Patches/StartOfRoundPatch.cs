@@ -49,19 +49,11 @@ namespace GeneralImprovements.Patches
                 __instance.mapScreen.mapCamera.transform.rotation = Quaternion.Euler(curAngles.x, 90, curAngles.z);
             }
 
-            // Create new monitors only if any changes are specified
-            if (Plugin.UseBetterMonitors.Value || !Plugin.ShowBlueMonitorBackground.Value || Plugin.ShowBackgroundOnAllScreens.Value
-                || Plugin.MonitorBackgroundColor.Value != Plugin.MonitorBackgroundColor.DefaultValue.ToString() || Plugin.MonitorTextColor.Value != Plugin.MonitorTextColor.DefaultValue.ToString()
-                || Plugin.ShipInternalCamFPS.Value != (int)Plugin.ShipInternalCamFPS.DefaultValue || Plugin.ShipInternalCamSizeMultiplier.Value != (int)Plugin.ShipInternalCamSizeMultiplier.DefaultValue
-                || Plugin.ShipExternalCamFPS.Value != (int)Plugin.ShipExternalCamFPS.DefaultValue || Plugin.ShipExternalCamSizeMultiplier.Value != (int)Plugin.ShipExternalCamSizeMultiplier.DefaultValue
-                || Plugin.ShipMonitorAssignments.Any(m => m.Value != m.DefaultValue.ToString()))
-            {
-                MonitorsHelper.CreateExtraMonitors();
-
-                MonitorsHelper.UpdateTotalDaysMonitors();
-                MonitorsHelper.UpdateTotalQuotasMonitors();
-                MonitorsHelper.UpdateDaysSinceDeathMonitors();
-            }
+            // Create monitors if necessary and update the texts needed
+            MonitorsHelper.CreateExtraMonitors();
+            MonitorsHelper.UpdateTotalDaysMonitors();
+            MonitorsHelper.UpdateTotalQuotasMonitors();
+            MonitorsHelper.UpdateDaysSinceDeathMonitors();
 
             // Add medical charging station
             ItemHelper.CreateMedStation();
@@ -79,7 +71,7 @@ namespace GeneralImprovements.Patches
             // Create the light switch scan node
             if (Plugin.LightSwitchScanNode.Value && Object.FindObjectsOfType<InteractTrigger>().FirstOrDefault(t => t.gameObject.name == "LightSwitch") is InteractTrigger light)
             {
-                ItemHelper.CreateScanNodeOnObject(light.gameObject, 0, 0, 10, "Light Switch");
+                ItemHelper.CreateScanNodeOnObject(light.gameObject, 0, 0, 20, "Light Switch");
             }
         }
 
