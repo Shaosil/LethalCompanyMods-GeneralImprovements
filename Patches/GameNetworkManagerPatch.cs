@@ -38,6 +38,10 @@ namespace GeneralImprovements.Patches
             }
 
             ItemHelper.AlterFancyLampPrefab();
+
+            // Attach our own network helper to this gameobject
+            __instance.gameObject.AddComponent<NetworkHelper>();
+            __instance.gameObject.AddComponent<NetworkObject>();
         }
 
         [HarmonyPatch(typeof(GameNetworkManager), nameof(Disconnect))]

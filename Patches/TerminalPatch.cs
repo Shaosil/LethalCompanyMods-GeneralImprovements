@@ -5,6 +5,8 @@ using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 
@@ -42,6 +44,10 @@ namespace GeneralImprovements.Patches
                     switchNode.displayText = string.Empty;
                 }
             }
+
+            // Update the "too many items" node display text
+            var tooManyItemsNode = __instance.terminalNodes.specialNodes[4];
+            tooManyItemsNode.displayText = tooManyItemsNode.displayText.Replace("12 items", $"{Plugin.DropShipItemLimit.Value} items");
 
             TwoRadarCamsHelper.TerminalStarted(__instance);
         }
@@ -104,6 +110,25 @@ namespace GeneralImprovements.Patches
             _curHistoryIndex = _commandHistory.Count;
         }
 
+        [HarmonyPatch(typeof(Terminal), "LoadNewNodeIfAffordable")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> PatchDropshipItemLimit(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = new List<CodeInstruction>(instructions);
+            for (int i = 3; i < codeList.Count; i++)
+            {
+                // If the current instruction is to compare the numberOfItemsInDropship to 12, update it to our defined number
+                if (codeList[i].Is(OpCodes.Ldc_R4, 12f) && codeList[i - 3].opcode == OpCodes.Ldfld && (codeList[i - 3].operand as FieldInfo)?.Name == nameof(Terminal.numberOfItemsInDropship))
+                {
+                    Plugin.MLS.LogDebug($"Updating dropship item limit to {Plugin.DropShipItemLimit.Value}.");
+                    codeList[i].operand = (float)Plugin.DropShipItemLimit.Value;
+                    break;
+                }
+            }
+
+            return codeList.AsEnumerable();
+        }
+
         [HarmonyPatch(typeof(Terminal), "TextPostProcess")]
         [HarmonyPrefix]
         private static void TextPostProcess_Pre(ref string modifiedDisplayText, TerminalNode node)
@@ -111,7 +136,7 @@ namespace GeneralImprovements.Patches
             // Improve the scanning
             if (modifiedDisplayText.Contains("[scanForItems]"))
             {
-                var scannedItems = GrabbableObjectsPatch.GetOutsideScrap(true);
+                var scannedItems = GrabbableObjectsPatch.GetOutsideScrap(!Plugin.ScanCommandUsesExactAmount.Value);
                 modifiedDisplayText = modifiedDisplayText.Replace("[scanForItems]", $"There are {scannedItems.Key} objects outside the ship, totalling at an approximate value of ${scannedItems.Value}.");
             }
         }

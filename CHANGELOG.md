@@ -1,5 +1,22 @@
 # Changelog
 
+### v1.1.8 - More fixes and improvements
+* No longer attempting to pluralize sales items on the sales monitor.
+* Centered the sales monitor text vertically.
+* Slowed the sales monitor cycling.
+* Added a "Total Deaths" monitor.
+* Fixed the AutoChargeOnOrbit option only working for server players.
+* Fixed clients not seeing the correct amount of days spent or deaths on the game over screen. This fix will only work if both the host AND client have this mod.
+* Update the ToggleableFancyLamp tooltip to have the keybind on the right side instead of left.
+* Fixed several logic bugs with DaysSinceLastDeath on both hosts and clients.
+* Added an option to allow the player to look down more (defaults to true).
+* Added an option to disable post processing for the internal and external ship cams (defaults to false).
+* Improving performance by no longer trying to find a reference to StormyWeather every frame in some cases.
+* Added an option for the number of items the dropship can deliver at once (defaults to 24).
+* Added an option for the number of items the company sell counter can hold at once (defaults to 24).
+* Added an option to force the terminal scan command (and scrap left monitor) to display the exact amount instead of approximate (defaults to false).
+* Added an option to allow keys to be used to unlock doors no matter where they are in your inventory (defaults to true).
+
 ### v1.1.7 - More fixes
 * Fixed sale items adding an extra 's' on the sales monitor if it already ended with s.
 * Fixed monitors not coming back on after the being shut off if UseBetterMonitors = false.

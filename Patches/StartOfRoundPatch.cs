@@ -3,6 +3,7 @@ using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System.Linq;
 using System.Reflection;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace GeneralImprovements.Patches
@@ -23,6 +24,8 @@ namespace GeneralImprovements.Patches
                 return _updatePlayerPositionClientRpcMethod;
             }
         }
+
+        public static int DaysSinceLastDeath = -1;
 
         [HarmonyPatch(typeof(StartOfRound), nameof(Start))]
         [HarmonyPostfix]
@@ -50,10 +53,10 @@ namespace GeneralImprovements.Patches
             }
 
             // Create monitors if necessary and update the texts needed
-            MonitorsHelper.CreateExtraMonitors();
+            MonitorsHelper.InitializeMonitors();
             MonitorsHelper.UpdateTotalDaysMonitors();
             MonitorsHelper.UpdateTotalQuotasMonitors();
-            MonitorsHelper.UpdateDaysSinceDeathMonitors();
+            MonitorsHelper.UpdateDeathMonitors();
 
             // Add medical charging station
             ItemHelper.CreateMedStation();
@@ -104,7 +107,7 @@ namespace GeneralImprovements.Patches
             }
 
             // Auto charge owned batteries
-            if (StartOfRound.Instance.IsServer && Plugin.AutoChargeOnOrbit.Value)
+            if (Plugin.AutoChargeOnOrbit.Value)
             {
                 var itemsToCharge = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.IsOwner && (o.itemProperties?.requiresBattery ?? false) && o.insertedBattery.charge < 1).ToList();
                 foreach (var batteryItem in itemsToCharge)
@@ -114,7 +117,7 @@ namespace GeneralImprovements.Patches
                 }
                 if (itemsToCharge.Any() && StartOfRound.Instance.localPlayerController != null)
                 {
-                    Plugin.MLS.LogInfo($"Auto charged {itemsToCharge.Count} item{(itemsToCharge.Count == 1 ? string.Empty : "s")}.");
+                    Plugin.MLS.LogInfo($"Auto charged {itemsToCharge.Count} owned item{(itemsToCharge.Count == 1 ? string.Empty : "s")}.");
                     var zapAudio = Object.FindObjectOfType<ItemCharger>()?.zapAudio?.clip;
                     if (zapAudio != null)
                     {
@@ -146,7 +149,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(StartOfRound), nameof(OnClientConnect))]
         [HarmonyPrefix]
-        private static void OnClientConnect(StartOfRound __instance)
+        private static void OnClientConnect(StartOfRound __instance, ulong clientId)
         {
             if (__instance.IsServer)
             {
@@ -163,6 +166,15 @@ namespace GeneralImprovements.Patches
                     {
                         connectedPlayer.StartPerformingEmoteClientRpc();
                     }
+                }
+
+                // Send over the extra info about this quota to this client
+                if (NetworkHelper.Instance != null && __instance?.gameStats != null)
+                {
+                    var clientParams = new ClientRpcParams { Send = new ClientRpcSendParams { TargetClientIds = new[] { clientId } } };
+                    var stats = __instance.gameStats;
+                    Plugin.MLS.LogInfo("Server sending extra data sync RPC.");
+                    NetworkHelper.Instance.SyncExtraDataOnConnectClientRpc(stats.daysSpent, stats.deaths, DaysSinceLastDeath, clientParams);
                 }
             }
         }
@@ -194,7 +206,8 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateScrapLeftMonitors();
             MonitorsHelper.UpdateTotalDaysMonitors();
             MonitorsHelper.UpdateTotalQuotasMonitors();
-            MonitorsHelper.UpdateDaysSinceDeathMonitors(true);
+            DaysSinceLastDeath = -1;
+            MonitorsHelper.UpdateDeathMonitors(true);
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(ReviveDeadPlayers))]
@@ -202,7 +215,7 @@ namespace GeneralImprovements.Patches
         private static void ReviveDeadPlayers(StartOfRound __instance)
         {
             bool playersDied = __instance.allPlayerScripts.Any(p => p.isPlayerDead);
-            MonitorsHelper.UpdateDaysSinceDeathMonitors(playersDied);
+            MonitorsHelper.UpdateDeathMonitors(playersDied);
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(AllPlayersHaveRevivedClientRpc))]

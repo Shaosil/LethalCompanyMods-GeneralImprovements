@@ -45,6 +45,9 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> FixItemsFallingThrough { get; private set; }
         public static ConfigEntry<bool> FixPersonalScanner { get; private set; }
         public static ConfigEntry<bool> ScanHeldPlayerItems { get; private set; }
+        public static ConfigEntry<bool> AllowLookDownMore { get; private set; }
+        public static ConfigEntry<int> DropShipItemLimit { get; private set; }
+        public static ConfigEntry<int> SellCounterItemLimit { get; private set; }
 
         private const string GameLaunchSection = "GameLaunch";
         public static ConfigEntry<bool> SkipStartupScreen { get; private set; }
@@ -64,6 +67,8 @@ namespace GeneralImprovements
         public static int MinimumStartingMoneyVal => Math.Clamp(MinimumStartingMoney.Value, StartingMoneyPerPlayerVal, 1000);
         public static ConfigEntry<bool> AllowQuotaRollover { get; private set; }
         public static ConfigEntry<bool> AddHealthRechargeStation { get; private set; }
+        public static ConfigEntry<bool> ScanCommandUsesExactAmount { get; private set; }
+        public static ConfigEntry<bool> UnlockDoorsFromInventory { get; private set; }
 
         private const string ShipSection = "Ship";
         public static ConfigEntry<bool> HideClipboardAndStickyNote { get; private set; }
@@ -73,6 +78,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> ShipMapCamDueNorth { get; private set; }
         public static ConfigEntry<bool> SpeakerPlaysIntroVoice { get; private set; }
         public static ConfigEntry<bool> LightSwitchScanNode { get; private set; }
+        public static ConfigEntry<bool> DisableShipCamPostProcessing { get; private set; }
 
         private const string TeleportersSection = "Teleporters";
         public static ConfigEntry<int> RegularTeleporterCooldown { get; private set; }
@@ -105,6 +111,9 @@ namespace GeneralImprovements
 
             Harmony.CreateAndPatchAll(typeof(DepositItemsDeskPatch));
             MLS.LogDebug("DepositItemsDesk patched.");
+
+            Harmony.CreateAndPatchAll(typeof(DoorLockPatch));
+            MLS.LogDebug("DoorLock patched.");
 
             Harmony.CreateAndPatchAll(typeof(EntranceTeleportPatch));
             MLS.LogDebug("EntranceTeleport patched.");
@@ -201,6 +210,9 @@ namespace GeneralImprovements
             FixItemsFallingThrough = Config.Bind(FixesSection, nameof(FixItemsFallingThrough), true, "Fixes items falling through furniture on the ship when loading the game.");
             FixPersonalScanner = Config.Bind(FixesSection, nameof(FixPersonalScanner), false, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you, and the ship/main entrance.");
             ScanHeldPlayerItems = Config.Bind(FixesSection, nameof(ScanHeldPlayerItems), false, "If this and FixPersonalScanner are set to true, the scanner will also ping items in other players' hands.");
+            AllowLookDownMore = Config.Bind(FixesSection, nameof(AllowLookDownMore), true, "If set to true, you will be able to look down at a steeper angle than vanilla.");
+            DropShipItemLimit = Config.Bind(FixesSection, nameof(DropShipItemLimit), 24, new ConfigDescription("Sets the max amount of items a single dropship delivery will allow. Vanilla = 12.", new AcceptableValueRange<int>(12, 100)));
+            SellCounterItemLimit = Config.Bind(FixesSection, nameof(SellCounterItemLimit), 24, new ConfigDescription("Sets the max amount of items the company selling counter will hold at one time. Vanilla = 12.", new AcceptableValueRange<int>(12, 100)));
 
             // Game Launch
             SkipStartupScreen = Config.Bind(GameLaunchSection, nameof(SkipStartupScreen), true, "Skips the main menu loading screen bootup animation.");
@@ -217,7 +229,9 @@ namespace GeneralImprovements
             StartingMoneyPerPlayer = Config.Bind(MechanicsSection, nameof(StartingMoneyPerPlayer), -1, new ConfigDescription("[Host Only] How much starting money the group gets per player. Set to -1 to disable. Adjusts money as players join and leave, until the game starts.", new AcceptableValueRange<int>(-1, 1000)));
             MinimumStartingMoney = Config.Bind(MechanicsSection, nameof(MinimumStartingMoney), 30, new ConfigDescription("[Host Only] When paired with StartingMoneyPerPlayer, will ensure a group always starts with at least this much money. Must be at least the value of StartingMoneyPerPlayer.", new AcceptableValueRange<int>(-1, 1000)));
             AllowQuotaRollover = Config.Bind(MechanicsSection, nameof(AllowQuotaRollover), false, "[Host Required] If set to true, will keep the surplus money remaining after selling things to the company, and roll it over to the next quota. If clients do not set this, they will see visual desyncs.");
-            AddHealthRechargeStation = Config.Bind(MechanicsSection, nameof(AddHealthRechargeStation), false, "[Host Only] If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full. **WARNING:** THIS WILL PREVENT YOU FROM JOINING ANY GAME WHERE THE HOST DOES NOT HAVE IT ENABLED!");
+            AddHealthRechargeStation = Config.Bind(MechanicsSection, nameof(AddHealthRechargeStation), false, "[Host Only] If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full. **WARNING:** THIS WILL PREVENT YOU FROM CONNECTING TO ANY OTHER PLAYERS THAT DO NOT ALSO HAVE IT ENABLED!");
+            ScanCommandUsesExactAmount = Config.Bind(MechanicsSection, nameof(ScanCommandUsesExactAmount), false, "If set to true, the terminal's scan command (and ScrapLeft monitor) will use display the exact scrap value remaining instead of approximate.");
+            UnlockDoorsFromInventory = Config.Bind(MechanicsSection, nameof(UnlockDoorsFromInventory), true, "If set to true, keys in your inventory do not have to be held when unlocking facility doors.");
 
             // Ship
             HideClipboardAndStickyNote = Config.Bind(ShipSection, nameof(HideClipboardAndStickyNote), false, "If set to true, the game will not show the clipboard or sticky note when the game loads.");
@@ -227,6 +241,7 @@ namespace GeneralImprovements
             ShipMapCamDueNorth = Config.Bind(ShipSection, nameof(ShipMapCamDueNorth), false, "If set to true, the ship's map camera will rotate so that it faces north evenly, instead of showing everything at an angle.");
             SpeakerPlaysIntroVoice = Config.Bind(ShipSection, nameof(SpeakerPlaysIntroVoice), true, "If set to true, the ship's speaker will play the introductory welcome audio on the first day.");
             LightSwitchScanNode = Config.Bind(ShipSection, nameof(LightSwitchScanNode), true, "If set to true, the light switch will have a scan node attached.");
+            DisableShipCamPostProcessing = Config.Bind(ShipSection, nameof(DisableShipCamPostProcessing), false, "If set to true, the internal and external ship cameras will no longer use post processing. This may improve performance with higher resolution camera settings.");
 
             // Teleporters
             RegularTeleporterCooldown = Config.Bind(TeleportersSection, nameof(RegularTeleporterCooldown), 10, new ConfigDescription("How many seconds to wait in between button presses for the REGULAR teleporter. Vanilla = 10.", new AcceptableValueRange<int>(0, 300)));

@@ -27,6 +27,8 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds an option to scan tools.
 * [Host Must Have Mod] Adds the ability to toggle the fancy lamp on and off while holding it.
 * Locks the camera while at the terminal so it doesn't keep getting pulled back if you try to move it. Behavior may be disabled in config.
+* Fixed clients not knowing the amount of days spent and total deaths if joining on later quotas/days, if both the host and client have this mod.
+* Allows players to look down more (85 degrees instead of 60). May be disabled in the config.
 
 ### NEW FEATURES:
 * A total of 14 customizable, screen-integrated monitors for the ship (instead of the vanilla 8)! Choose which monitor to put what item, including ship cams and background color.

@@ -15,8 +15,6 @@ namespace GeneralImprovements.Patches
         private static MethodInfo _attemptScanNodeMethod;
         private static MethodInfo AttemptScanNodeMethod => _attemptScanNodeMethod ?? (_attemptScanNodeMethod = typeof(HUDManager).GetMethod("AttemptScanNode", BindingFlags.NonPublic | BindingFlags.Instance));
 
-        private static StormyWeather _stormyWeather;
-        private static StormyWeather StormyWeather => _stormyWeather ?? (_stormyWeather = Object.FindObjectOfType<StormyWeather>());
         private static TextMeshProUGUI _hpText;
         public static GrabbableObject CurrentLightningTarget;
         private static List<SpriteRenderer> _lightningOverlays;
@@ -26,8 +24,6 @@ namespace GeneralImprovements.Patches
         [HarmonyPriority(Priority.Low)]
         private static void Start(HUDManager __instance)
         {
-            _stormyWeather = null;
-
             if (Plugin.ShowHitPoints.Value && __instance.weightCounterAnimator != null)
             {
                 // Copy weight UI object, move it, and remove its animator
@@ -76,10 +72,10 @@ namespace GeneralImprovements.Patches
             var allScannables = Object.FindObjectsOfType<ScanNodeProperties>()
                 .Select(s => new KeyValuePair<float, ScanNodeProperties>(Vector3.Distance(s.transform.position, playerScript.transform.position), s))
                 .Where(s => ((s.Value.GetComponent<Collider>()?.enabled ?? false) // Active and enabled...
-                        || Plugin.ScanHeldPlayerItems.Value && s.Value.GetComponentInParent<GrabbableObject>() is GrabbableObject g
-                        && !g.isPocketed && g.playerHeldBy != null && g.playerHeldBy != playerScript) // ... or held by someone else
-                    && s.Key >= s.Value.minRange && s.Key <= s.Value.maxRange // In range
-                    && GeometryUtility.TestPlanesAABB(camPlanes, new Bounds(s.Value.transform.position, Vector3.one))) // In camera view
+                        || (Plugin.ScanHeldPlayerItems.Value && s.Value.GetComponentInParent<GrabbableObject>() is GrabbableObject g
+                            && !g.isPocketed && g.playerHeldBy != null && g.playerHeldBy != playerScript)) // ... or held by someone else
+                        && s.Key >= s.Value.minRange && s.Key <= s.Value.maxRange // In range
+                        && GeometryUtility.TestPlanesAABB(camPlanes, new Bounds(s.Value.transform.position, Vector3.one))) // In camera view
                 .OrderBy(s => s.Key);
 
             // Now attempt to scan each of them, stopping when we fill the number of UI elements
@@ -141,7 +137,7 @@ namespace GeneralImprovements.Patches
                 _hpText.text = $"{StartOfRound.Instance.localPlayerController.health} HP";
             }
 
-            if ((StormyWeather?.isActiveAndEnabled ?? false) && Plugin.ShowLightningWarnings.Value)
+            if ((StormyWeatherPatch.Instance?.isActiveAndEnabled ?? false) && Plugin.ShowLightningWarnings.Value)
             {
                 // Toggle lightning overlays on item slots when needed
                 if (_lightningOverlays.Any() && HUDManager.Instance != null && StartOfRound.Instance.localPlayerController != null)

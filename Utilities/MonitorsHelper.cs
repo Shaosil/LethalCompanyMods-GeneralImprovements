@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
@@ -30,6 +31,7 @@ namespace GeneralImprovements.Utilities
             public const string DoorPower = "DoorPower";
             public const string TotalDays = "TotalDays";
             public const string TotalQuotas = "TotalQuotas";
+            public const string TotalDeaths = "TotalDeaths";
             public const string DaysSinceDeath = "DaysSinceDeath";
             public const string InternalCam = "InternalCam";
             public const string ExternalCam = "ExternalCam";
@@ -82,6 +84,8 @@ namespace GeneralImprovements.Utilities
         private static List<TextMeshProUGUI> _totalDaysMonitorTexts = new List<TextMeshProUGUI>();
         private static List<Image> _totalQuotasMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _totalQuotasMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<Image> _totalDeathsMonitorBGs = new List<Image>();
+        private static List<TextMeshProUGUI> _totalDeathsMonitorTexts = new List<TextMeshProUGUI>();
         private static List<Image> _daysSinceDeathMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _daysSinceDeathMonitorTexts = new List<TextMeshProUGUI>();
         private static List<Image> _extraBackgrounds = new List<Image>();
@@ -89,7 +93,6 @@ namespace GeneralImprovements.Utilities
         private static bool _usingAnyMonitorTweaks = false;
         private static int _lastUpdatedCredits = -1;
         private static float _lastUpdatedDoorPower = -1;
-        private static int _daysSinceLastDeath = -1;
         private static Monitors _newMonitors;
 
         // Weather animation
@@ -108,7 +111,7 @@ namespace GeneralImprovements.Utilities
         private static int _curSalesAnimIndex = 0;
         private static List<string> _curSalesAnimations = new List<string>();
         private static float _salesAnimTimer = 0;
-        private static float _salesAnimCycle = 1f; // In seconds
+        private static float _salesAnimCycle = 2f; // In seconds
 
         private static float _curCreditsUpdateCounter = 0;
 
@@ -117,7 +120,7 @@ namespace GeneralImprovements.Utilities
         private static Transform _UIContainer;
         private static ScanNodeProperties _profitQuotaScanNode;
 
-        public static void CreateExtraMonitors()
+        public static void InitializeMonitors()
         {
             // Initialize a few necessary variables
             _usingAnyMonitorTweaks = true;
@@ -126,6 +129,20 @@ namespace GeneralImprovements.Utilities
             _originalDeadlineBG = StartOfRound.Instance.deadlineMonitorBGImage;
             _originalDeadlineText = StartOfRound.Instance.deadlineMonitorText;
             _UIContainer = _originalProfitQuotaBG?.transform.parent;
+
+            if (Plugin.CenterAlignMonitorText.Value)
+            {
+                _originalProfitQuotaText.alignment = TextAlignmentOptions.Center;
+                _originalDeadlineText.alignment = TextAlignmentOptions.Center;
+            }
+
+            var internalShipCamObj = StartOfRound.Instance.elevatorTransform.Find("Cameras/ShipCamera");
+            var externalShipCamObj = StartOfRound.Instance.elevatorTransform.Find("Cameras/FrontDoorSecurityCam/SecurityCamera");
+            if (Plugin.DisableShipCamPostProcessing.Value)
+            {
+                internalShipCamObj.GetComponent<HDAdditionalCameraData>().volumeLayerMask = 0;
+                externalShipCamObj.GetComponent<HDAdditionalCameraData>().volumeLayerMask = 0;
+            }
 
             // Do nothing else if none of these are true - that means the user basically hasn't changed any of the default monitor config options
             if (!(Plugin.UseBetterMonitors.Value || !Plugin.ShowBlueMonitorBackground.Value || Plugin.ShowBackgroundOnAllScreens.Value
@@ -138,8 +155,11 @@ namespace GeneralImprovements.Utilities
             }
 
             // Load days since last death from the current save file
-            var anyDeaths = StartOfRound.Instance.gameStats.deaths > 0;
-            _daysSinceLastDeath = ES3.Load("Stats_DaysSinceLastDeath", GameNetworkManager.Instance.currentSaveFileName, anyDeaths ? 0 : -1);
+            if (StartOfRound.Instance.IsHost)
+            {
+                var anyDeaths = StartOfRound.Instance.gameStats.deaths > 0;
+                StartOfRoundPatch.DaysSinceLastDeath = ES3.Load("Stats_DaysSinceLastDeath", GameNetworkManager.Instance.currentSaveFileName, anyDeaths ? 0 : -1);
+            }
 
             // Initialize things each time StartOfRound starts up
             _lastUpdatedCredits = -1;
@@ -168,6 +188,8 @@ namespace GeneralImprovements.Utilities
             _totalDaysMonitorTexts = new List<TextMeshProUGUI>();
             _totalQuotasMonitorBGs = new List<Image>();
             _totalQuotasMonitorTexts = new List<TextMeshProUGUI>();
+            _totalDeathsMonitorBGs = new List<Image>();
+            _totalDeathsMonitorTexts = new List<TextMeshProUGUI>();
             _daysSinceDeathMonitorBGs = new List<Image>();
             _daysSinceDeathMonitorTexts = new List<TextMeshProUGUI>();
             _extraBackgrounds = new List<Image>();
@@ -186,23 +208,15 @@ namespace GeneralImprovements.Utilities
             _originalDeadlineText.fontSize = _originalDeadlineText.fontSize * 0.9f;
             _originalDeadlineText.margin = Vector4.one * 5;
 
-            if (Plugin.CenterAlignMonitorText.Value)
-            {
-                _originalProfitQuotaText.alignment = TextAlignmentOptions.Center;
-                _originalDeadlineText.alignment = TextAlignmentOptions.Center;
-            }
-
             // Find our monitor objects
             _oldMonitorsObject = _UIContainer.parent.parent;
             _oldBigMonitors = _oldMonitorsObject.parent.GetComponentInChildren<ManualCameraRenderer>().transform.parent;
 
             // Increase internal ship cam resolution and FPS if specified
-            var internalShipCamObj = StartOfRound.Instance.elevatorTransform.Find("Cameras/ShipCamera");
             var newRT = UpdateSecurityCamFPSAndResolution(internalShipCamObj, Plugin.ShipInternalCamFPS.Value, Plugin.ShipInternalCamSizeMultiplier.Value);
             _oldMonitorsObject.GetComponent<MeshRenderer>().sharedMaterials[2].mainTexture = newRT;
 
             // Increase external ship cam resolution and FPS if specified
-            var externalShipCamObj = StartOfRound.Instance.elevatorTransform.Find("Cameras/FrontDoorSecurityCam/SecurityCamera");
             newRT = UpdateSecurityCamFPSAndResolution(externalShipCamObj, Plugin.ShipExternalCamFPS.Value, Plugin.ShipExternalCamSizeMultiplier.Value);
             _oldBigMonitors.GetComponent<MeshRenderer>().sharedMaterials[2].mainTexture = newRT;
 
@@ -299,6 +313,7 @@ namespace GeneralImprovements.Utilities
                     case MonitorNames.DoorPower: curBGs = _doorPowerMonitorBGs; curTexts = _doorPowerMonitorTexts; break;
                     case MonitorNames.TotalDays: curBGs = _totalDaysMonitorBGs; curTexts = _totalDaysMonitorTexts; break;
                     case MonitorNames.TotalQuotas: curBGs = _totalQuotasMonitorBGs; curTexts = _totalQuotasMonitorTexts; break;
+                    case MonitorNames.TotalDeaths: curBGs = _totalDeathsMonitorBGs; curTexts = _totalDeathsMonitorTexts; break;
                     case MonitorNames.DaysSinceDeath: curBGs = _daysSinceDeathMonitorBGs; curTexts = _daysSinceDeathMonitorTexts; break;
                 }
 
@@ -411,7 +426,8 @@ namespace GeneralImprovements.Utilities
                     case MonitorNames.DoorPower: curAction = t => { _doorPowerMonitorTexts.Add(t); UpdateDoorPowerMonitors(true); }; break;
                     case MonitorNames.TotalDays: curAction = t => { _totalDaysMonitorTexts.Add(t); UpdateTotalDaysMonitors(); }; break;
                     case MonitorNames.TotalQuotas: curAction = t => { _totalQuotasMonitorTexts.Add(t); UpdateTotalQuotasMonitors(); }; break;
-                    case MonitorNames.DaysSinceDeath: curAction = t => { _daysSinceDeathMonitorTexts.Add(t); UpdateDaysSinceDeathMonitors(); }; break;
+                    case MonitorNames.TotalDeaths: curAction = t => { _totalDeathsMonitorTexts.Add(t); UpdateDeathMonitors(); }; break;
+                    case MonitorNames.DaysSinceDeath: curAction = t => { _daysSinceDeathMonitorTexts.Add(t); UpdateDeathMonitors(); }; break;
 
                     case MonitorNames.InternalCam: targetMat = _oldMonitorsObject.GetComponent<MeshRenderer>().materials[2]; break;
                     case MonitorNames.ExternalCam: targetMat = _oldBigMonitors.GetComponent<MeshRenderer>().materials[2]; break;
@@ -494,7 +510,7 @@ namespace GeneralImprovements.Utilities
         {
             if (_scrapLeftMonitorTexts.Any())
             {
-                var outsideScrap = GrabbableObjectsPatch.GetOutsideScrap(true);
+                var outsideScrap = GrabbableObjectsPatch.GetOutsideScrap(!Plugin.ScanCommandUsesExactAmount.Value);
                 if (outsideScrap.Key > 0)
                 {
                     UpdateGenericTextList(_scrapLeftMonitorTexts, $"SCRAP LEFT:\n{outsideScrap.Key} ITEMS\n${outsideScrap.Value}");
@@ -646,12 +662,6 @@ namespace GeneralImprovements.Utilities
                 _curSalesAnimIndex = 0;
                 _curSalesAnimations = new List<string>();
 
-                // Update the alignment
-                foreach (var sale in _salesMonitorTexts)
-                {
-                    sale.alignment = numSales > 0 ? TextAlignmentOptions.Top : Plugin.CenterAlignMonitorText.Value ? TextAlignmentOptions.Center : TextAlignmentOptions.TopLeft;
-                }
-
                 if (numSales > 0)
                 {
                     for (int i = 0; i < instance.itemSalesPercentages.Length; i++)
@@ -659,7 +669,6 @@ namespace GeneralImprovements.Utilities
                         if (instance.itemSalesPercentages[i] < 100 && instance.buyableItemsList.Length > i)
                         {
                             string item = instance.buyableItemsList[i]?.itemName ?? "???";
-                            item = item.ToUpper().EndsWith('S') ? item : $"{item}s"; // Pluralize when it doesn't end with S
                             _curSalesAnimations.Add($"{100 - instance.itemSalesPercentages[i]}% OFF {item}");
                         }
                     }
@@ -724,18 +733,38 @@ namespace GeneralImprovements.Utilities
             }
         }
 
-        public static void UpdateDaysSinceDeathMonitors(bool? playersDied = null)
+        public static void UpdateDeathMonitors(bool? playersDied = null)
         {
+            if (_totalDeathsMonitorTexts.Any() && StartOfRound.Instance?.gameStats != null)
+            {
+                UpdateGenericTextList(_totalDeathsMonitorTexts, $"DEATHS:\n{StartOfRound.Instance.gameStats.deaths}");
+                Plugin.MLS.LogInfo("Updated total deaths display.");
+            }
+
             if (_daysSinceDeathMonitorTexts.Any() && StartOfRound.Instance != null)
             {
                 if (playersDied.HasValue)
                 {
-                    _daysSinceLastDeath = playersDied.Value ? 0 : _daysSinceLastDeath + 1;
-                    ES3.Save("Stats_DaysSinceLastDeath", _daysSinceLastDeath, GameNetworkManager.Instance.currentSaveFileName);
+                    if (playersDied.GetValueOrDefault())
+                    {
+                        // There was a death - reset counter
+                        StartOfRoundPatch.DaysSinceLastDeath = 0;
+                    }
+                    else if (StartOfRoundPatch.DaysSinceLastDeath >= 0)
+                    {
+                        // No death this time, but there have been at some point - increment counter
+                        StartOfRoundPatch.DaysSinceLastDeath++;
+                    }
+
+                    if (StartOfRound.Instance.IsHost)
+                    {
+                        ES3.Save("Stats_DaysSinceLastDeath", StartOfRoundPatch.DaysSinceLastDeath, GameNetworkManager.Instance.currentSaveFileName);
+                    }
                 }
-                if (_daysSinceLastDeath >= 0)
+
+                if (StartOfRoundPatch.DaysSinceLastDeath >= 0)
                 {
-                    UpdateGenericTextList(_daysSinceDeathMonitorTexts, $"{_daysSinceLastDeath} DAY{(_daysSinceLastDeath == 1 ? string.Empty : "S")} WITHOUT DEATHS");
+                    UpdateGenericTextList(_daysSinceDeathMonitorTexts, $"{StartOfRoundPatch.DaysSinceLastDeath} DAY{(StartOfRoundPatch.DaysSinceLastDeath == 1 ? string.Empty : "S")} WITHOUT DEATHS");
                 }
                 else
                 {

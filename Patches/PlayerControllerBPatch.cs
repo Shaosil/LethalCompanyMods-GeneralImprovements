@@ -3,7 +3,10 @@ using GeneralImprovements.OtherMods;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -227,6 +230,32 @@ namespace GeneralImprovements.Patches
             {
                 __instance.hoveringOverTrigger.interactable = __instance.health < ItemHelper.MedStation.MaxLocalPlayerHealth;
             }
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), "CalculateSmoothLookingInput")]
+        [HarmonyPatch(typeof(PlayerControllerB), "CalculateNormalLookingInput")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> PatchLookDownClamper(IEnumerable<CodeInstruction> instructions, MethodBase original)
+        {
+            if (!Plugin.AllowLookDownMore.Value)
+            {
+                return instructions;
+            }
+
+            var codeList = new List<CodeInstruction>(instructions);
+            for (int i = 0; i < codeList.Count; i++)
+            {
+
+                if (codeList[i].opcode == OpCodes.Ldc_R4 && int.TryParse(codeList[i].operand?.ToString(), out var operand) && operand == 60 // If we are putting the value of 60 on the stack,
+                    && i + 1 < codeList.Count && codeList[i + 1].opcode == OpCodes.Call && (codeList[i + 1].operand as MethodInfo)?.Name == "Clamp") // and the next operation is Math.Clamp
+                {
+                    Plugin.MLS.LogDebug($"Updating look down angle to 85 in {original.Name}.");
+                    codeList[i].operand = 85f;
+                    break;
+                }
+            }
+
+            return codeList.AsEnumerable();
         }
 
         private static void ShiftRightFromSlot(PlayerControllerB player, int slot)

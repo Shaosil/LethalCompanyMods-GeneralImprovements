@@ -96,7 +96,7 @@ namespace GeneralImprovements.Utilities
                 var grabbable = fancyLampPrefab.Prefab.GetComponent<PhysicsProp>();
                 var toggleable = fancyLampPrefab.Prefab.AddComponent<ToggleableFancyLamp>();
                 CopyGrabbablePrefab(grabbable, toggleable);
-                toggleable.itemProperties.toolTips = new[] { "[LMB] : Toggle Light" };
+                toggleable.itemProperties.toolTips = new[] { "Toggle Light : [LMB]" };
                 toggleable.itemProperties.syncUseFunction = true;
                 Object.Destroy(grabbable);
 

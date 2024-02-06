@@ -31,6 +31,9 @@
         <Reference Include="Unity.Netcode.Runtime">
           <HintPath>DLLs\Unity.Netcode.Runtime.dll</HintPath>
         </Reference>
+        <Reference Include="Unity.RenderPipelines.HighDefinition.Runtime">
+          <HintPath>DLLs\Unity.RenderPipelines.HighDefinition.Runtime.dll</HintPath>
+        </Reference>
         <Reference Include="Unity.TextMeshPro">
           <HintPath>DLLs\Unity.TextMeshPro.dll</HintPath>
         </Reference>

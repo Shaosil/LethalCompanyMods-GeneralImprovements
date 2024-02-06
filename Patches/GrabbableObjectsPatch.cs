@@ -1,8 +1,11 @@
-﻿using GeneralImprovements.Utilities;
+﻿using GameNetcodeStuff;
+using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using UnityEngine;
 
 namespace GeneralImprovements.Patches
@@ -117,6 +120,46 @@ namespace GeneralImprovements.Patches
                 MonitorsHelper.UpdateShipScrapMonitors();
                 MonitorsHelper.UpdateScrapLeftMonitors();
             }
+        }
+
+        [HarmonyPatch(typeof(KeyItem), "ItemActivate")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> PatchKeyActivate(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+
+            if (Plugin.UnlockDoorsFromInventory.Value)
+            {
+                // Call DestroyItemInSlot instead of DespawnHeldObject
+                for (int i = 0; i < codeList.Count; i++)
+                {
+                    if (codeList[i].opcode == OpCodes.Callvirt && (codeList[i].operand as MethodInfo)?.Name == nameof(PlayerControllerB.DespawnHeldObject))
+                    {
+                        Plugin.MLS.LogDebug("Patching key activate to call DestroyItemInSlot instead of DespawnHeldObject");
+
+                        // Remove the previous line that loads playerHeldBy onto the stack
+                        codeList.RemoveAt(i - 1);
+
+                        // Insert a new instruction delegate at the current new index
+                        Action<KeyItem> callDestroy = k =>
+                        {
+                            for (int i = 0; i < StartOfRound.Instance.localPlayerController.ItemSlots.Length; i++)
+                            {
+                                if (StartOfRound.Instance.localPlayerController.ItemSlots[i] == k)
+                                {
+                                    StartOfRound.Instance.localPlayerController.DestroyItemInSlotAndSync(i);
+                                    HUDManager.Instance.itemSlotIcons[i].enabled = false; // Need this manually here because it only gets called if the player is holding something
+                                    return;
+                                }
+                            }
+                        };
+                        codeList[i - 1] = Transpilers.EmitDelegate(callDestroy);
+                        break;
+                    }
+                }
+            }
+
+            return codeList.AsEnumerable();
         }
 
         public static KeyValuePair<int, int> GetOutsideScrap(bool approximate)
