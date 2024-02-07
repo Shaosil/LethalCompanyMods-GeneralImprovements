@@ -41,6 +41,9 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds an option to display text under the 'Deadline' monitor with the current ship loot total.
 * [Host Required] Adds an option to roll over surplus credits to the next quota. If clients do NOT have this enabled, there will be visual desyncs only.
 * Adds an option for adding a little medical station above the ship's charging station that heals you back to full health when used.
+* Adds an option to use keys from any inventory slot, as well as an option to prevent them from despawning when they are used.
+* Adds an option to hide player names.
+* Adds options to bring held or all items when using teleporters.
 
 ### MINOR BUGFIXES:
 * Stops all non-scrap objects from showing value (when scanned and sold) when they do not actually have any.

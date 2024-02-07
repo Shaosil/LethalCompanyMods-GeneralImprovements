@@ -415,8 +415,16 @@ namespace GeneralImprovements.Utilities
                     case MonitorNames.FancyWeather:
                         curAction = t =>
                     {
-                        t.alignment = TextAlignmentOptions.MidlineLeft;
-                        t.margin += new Vector4(25, 0, 0, 0);
+                        if (Plugin.CenterAlignMonitorText.Value)
+                        {
+                            t.alignment = TextAlignmentOptions.MidlineLeft;
+                            t.margin += new Vector4(20, 10, 0, 0);
+                        }
+                        else
+                        {
+                            t.alignment = TextAlignmentOptions.TopLeft;
+                            t.margin += new Vector4(10, 10, 0, 0);
+                        }
                         _fancyWeatherMonitorTexts.Add(t);
                         UpdateWeatherMonitors();
                     };

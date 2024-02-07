@@ -67,6 +67,7 @@ namespace GeneralImprovements.Assets
             // Get the text and camera objects
             var allTexts = transform.Find("Canvas/Texts").GetComponentsInChildren<TextMeshProUGUI>();
             _camera = transform.GetComponentInChildren<Camera>();
+            _camera.enabled = false;
 
             // Adjust the background color
             transform.Find("Canvas/Background").GetComponent<Image>().color = Plugin.MonitorBackgroundColorVal;
@@ -129,7 +130,15 @@ namespace GeneralImprovements.Assets
             {
                 // Move the camera to be in front of the text component
                 _camera.transform.parent = text.transform;
-                _camera.transform.localPosition = new Vector3(0, 0, -150);
+                if (Plugin.CenterAlignMonitorText.Value)
+                {
+                    _camera.transform.localPosition = new Vector3(0, 0, _camera.transform.localPosition.z);
+                }
+                else
+                {
+                    // No idea why, but left aligning the text needs an extra offset or it will be off screen
+                    _camera.transform.localPosition = new Vector3(-10, 10, _camera.transform.localPosition.z);
+                }
 
                 // Render to render texture
                 _camera.Render();

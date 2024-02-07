@@ -69,6 +69,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> AddHealthRechargeStation { get; private set; }
         public static ConfigEntry<bool> ScanCommandUsesExactAmount { get; private set; }
         public static ConfigEntry<bool> UnlockDoorsFromInventory { get; private set; }
+        public static ConfigEntry<bool> KeysHaveInfiniteUses { get; private set; }
 
         private const string ShipSection = "Ship";
         public static ConfigEntry<bool> HideClipboardAndStickyNote { get; private set; }
@@ -83,6 +84,8 @@ namespace GeneralImprovements
         private const string TeleportersSection = "Teleporters";
         public static ConfigEntry<int> RegularTeleporterCooldown { get; private set; }
         public static ConfigEntry<int> InverseTeleporterCooldown { get; private set; }
+        public static ConfigEntry<string> KeepItemsDuringTeleport { get; private set; }
+        public static ConfigEntry<string> KeepItemsDuringInverse { get; private set; }
 
         private const string TerminalSection = "Terminal";
         public static ConfigEntry<int> TerminalHistoryItemCount { get; private set; }
@@ -100,6 +103,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> HideEmptySubtextOfScanNodes { get; private set; }
         public static ConfigEntry<bool> ShowHitPoints { get; private set; }
         public static ConfigEntry<bool> ShowLightningWarnings { get; private set; }
+        public static ConfigEntry<bool> HidePlayerNames { get; private set; }
 
         private void Awake()
         {
@@ -182,6 +186,8 @@ namespace GeneralImprovements
 
             var validSnapRotations = Enumerable.Range(0, 360 / 15).Select(n => n * 15).Where(n => n == 0 || 360 % n == 0).ToArray();
 
+            var validItemsToKeep = new[] { "None", "Held", "All" };
+
             var validToolTypes = new List<Type> { typeof(BoomboxItem), typeof(ExtensionLadderItem), typeof(FlashlightItem), typeof(JetpackItem), typeof(LockPicker), typeof(RadarBoosterItem),
                                                 typeof(Shovel), typeof(SprayPaintItem), typeof(StunGrenadeItem), typeof(TetraChemicalItem), typeof(WalkieTalkie), typeof(PatcherTool) };
             var validToolStrings = string.Join(", ", new[] { "All" }.Concat(validToolTypes.Select(t => t.Name)));
@@ -231,7 +237,8 @@ namespace GeneralImprovements
             AllowQuotaRollover = Config.Bind(MechanicsSection, nameof(AllowQuotaRollover), false, "[Host Required] If set to true, will keep the surplus money remaining after selling things to the company, and roll it over to the next quota. If clients do not set this, they will see visual desyncs.");
             AddHealthRechargeStation = Config.Bind(MechanicsSection, nameof(AddHealthRechargeStation), false, "[Host Only] If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full. **WARNING:** THIS WILL PREVENT YOU FROM CONNECTING TO ANY OTHER PLAYERS THAT DO NOT ALSO HAVE IT ENABLED!");
             ScanCommandUsesExactAmount = Config.Bind(MechanicsSection, nameof(ScanCommandUsesExactAmount), false, "If set to true, the terminal's scan command (and ScrapLeft monitor) will use display the exact scrap value remaining instead of approximate.");
-            UnlockDoorsFromInventory = Config.Bind(MechanicsSection, nameof(UnlockDoorsFromInventory), true, "If set to true, keys in your inventory do not have to be held when unlocking facility doors.");
+            UnlockDoorsFromInventory = Config.Bind(MechanicsSection, nameof(UnlockDoorsFromInventory), false, "If set to true, keys in your inventory do not have to be held when unlocking facility doors.");
+            KeysHaveInfiniteUses = Config.Bind(MechanicsSection, nameof(KeysHaveInfiniteUses), false, "If set to true, keys will not despawn when they are used.");
 
             // Ship
             HideClipboardAndStickyNote = Config.Bind(ShipSection, nameof(HideClipboardAndStickyNote), false, "If set to true, the game will not show the clipboard or sticky note when the game loads.");
@@ -246,6 +253,8 @@ namespace GeneralImprovements
             // Teleporters
             RegularTeleporterCooldown = Config.Bind(TeleportersSection, nameof(RegularTeleporterCooldown), 10, new ConfigDescription("How many seconds to wait in between button presses for the REGULAR teleporter. Vanilla = 10.", new AcceptableValueRange<int>(0, 300)));
             InverseTeleporterCooldown = Config.Bind(TeleportersSection, nameof(InverseTeleporterCooldown), 10, new ConfigDescription("How many seconds to wait in between button presses for the INVERSE teleporter. Vanilla = 210.", new AcceptableValueRange<int>(0, 300)));
+            KeepItemsDuringTeleport = Config.Bind(TeleportersSection, nameof(KeepItemsDuringTeleport), validItemsToKeep[0], new ConfigDescription("Whether to keep Held or All items in inventory when using the regular teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!", new AcceptableValueList<string>(validItemsToKeep)));
+            KeepItemsDuringInverse = Config.Bind(TeleportersSection, nameof(KeepItemsDuringInverse), validItemsToKeep[0], new ConfigDescription("Whether to keep Held or All items in inventory when using the inverse teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!", new AcceptableValueList<string>(validItemsToKeep)));
 
             // Terminal
             TerminalHistoryItemCount = Config.Bind(TerminalSection, nameof(TerminalHistoryItemCount), 20, new ConfigDescription("How many items to keep in your terminal's command history. Previous terminal commands may be navigated by using the up/down arrow keys.", new AcceptableValueRange<int>(0, 100)));
@@ -262,6 +271,7 @@ namespace GeneralImprovements
             ShowUIReticle = Config.Bind(UISection, nameof(ShowUIReticle), false, "If set to true, the HUD will display a small dot so you can see exactly where you are pointing at all times.");
             ShowHitPoints = Config.Bind(UISection, nameof(ShowHitPoints), true, "If set to true, the HUD will display your current remaining hitpoints.");
             ShowLightningWarnings = Config.Bind(UISection, nameof(ShowLightningWarnings), true, "If set to true, the inventory slots will flash electrically when an item in the slot is being targeted by lightning.");
+            HidePlayerNames = Config.Bind(UISection, nameof(HidePlayerNames), false, "If set to true, player names will no longer show above players.");
 
             // Sanitize where needed
             string backgroundHex = Regex.Match(MonitorBackgroundColor.Value, "([a-fA-F0-9]{6})").Groups[1].Value.ToUpper();

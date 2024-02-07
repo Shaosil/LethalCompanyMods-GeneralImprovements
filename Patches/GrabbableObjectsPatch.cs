@@ -128,32 +128,42 @@ namespace GeneralImprovements.Patches
         {
             var codeList = instructions.ToList();
 
-            if (Plugin.UnlockDoorsFromInventory.Value)
+            if (Plugin.UnlockDoorsFromInventory.Value || Plugin.KeysHaveInfiniteUses.Value)
             {
                 // Call DestroyItemInSlot instead of DespawnHeldObject
                 for (int i = 0; i < codeList.Count; i++)
                 {
                     if (codeList[i].opcode == OpCodes.Callvirt && (codeList[i].operand as MethodInfo)?.Name == nameof(PlayerControllerB.DespawnHeldObject))
                     {
-                        Plugin.MLS.LogDebug("Patching key activate to call DestroyItemInSlot instead of DespawnHeldObject");
-
-                        // Remove the previous line that loads playerHeldBy onto the stack
-                        codeList.RemoveAt(i - 1);
-
-                        // Insert a new instruction delegate at the current new index
-                        Action<KeyItem> callDestroy = k =>
+                        if (Plugin.KeysHaveInfiniteUses.Value)
                         {
-                            for (int i = 0; i < StartOfRound.Instance.localPlayerController.ItemSlots.Length; i++)
+                            Plugin.MLS.LogDebug("Patching key activate to no longer call DespawnHeldObject.");
+
+                            // Simply remove the call (3 lines)
+                            codeList.RemoveRange(i - 2, 3);
+                        }
+                        else
+                        {
+                            Plugin.MLS.LogDebug("Patching key activate to call DestroyItemInSlot instead of DespawnHeldObject.");
+
+                            // Remove the previous line that loads playerHeldBy onto the stack
+                            codeList.RemoveAt(i - 1);
+
+                            // Insert a new instruction delegate at the current new index
+                            Action<KeyItem> callDestroy = k =>
                             {
-                                if (StartOfRound.Instance.localPlayerController.ItemSlots[i] == k)
+                                for (int i = 0; i < StartOfRound.Instance.localPlayerController.ItemSlots.Length; i++)
                                 {
-                                    StartOfRound.Instance.localPlayerController.DestroyItemInSlotAndSync(i);
-                                    HUDManager.Instance.itemSlotIcons[i].enabled = false; // Need this manually here because it only gets called if the player is holding something
-                                    return;
+                                    if (StartOfRound.Instance.localPlayerController.ItemSlots[i] == k)
+                                    {
+                                        StartOfRound.Instance.localPlayerController.DestroyItemInSlotAndSync(i);
+                                        HUDManager.Instance.itemSlotIcons[i].enabled = false; // Need this manually here because it only gets called if the player is holding something
+                                        return;
+                                    }
                                 }
-                            }
-                        };
-                        codeList[i - 1] = Transpilers.EmitDelegate(callDestroy);
+                            };
+                            codeList[i - 1] = Transpilers.EmitDelegate(callDestroy);
+                        }
                         break;
                     }
                 }

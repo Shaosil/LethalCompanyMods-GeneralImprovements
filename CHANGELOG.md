@@ -1,5 +1,14 @@
 # Changelog
 
+### v1.1.9 - More fixes and improvements
+* Fixed DaysSinceLastDeath not resetting to "no deaths yet" after players are fired.
+* Fixed better monitors offsets, which was most noticeably incorrect when left aligning text.
+* Added an option to prevent keys from despawning when they are used.
+* No longer defaulting UnlockDoorsFromInventory to true, since it may conflict with other mods (such as ImmersiveCompany).
+* Added an option to hide player names.
+* Added options to keep None, Held, or All inventory items when using the teleporters (configurable per teleporter, defaults to "None" in both cases).
+	* WARNING: Keeping items will probably cause inventory desyncs if all other players do not share your same setting!
+
 ### v1.1.8 - More fixes and improvements
 * No longer attempting to pluralize sales items on the sales monitor.
 * Centered the sales monitor text vertically.

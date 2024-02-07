@@ -207,7 +207,7 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateTotalDaysMonitors();
             MonitorsHelper.UpdateTotalQuotasMonitors();
             DaysSinceLastDeath = -1;
-            MonitorsHelper.UpdateDeathMonitors(true);
+            MonitorsHelper.UpdateDeathMonitors(false);
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(ReviveDeadPlayers))]

@@ -121,7 +121,7 @@ namespace GeneralImprovements.Patches
                 return;
             }
 
-            for (int i = __instance.currentItemSlot; i < __instance.ItemSlots.Length - 1; i++)
+            for (int i = 0; i < __instance.ItemSlots.Length - 1; i++)
             {
                 // Each time we find an empty slot, move the first found item after this slot to this one
                 if (__instance.ItemSlots[i] == null)
@@ -232,6 +232,13 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(ShowNameBillboard))]
+        [HarmonyPrefix]
+        private static bool ShowNameBillboard()
+        {
+            return !Plugin.HidePlayerNames.Value;
+        }
+
         [HarmonyPatch(typeof(PlayerControllerB), "CalculateSmoothLookingInput")]
         [HarmonyPatch(typeof(PlayerControllerB), "CalculateNormalLookingInput")]
         [HarmonyTranspiler]
@@ -288,6 +295,78 @@ namespace GeneralImprovements.Patches
             // Move item
             player.ItemSlots[newSlot] = player.ItemSlots[oldSlot];
             player.ItemSlots[oldSlot] = null;
+        }
+
+        private static void SelectNewSlotLocal(PlayerControllerB player, int newSlot)
+        {
+            // This should only be used when an item has shifted, so we don't need any animations or grab code
+            for (int i = 0; i < HUDManager.Instance.itemSlotIconFrames.Length; i++)
+            {
+                HUDManager.Instance.itemSlotIconFrames[i].GetComponent<Animator>().SetBool("selectedSlot", false);
+            }
+            HUDManager.Instance.itemSlotIconFrames[newSlot].GetComponent<Animator>().SetBool("selectedSlot", true);
+            player.currentItemSlot = newSlot;
+        }
+
+        public static void DropAllItemsExceptHeld(PlayerControllerB player)
+        {
+            int oldSlot = -1;
+
+            // Had to copy this from DropAllHeldItems() since vanilla code doesn't have a way to discard only a single item from a specific slot
+            for (int i = 0; i < player.ItemSlots.Length; i++)
+            {
+                if (player.currentlyHeldObjectServer != null && player.ItemSlots[i] == player.currentlyHeldObjectServer)
+                {
+                    oldSlot = i;
+                    continue;
+                }
+
+                var grabbableObject = player.ItemSlots[i];
+                if (grabbableObject != null)
+                {
+                    grabbableObject.parentObject = null;
+                    grabbableObject.heldByPlayerOnServer = false;
+                    if (player.isInElevator)
+                    {
+                        grabbableObject.transform.SetParent(player.playersManager.elevatorTransform, true);
+                    }
+                    else
+                    {
+                        grabbableObject.transform.SetParent(player.playersManager.propsContainer, true);
+                    }
+                    player.SetItemInElevator(player.isInHangarShipRoom, player.isInElevator, grabbableObject);
+                    grabbableObject.EnablePhysics(true);
+                    grabbableObject.EnableItemMeshes(true);
+                    grabbableObject.transform.localScale = grabbableObject.originalScale;
+                    grabbableObject.isHeld = false;
+                    grabbableObject.isPocketed = false;
+                    grabbableObject.startFallingPosition = grabbableObject.transform.parent.InverseTransformPoint(grabbableObject.transform.position);
+                    grabbableObject.FallToGround(true);
+                    grabbableObject.fallTime = UnityEngine.Random.Range(-0.3f, 0.05f);
+                    if (player.IsOwner)
+                    {
+                        grabbableObject.DiscardItemOnClient();
+                    }
+                    else if (!grabbableObject.itemProperties.syncDiscardFunction)
+                    {
+                        grabbableObject.playerHeldBy = null;
+                    }
+
+                    player.ItemSlots[i] = null;
+                    HUDManager.Instance.itemSlotIcons[i].enabled = false;
+                }
+            }
+
+            // Shift if necessary and select the new slot
+            ItemLeftSlot(player);
+            for (int i = 0; i < player.ItemSlots.Length; i++)
+            {
+                if (oldSlot > -1 && i < oldSlot && player.ItemSlots[i] == player.currentlyHeldObjectServer)
+                {
+                    SelectNewSlotLocal(player, i);
+                    break;
+                }
+            }
         }
     }
 }

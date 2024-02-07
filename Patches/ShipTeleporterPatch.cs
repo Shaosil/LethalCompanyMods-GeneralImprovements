@@ -1,6 +1,10 @@
 ﻿using GameNetcodeStuff;
 using HarmonyLib;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace GeneralImprovements.Patches
 {
@@ -28,20 +32,98 @@ namespace GeneralImprovements.Patches
             }
         }
 
-        [HarmonyPatch(typeof(ShipTeleporter), nameof(beamUpPlayer), MethodType.Enumerator)]
-        [HarmonyPostfix]
-        private static void beamUpPlayer(bool __result)
+        [HarmonyPatch(typeof(ShipTeleporter), "beamUpPlayer", MethodType.Enumerator)]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> PatchRegularTeleporter(IEnumerable<CodeInstruction> instructions)
         {
-            // When the result of the MoveNext method is false, we are done
-            if (__result)
+            var codeList = instructions.ToList();
+            string itemsToKeep = Plugin.KeepItemsDuringTeleport.Value.ToLower();
+
+            for (int i = 5; i < codeList.Count; i++)
             {
-                _lastPlayerTeleported = StartOfRound.Instance.mapScreen.targetedPlayer;
+                if (codeList[i].opcode == OpCodes.Callvirt && (codeList[i].operand as MethodInfo)?.Name == nameof(PlayerControllerB.DropAllHeldItems))
+                {
+                    // Patch the dead body dropping
+                    if (codeList[i - 5].opcode == OpCodes.Ldfld && (codeList[i - 5].operand as FieldInfo)?.Name == nameof(PlayerControllerB.deadBody))
+                    {
+                        var collectBodyDelegate = Transpilers.EmitDelegate<Action>(() =>
+                        {
+                            var deadBodyObj = StartOfRound.Instance?.mapScreen?.targetedPlayer?.deadBody?.grabBodyObject;
+                            if (deadBodyObj != null)
+                            {
+                                StartOfRound.Instance.mapScreen.targetedPlayer.SetItemInElevator(true, true, deadBodyObj);
+                            }
+                        });
+
+                        codeList.Insert(i + 1, collectBodyDelegate);
+                    }
+                    else if (itemsToKeep != "none")
+                    {
+                        if (itemsToKeep == "held")
+                        {
+                            var dropAllExceptHeldDelegate = Transpilers.EmitDelegate<Action<PlayerControllerB>>((player) =>
+                            {
+                                PlayerControllerBPatch.DropAllItemsExceptHeld(player);
+                            });
+
+                            // Replace the drop function with our own
+                            codeList[i] = dropAllExceptHeldDelegate;
+
+                            // Remove the two bools (no longer needed) from the stack load code
+                            codeList.RemoveRange(i - 2, 2);
+                        }
+                        else
+                        {
+                            // Remove the 4 lines of code that call this function
+                            codeList.RemoveRange(i - 4, 5);
+                        }
+                    }
+                }
             }
-            else if (_lastPlayerTeleported?.deadBody?.grabBodyObject != null)
+
+            Plugin.MLS.LogDebug($"Patched beamUpPlayer to drop dead bodies properly{(itemsToKeep != "none" ? $" and keep {itemsToKeep} items" : string.Empty)}.");
+
+            return codeList.AsEnumerable();
+        }
+
+        [HarmonyPatch(typeof(ShipTeleporter), "TeleportPlayerOutWithInverseTeleporter")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> PatchInverseTeleporter(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+            string itemsToKeep = Plugin.KeepItemsDuringInverse.Value.ToLower();
+
+            if (itemsToKeep != "none")
             {
-                // "Drop" the body in the elevator so it marks it as collected scrap for everyone to see
-                _lastPlayerTeleported.SetItemInElevator(true, true, _lastPlayerTeleported.deadBody.grabBodyObject);
+                for (int i = 5; i < codeList.Count; i++)
+                {
+                    if (codeList[i].opcode == OpCodes.Callvirt && (codeList[i].operand as MethodInfo)?.Name == nameof(PlayerControllerB.DropAllHeldItems))
+                    {
+                        if (itemsToKeep == "held")
+                        {
+                            var dropAllExceptHeldDelegate = Transpilers.EmitDelegate<Action<PlayerControllerB>>((player) =>
+                            {
+                                PlayerControllerBPatch.DropAllItemsExceptHeld(player);
+                            });
+
+                            // Replace the function call with our own
+                            codeList[i] = dropAllExceptHeldDelegate;
+
+                            // Remove the two bools (no longer needed) from the stack load code
+                            codeList.RemoveRange(i - 2, 2);
+                        }
+                        else
+                        {
+                            // Remove the 3 lines of code that call this function
+                            codeList.RemoveRange(i - 3, 4);
+                        }
+                    }
+                }
             }
+
+            Plugin.MLS.LogDebug($"Patched TeleportPlayerOutWithInverseTeleporter to keep {itemsToKeep} items.");
+
+            return codeList.AsEnumerable();
         }
     }
 }
