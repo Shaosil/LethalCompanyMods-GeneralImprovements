@@ -12,10 +12,11 @@ namespace GeneralImprovements.Utilities
 
         public static MedStationItem MedStation = null;
 
-        public static void CreateScanNodeOnObject(GameObject obj, int nodeType, int minRange, int maxRange, string headerText)
+        public static void CreateScanNodeOnObject(GameObject obj, int nodeType, int minRange, int maxRange, string headerText, int size = 1)
         {
             var scanNodeObj = new GameObject("ScanNode", typeof(ScanNodeProperties), typeof(BoxCollider));
             scanNodeObj.layer = LayerMask.NameToLayer("ScanNode");
+            scanNodeObj.transform.localScale = Vector3.one * size;
             scanNodeObj.transform.parent = obj.transform;
             scanNodeObj.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
 

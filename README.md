@@ -44,6 +44,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds an option to use keys from any inventory slot, as well as an option to prevent them from despawning when they are used.
 * Adds an option to hide player names.
 * Adds options to bring held or all items when using teleporters.
+* Adds an option to be able to scan the item dropship.
 
 ### MINOR BUGFIXES:
 * Stops all non-scrap objects from showing value (when scanned and sold) when they do not actually have any.
@@ -58,6 +59,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * When loading a file, items in the ship will no longer fall through shelves, tables, etc. May be disabled.
 * Adds an option to fix the personal scanners sensitivity, making it function more reliably, for example being able to ping the ship on Rend.
 * Fixes the ship scan node showing up outside of the ship while flying in to a moon.
+* Fixes the item sales being empty every time a host starts the game, until a day passes.
 
 This pairs well with my other mod, [FlashlightFix.](https://thunderstore.io/c/lethal-company/p/ShaosilGaming/FlashlightFix/)
 

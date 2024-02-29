@@ -1,5 +1,19 @@
 # Changelog
 
+### v1.1.10 - More fixes and improvements
+* Added an option to allow yourself to pull the ship starting lever as a client, before the game starts (defaults to true).
+* Added an option to allow the dropship to be scanned (defaults to false).
+* Updated HidePlayerNames's behavior to only hide names when the ship is not in orbit.
+* Added a "NonScrap" option to the KeepItemsDuringTeleport and KeepItemsDuringInverse config options.
+* Added "Quota #" to the things that get synced on client connect.
+* Optimized the door power monitor so it doesn't drain FPS when active.
+* Fixed the sales not showing up for the host player until the 2nd day.
+* Fixed a minor potential bug when shifting item slots around when not holding anything.
+* Fixed carry weight after teleporting while retaining select items.
+* Fixed vanilla behavior of scan nodes not using their collider sizes when doing line casts.
+* Fixed an exception when calculating outside scrap if a scrap's min value was greater than its max.
+* Removed DLLs from source control (just copy what you need manually from the LethalCompany directory if you build it yourself)
+
 ### v1.1.9 - More fixes and improvements
 * Fixed DaysSinceLastDeath not resetting to "no deaths yet" after players are fired.
 * Fixed better monitors offsets, which was most noticeably incorrect when left aligning text.

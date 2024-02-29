@@ -145,18 +145,21 @@ namespace GeneralImprovements.Patches
 
             // Refresh the current item slot if the player is holding something new
             var newHeldItem = __instance.ItemSlots[__instance.currentItemSlot];
-            if (newHeldItem != null)
+            if (__instance.currentlyHeldObjectServer != newHeldItem)
             {
-                newHeldItem.EquipItem();
+                if (newHeldItem != null)
+                {
+                    newHeldItem.EquipItem();
+                }
                 __instance.twoHanded = false;
                 __instance.twoHandedAnimation = false;
                 __instance.playerBodyAnimator.ResetTrigger("Throw");
                 __instance.playerBodyAnimator.SetBool("Grab", true);
-                if (!string.IsNullOrEmpty(newHeldItem.itemProperties.grabAnim))
+                if (!string.IsNullOrEmpty(newHeldItem?.itemProperties.grabAnim))
                 {
                     __instance.playerBodyAnimator.SetBool(newHeldItem.itemProperties.grabAnim, true);
                 }
-                if (__instance.twoHandedAnimation != newHeldItem.itemProperties.twoHandedAnimation)
+                if (__instance.twoHandedAnimation != newHeldItem?.itemProperties.twoHandedAnimation)
                 {
                     __instance.playerBodyAnimator.ResetTrigger("SwitchHoldAnimationTwoHanded");
                     __instance.playerBodyAnimator.SetTrigger("SwitchHoldAnimationTwoHanded");
@@ -165,8 +168,8 @@ namespace GeneralImprovements.Patches
                 __instance.playerBodyAnimator.SetTrigger("SwitchHoldAnimation");
                 __instance.playerBodyAnimator.SetBool("GrabValidated", true);
                 __instance.playerBodyAnimator.SetBool("cancelHolding", false);
-                __instance.twoHandedAnimation = newHeldItem.itemProperties.twoHandedAnimation;
-                __instance.isHoldingObject = true;
+                __instance.twoHandedAnimation = newHeldItem?.itemProperties.twoHandedAnimation ?? false;
+                __instance.isHoldingObject = newHeldItem != null;
                 __instance.currentlyHeldObjectServer = newHeldItem;
             }
         }
@@ -236,7 +239,8 @@ namespace GeneralImprovements.Patches
         [HarmonyPrefix]
         private static bool ShowNameBillboard()
         {
-            return !Plugin.HidePlayerNames.Value;
+            // Do not show player names if we are hiding them, unless we are orbiting
+            return !(Plugin.HidePlayerNames.Value && !(StartOfRound.Instance?.inShipPhase ?? true));
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), "CalculateSmoothLookingInput")]
@@ -308,16 +312,21 @@ namespace GeneralImprovements.Patches
             player.currentItemSlot = newSlot;
         }
 
-        public static void DropAllItemsExceptHeld(PlayerControllerB player)
+        public static void DropAllItemsExceptHeld(PlayerControllerB player, bool onlyDropScrap)
         {
-            int oldSlot = -1;
+            int oldHeldSlot = -1;
 
             // Had to copy this from DropAllHeldItems() since vanilla code doesn't have a way to discard only a single item from a specific slot
             for (int i = 0; i < player.ItemSlots.Length; i++)
             {
-                if (player.currentlyHeldObjectServer != null && player.ItemSlots[i] == player.currentlyHeldObjectServer)
+                // If the checked item is held or not scrap (if we only drop scrap), skip this one
+                bool isHeldItem = player.currentlyHeldObjectServer != null && player.ItemSlots[i] == player.currentlyHeldObjectServer && !onlyDropScrap;
+                if (isHeldItem || (player.ItemSlots[i] != null && !player.ItemSlots[i].itemProperties.isScrap && onlyDropScrap))
                 {
-                    oldSlot = i;
+                    if (isHeldItem)
+                    {
+                        oldHeldSlot = i;
+                    }
                     continue;
                 }
 
@@ -357,16 +366,22 @@ namespace GeneralImprovements.Patches
                 }
             }
 
-            // Shift if necessary and select the new slot
+            // Shift whatever necessary and select the new slot
             ItemLeftSlot(player);
             for (int i = 0; i < player.ItemSlots.Length; i++)
             {
-                if (oldSlot > -1 && i < oldSlot && player.ItemSlots[i] == player.currentlyHeldObjectServer)
+                if (oldHeldSlot > -1 && i < oldHeldSlot && player.ItemSlots[i] == player.currentlyHeldObjectServer)
                 {
                     SelectNewSlotLocal(player, i);
                     break;
                 }
             }
+
+            if (player.IsOwner)
+            {
+                HUDManager.Instance.holdingTwoHandedItem.enabled = player.twoHanded;
+            }
+            player.carryWeight = 1 + player.ItemSlots.Sum(i => (i?.itemProperties.weight ?? 1) - 1);
         }
     }
 }

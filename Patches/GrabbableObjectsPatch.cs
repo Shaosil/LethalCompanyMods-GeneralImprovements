@@ -178,7 +178,7 @@ namespace GeneralImprovements.Patches
             var valuables = UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(o => !o.isInShipRoom && !o.isInElevator && o.itemProperties.minValue > 0).ToList();
 
             float multiplier = RoundManager.Instance.scrapValueMultiplier;
-            int sum = approximate ? (int)Math.Round(valuables.Sum(i => fixedRandom.Next(i.itemProperties.minValue, i.itemProperties.maxValue) * multiplier))
+            int sum = approximate ? (int)Math.Round(valuables.Sum(i => fixedRandom.Next(Mathf.Clamp(i.itemProperties.minValue, 0, i.itemProperties.maxValue), i.itemProperties.maxValue) * multiplier))
                 : valuables.Sum(i => i.scrapValue);
 
             return new KeyValuePair<int, int>(valuables.Count, sum);

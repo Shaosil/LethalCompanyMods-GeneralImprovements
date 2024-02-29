@@ -92,7 +92,7 @@ namespace GeneralImprovements.Utilities
 
         private static bool _usingAnyMonitorTweaks = false;
         private static int _lastUpdatedCredits = -1;
-        private static float _lastUpdatedDoorPower = -1;
+        private static float _lastUpdatedDoorPower = -1, _updateDoorPowerTimer = 0;
         private static Monitors _newMonitors;
 
         // Weather animation
@@ -714,12 +714,20 @@ namespace GeneralImprovements.Utilities
 
         public static void UpdateDoorPowerMonitors(bool force = false)
         {
+            if (_updateDoorPowerTimer > 0)
+            {
+                _updateDoorPowerTimer -= Time.deltaTime;
+            }
+
             // Only update if there is a change
             float doorPower = HangarShipDoorPatch.Instance?.doorPower ?? 1;
-            if (_doorPowerMonitorTexts.Any() && (force || _lastUpdatedDoorPower != doorPower))
+            if (_doorPowerMonitorTexts.Any() && (force || (_lastUpdatedDoorPower != doorPower && _updateDoorPowerTimer <= 0)))
             {
                 _lastUpdatedDoorPower = doorPower;
                 UpdateGenericTextList(_doorPowerMonitorTexts, $"DOOR POWER:\n{Mathf.RoundToInt(_lastUpdatedDoorPower * 100)}%");
+
+                // Limit FPS to 10
+                _updateDoorPowerTimer = 0.1f;
             }
         }
 

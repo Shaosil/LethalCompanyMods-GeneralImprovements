@@ -59,11 +59,11 @@ namespace GeneralImprovements.Patches
                     }
                     else if (itemsToKeep != "none")
                     {
-                        if (itemsToKeep == "held")
+                        if (itemsToKeep == "held" || itemsToKeep == "nonscrap")
                         {
                             var dropAllExceptHeldDelegate = Transpilers.EmitDelegate<Action<PlayerControllerB>>((player) =>
                             {
-                                PlayerControllerBPatch.DropAllItemsExceptHeld(player);
+                                PlayerControllerBPatch.DropAllItemsExceptHeld(player, itemsToKeep == "nonscrap");
                             });
 
                             // Replace the drop function with our own
@@ -74,7 +74,7 @@ namespace GeneralImprovements.Patches
                         }
                         else
                         {
-                            // Remove the 4 lines of code that call this function
+                            // Remove the 4 lines of code that call the drop function
                             codeList.RemoveRange(i - 4, 5);
                         }
                     }
@@ -99,11 +99,11 @@ namespace GeneralImprovements.Patches
                 {
                     if (codeList[i].opcode == OpCodes.Callvirt && (codeList[i].operand as MethodInfo)?.Name == nameof(PlayerControllerB.DropAllHeldItems))
                     {
-                        if (itemsToKeep == "held")
+                        if (itemsToKeep == "held" || itemsToKeep == "nonscrap")
                         {
                             var dropAllExceptHeldDelegate = Transpilers.EmitDelegate<Action<PlayerControllerB>>((player) =>
                             {
-                                PlayerControllerBPatch.DropAllItemsExceptHeld(player);
+                                PlayerControllerBPatch.DropAllItemsExceptHeld(player, itemsToKeep == "nonscrap");
                             });
 
                             // Replace the function call with our own
@@ -114,7 +114,7 @@ namespace GeneralImprovements.Patches
                         }
                         else
                         {
-                            // Remove the 3 lines of code that call this function
+                            // Remove the 3 lines of code that call the drop function
                             codeList.RemoveRange(i - 3, 4);
                         }
                     }

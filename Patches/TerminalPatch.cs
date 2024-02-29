@@ -155,6 +155,14 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateSalesMonitors();
         }
 
+        [HarmonyPatch(typeof(Terminal), nameof(InitializeItemSalesPercentages))]
+        [HarmonyPrefix]
+        private static bool InitializeItemSalesPercentages(Terminal __instance)
+        {
+            // Do nothing if we've already initialized these
+            return __instance.itemSalesPercentages == null || __instance.itemSalesPercentages.Length == 0;
+        }
+
         [HarmonyPatch(typeof(Terminal), nameof(Update))]
         [HarmonyPostfix]
         private static void Update(Terminal __instance)

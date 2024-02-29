@@ -43,8 +43,6 @@ namespace GeneralImprovements
         private const string FixesSection = "Fixes";
         public static ConfigEntry<bool> FixInternalFireExits { get; private set; }
         public static ConfigEntry<bool> FixItemsFallingThrough { get; private set; }
-        public static ConfigEntry<bool> FixPersonalScanner { get; private set; }
-        public static ConfigEntry<bool> ScanHeldPlayerItems { get; private set; }
         public static ConfigEntry<bool> AllowLookDownMore { get; private set; }
         public static ConfigEntry<int> DropShipItemLimit { get; private set; }
         public static ConfigEntry<int> SellCounterItemLimit { get; private set; }
@@ -53,6 +51,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> SkipStartupScreen { get; private set; }
         public static ConfigEntry<string> AutoSelectLaunchMode { get; private set; }
         public static ConfigEntry<bool> AlwaysShowNews { get; private set; }
+        public static ConfigEntry<bool> AllowPreGameLeverPullAsClient { get; private set; }
 
         private const string InventorySection = "Inventory";
         public static ConfigEntry<bool> PickupInOrder { get; private set; }
@@ -70,6 +69,11 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> ScanCommandUsesExactAmount { get; private set; }
         public static ConfigEntry<bool> UnlockDoorsFromInventory { get; private set; }
         public static ConfigEntry<bool> KeysHaveInfiniteUses { get; private set; }
+
+        private const string ScannerSection = "Scanner";
+        public static ConfigEntry<bool> FixPersonalScanner { get; private set; }
+        public static ConfigEntry<bool> ScanHeldPlayerItems { get; private set; }
+        public static ConfigEntry<bool> ShowDropshipOnScanner { get; private set; }
 
         private const string ShipSection = "Ship";
         public static ConfigEntry<bool> HideClipboardAndStickyNote { get; private set; }
@@ -134,6 +138,9 @@ namespace GeneralImprovements
             Harmony.CreateAndPatchAll(typeof(HUDManagerPatch));
             MLS.LogDebug("HUDManager patched.");
 
+            Harmony.CreateAndPatchAll(typeof(ItemDropshipPatch));
+            MLS.LogDebug("ItemDropship patched.");
+
             Harmony.CreateAndPatchAll(typeof(ManualCameraRendererPatch));
             MLS.LogDebug("ManualCameraRenderer patched.");
 
@@ -151,6 +158,9 @@ namespace GeneralImprovements
 
             Harmony.CreateAndPatchAll(typeof(ShipTeleporterPatch));
             MLS.LogDebug("ShipTeleporter patched.");
+
+            Harmony.CreateAndPatchAll(typeof(StartMatchLeverPatch));
+            MLS.LogDebug("StartMatchLever patched.");
 
             Harmony.CreateAndPatchAll(typeof(StartOfRoundPatch));
             MLS.LogDebug("StartOfRound patched.");
@@ -186,7 +196,7 @@ namespace GeneralImprovements
 
             var validSnapRotations = Enumerable.Range(0, 360 / 15).Select(n => n * 15).Where(n => n == 0 || 360 % n == 0).ToArray();
 
-            var validItemsToKeep = new[] { "None", "Held", "All" };
+            var validItemsToKeep = new[] { "None", "Held", "NonScrap", "All" };
 
             var validToolTypes = new List<Type> { typeof(BoomboxItem), typeof(ExtensionLadderItem), typeof(FlashlightItem), typeof(JetpackItem), typeof(LockPicker), typeof(RadarBoosterItem),
                                                 typeof(Shovel), typeof(SprayPaintItem), typeof(StunGrenadeItem), typeof(TetraChemicalItem), typeof(WalkieTalkie), typeof(PatcherTool) };
@@ -214,8 +224,6 @@ namespace GeneralImprovements
             // Fixes
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
             FixItemsFallingThrough = Config.Bind(FixesSection, nameof(FixItemsFallingThrough), true, "Fixes items falling through furniture on the ship when loading the game.");
-            FixPersonalScanner = Config.Bind(FixesSection, nameof(FixPersonalScanner), false, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you, and the ship/main entrance.");
-            ScanHeldPlayerItems = Config.Bind(FixesSection, nameof(ScanHeldPlayerItems), false, "If this and FixPersonalScanner are set to true, the scanner will also ping items in other players' hands.");
             AllowLookDownMore = Config.Bind(FixesSection, nameof(AllowLookDownMore), true, "If set to true, you will be able to look down at a steeper angle than vanilla.");
             DropShipItemLimit = Config.Bind(FixesSection, nameof(DropShipItemLimit), 24, new ConfigDescription("Sets the max amount of items a single dropship delivery will allow. Vanilla = 12.", new AcceptableValueRange<int>(12, 100)));
             SellCounterItemLimit = Config.Bind(FixesSection, nameof(SellCounterItemLimit), 24, new ConfigDescription("Sets the max amount of items the company selling counter will hold at one time. Vanilla = 12.", new AcceptableValueRange<int>(12, 100)));
@@ -224,6 +232,7 @@ namespace GeneralImprovements
             SkipStartupScreen = Config.Bind(GameLaunchSection, nameof(SkipStartupScreen), true, "Skips the main menu loading screen bootup animation.");
             AutoSelectLaunchMode = Config.Bind(GameLaunchSection, nameof(AutoSelectLaunchMode), string.Empty, new ConfigDescription("If set to 'ONLINE' or 'LAN', will automatically launch the correct mode, saving you from having to click the menu option when the game loads.", new AcceptableValueList<string>(string.Empty, "ONLINE", "LAN")));
             AlwaysShowNews = Config.Bind(GameLaunchSection, nameof(AlwaysShowNews), false, "If set to true, will always display the news popup when starting the game.");
+            AllowPreGameLeverPullAsClient = Config.Bind(GameLaunchSection, nameof(AllowPreGameLeverPullAsClient), true, "If set to true, you will be able to pull the ship lever to start the game as a connected player.");
 
             // Inventory
             PickupInOrder = Config.Bind(InventorySection, nameof(PickupInOrder), false, "When picking up items, will always put them in left - right order.");
@@ -240,6 +249,11 @@ namespace GeneralImprovements
             UnlockDoorsFromInventory = Config.Bind(MechanicsSection, nameof(UnlockDoorsFromInventory), false, "If set to true, keys in your inventory do not have to be held when unlocking facility doors.");
             KeysHaveInfiniteUses = Config.Bind(MechanicsSection, nameof(KeysHaveInfiniteUses), false, "If set to true, keys will not despawn when they are used.");
 
+            // Scanner
+            FixPersonalScanner = Config.Bind(ScannerSection, nameof(FixPersonalScanner), false, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you, and the ship/main entrance.");
+            ScanHeldPlayerItems = Config.Bind(ScannerSection, nameof(ScanHeldPlayerItems), false, "If this and FixPersonalScanner are set to true, the scanner will also ping items in other players' hands.");
+            ShowDropshipOnScanner = Config.Bind(ScannerSection, nameof(ShowDropshipOnScanner), false, "If set to true, the item drop ship will be scannable.");
+
             // Ship
             HideClipboardAndStickyNote = Config.Bind(ShipSection, nameof(HideClipboardAndStickyNote), false, "If set to true, the game will not show the clipboard or sticky note when the game loads.");
             SnapObjectsByDegrees = Config.Bind(ShipSection, nameof(SnapObjectsByDegrees), 45, new ConfigDescription("Build mode will switch to snap turning (press instead of hold) by this many degrees at a time. Setting it to 0 uses vanilla behavior.", new AcceptableValueList<int>(validSnapRotations)));
@@ -253,8 +267,8 @@ namespace GeneralImprovements
             // Teleporters
             RegularTeleporterCooldown = Config.Bind(TeleportersSection, nameof(RegularTeleporterCooldown), 10, new ConfigDescription("How many seconds to wait in between button presses for the REGULAR teleporter. Vanilla = 10.", new AcceptableValueRange<int>(0, 300)));
             InverseTeleporterCooldown = Config.Bind(TeleportersSection, nameof(InverseTeleporterCooldown), 10, new ConfigDescription("How many seconds to wait in between button presses for the INVERSE teleporter. Vanilla = 210.", new AcceptableValueRange<int>(0, 300)));
-            KeepItemsDuringTeleport = Config.Bind(TeleportersSection, nameof(KeepItemsDuringTeleport), validItemsToKeep[0], new ConfigDescription("Whether to keep Held or All items in inventory when using the regular teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!", new AcceptableValueList<string>(validItemsToKeep)));
-            KeepItemsDuringInverse = Config.Bind(TeleportersSection, nameof(KeepItemsDuringInverse), validItemsToKeep[0], new ConfigDescription("Whether to keep Held or All items in inventory when using the inverse teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!", new AcceptableValueList<string>(validItemsToKeep)));
+            KeepItemsDuringTeleport = Config.Bind(TeleportersSection, nameof(KeepItemsDuringTeleport), validItemsToKeep[0], new ConfigDescription("Whether to keep Held, Non Scrap, or All items in inventory when using the regular teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!", new AcceptableValueList<string>(validItemsToKeep)));
+            KeepItemsDuringInverse = Config.Bind(TeleportersSection, nameof(KeepItemsDuringInverse), validItemsToKeep[0], new ConfigDescription("Whether to keep Held, Non Scrap, or All items in inventory when using the inverse teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!", new AcceptableValueList<string>(validItemsToKeep)));
 
             // Terminal
             TerminalHistoryItemCount = Config.Bind(TerminalSection, nameof(TerminalHistoryItemCount), 20, new ConfigDescription("How many items to keep in your terminal's command history. Previous terminal commands may be navigated by using the up/down arrow keys.", new AcceptableValueRange<int>(0, 100)));
@@ -443,6 +457,10 @@ namespace GeneralImprovements
                 case "ShipSalesMonitorNum": convertMonitor(MonitorNames.Sales); break;
                 case "ShipInternalCamMonitorNum": convertMonitor(MonitorNames.InternalCam); break;
                 case "ShipExternalCamMonitorNum": convertMonitor(MonitorNames.ExternalCam); break;
+
+                // A couple things under fixes section moving to scanner section
+                case "FixPersonalScanner": FixPersonalScanner.Value = entry.Value.ToUpper() == "TRUE"; break;
+                case "ScanHeldPlayerItems": ScanHeldPlayerItems.Value = entry.Value.ToUpper() == "TRUE"; break;
 
                 default:
                     MLS.LogDebug("No matching migration");

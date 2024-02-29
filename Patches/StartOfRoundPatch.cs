@@ -174,7 +174,7 @@ namespace GeneralImprovements.Patches
                     var clientParams = new ClientRpcParams { Send = new ClientRpcSendParams { TargetClientIds = new[] { clientId } } };
                     var stats = __instance.gameStats;
                     Plugin.MLS.LogInfo("Server sending extra data sync RPC.");
-                    NetworkHelper.Instance.SyncExtraDataOnConnectClientRpc(stats.daysSpent, stats.deaths, DaysSinceLastDeath, clientParams);
+                    NetworkHelper.Instance.SyncExtraDataOnConnectClientRpc(TimeOfDay.Instance.timesFulfilledQuota, stats.daysSpent, stats.deaths, DaysSinceLastDeath, clientParams);
                 }
             }
         }

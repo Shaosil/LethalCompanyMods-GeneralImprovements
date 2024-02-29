@@ -92,6 +92,35 @@ namespace GeneralImprovements.Patches
             return false;
         }
 
+        [HarmonyPatch(typeof(HUDManager), nameof(MeetsScanNodeRequirements))]
+        [HarmonyPrefix]
+        private static bool MeetsScanNodeRequirements(ScanNodeProperties node, PlayerControllerB playerScript, ref bool __result)
+        {
+            if (node == null)
+            {
+                __result = false;
+            }
+            else
+            {
+                float dist = Vector3.Distance(playerScript.transform.position, node.transform.position);
+                bool inRange = dist <= node.maxRange && dist >= node.minRange;
+                bool collidesWithRoom = false;
+
+                // If we are in range, include both scan node and room layers when doing the line cast
+                if (inRange)
+                {
+                    var mask = LayerMask.GetMask("ScanNode", "Room");
+                    Physics.Linecast(playerScript.gameplayCamera.transform.position, node.transform.position, out var hitInfo, mask, QueryTriggerInteraction.Ignore);
+                    collidesWithRoom = hitInfo.transform?.gameObject.layer == LayerMask.NameToLayer("Room");
+                }
+
+                __result = inRange && (!node.requiresLineOfSight || !collidesWithRoom);
+            }
+
+            // Do not call the original method
+            return false;
+        }
+
         [HarmonyPatch(typeof(HUDManager), nameof(UpdateScanNodes))]
         [HarmonyPostfix]
         private static void UpdateScanNodes(RectTransform[] ___scanElements, Dictionary<RectTransform, ScanNodeProperties> ___scanNodes)
