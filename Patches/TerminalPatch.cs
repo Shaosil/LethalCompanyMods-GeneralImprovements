@@ -137,7 +137,8 @@ namespace GeneralImprovements.Patches
             if (modifiedDisplayText.Contains("[scanForItems]"))
             {
                 var scannedItems = GrabbableObjectsPatch.GetOutsideScrap(!Plugin.ScanCommandUsesExactAmount.Value);
-                modifiedDisplayText = modifiedDisplayText.Replace("[scanForItems]", $"There are {scannedItems.Key} objects outside the ship, totalling at an approximate value of ${scannedItems.Value}.");
+                string desc = Plugin.ScanCommandUsesExactAmount.Value ? "exact" : "approximate";
+                modifiedDisplayText = modifiedDisplayText.Replace("[scanForItems]", $"There are {scannedItems.Key} objects outside the ship, totalling at an {desc} value of ${scannedItems.Value}.");
             }
         }
 

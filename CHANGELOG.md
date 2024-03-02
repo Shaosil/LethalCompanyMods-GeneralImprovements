@@ -1,5 +1,10 @@
 # Changelog
 
+### v1.1.11 - Hotfix
+* Updated the ship scan text to say 'exact' or 'approximate' based on the value of ScanCommandUsesExactAmount in the config.
+* Fixed the AllowPreGameLeverPullAsClient setting softlocking the game if a client tried to use it.
+* Fixed the internal and external materials not being created in some cases with better monitors (namely when [LethalExpansion](https://thunderstore.io/c/lethal-company/p/HolographicWings/LethalExpansion/) was loaded).
+
 ### v1.1.10 - More fixes and improvements
 * Added an option to allow yourself to pull the ship starting lever as a client, before the game starts (defaults to true).
 * Added an option to allow the dropship to be scanned (defaults to false).

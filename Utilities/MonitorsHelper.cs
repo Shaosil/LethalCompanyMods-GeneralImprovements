@@ -437,8 +437,8 @@ namespace GeneralImprovements.Utilities
                     case MonitorNames.TotalDeaths: curAction = t => { _totalDeathsMonitorTexts.Add(t); UpdateDeathMonitors(); }; break;
                     case MonitorNames.DaysSinceDeath: curAction = t => { _daysSinceDeathMonitorTexts.Add(t); UpdateDeathMonitors(); }; break;
 
-                    case MonitorNames.InternalCam: targetMat = _oldMonitorsObject.GetComponent<MeshRenderer>().materials[2]; break;
-                    case MonitorNames.ExternalCam: targetMat = _oldBigMonitors.GetComponent<MeshRenderer>().materials[2]; break;
+                    case MonitorNames.InternalCam: targetMat = _oldMonitorsObject.GetComponent<MeshRenderer>().materials.FirstOrDefault(m => m.name.StartsWith("ShipScreen")); break;
+                    case MonitorNames.ExternalCam: targetMat = _oldBigMonitors.GetComponent<MeshRenderer>().materials.FirstOrDefault(m => m.name.StartsWith("ShipScreen")); break;
                 }
 
                 if (curAction != null || targetMat != null)
