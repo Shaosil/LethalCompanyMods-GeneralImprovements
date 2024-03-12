@@ -38,20 +38,21 @@ namespace GeneralImprovements.Patches
                 _hpText.name = "HP";
             }
 
-            // Create lightning overlays on each inventory slot
-            if (Plugin.ShowLightningWarnings.Value)
-            {
-                _lightningOverlays = new List<SpriteRenderer>();
-                for (int i = 0; i < __instance.itemSlotIconFrames.Length; i++)
-                {
-                    var overlay = Object.Instantiate(AssetBundleHelper.LightningOverlay, __instance.itemSlotIconFrames[i].transform);
-                    overlay.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-                    overlay.transform.localScale = Vector3.one;
+            CreateLightningOverlays(__instance.itemSlotIconFrames);
+        }
 
-                    var sprite = overlay.GetComponent<SpriteRenderer>();
-                    sprite.enabled = false;
-                    _lightningOverlays.Add(sprite);
-                }
+        public static void CreateLightningOverlays(UnityEngine.UI.Image[] itemSlotIconFrames)
+        {
+            _lightningOverlays = new List<SpriteRenderer>();
+            for (int i = 0; i < itemSlotIconFrames.Length; i++)
+            {
+                var overlay = Object.Instantiate(AssetBundleHelper.LightningOverlay, itemSlotIconFrames[i].transform);
+                overlay.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                overlay.transform.localScale = Vector3.one;
+
+                var sprite = overlay.GetComponent<SpriteRenderer>();
+                sprite.enabled = false;
+                _lightningOverlays.Add(sprite);
             }
         }
 
@@ -171,6 +172,11 @@ namespace GeneralImprovements.Patches
                 // Toggle lightning overlays on item slots when needed
                 if (_lightningOverlays.Any() && HUDManager.Instance != null && StartOfRound.Instance.localPlayerController != null)
                 {
+                    if (HUDManager.Instance.itemSlotIconFrames.Length > _lightningOverlays.Count)
+                    {
+                        CreateLightningOverlays(HUDManager.Instance.itemSlotIconFrames);
+                    }
+
                     for (int i = 0; i < Mathf.Min(HUDManager.Instance.itemSlotIconFrames.Length, _lightningOverlays.Count, StartOfRound.Instance.localPlayerController.ItemSlots.Length); i++)
                     {
                         bool shouldBeEnabled = CurrentLightningTarget != null && StartOfRound.Instance.localPlayerController.ItemSlots[i] == CurrentLightningTarget;
