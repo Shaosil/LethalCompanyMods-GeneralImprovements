@@ -494,9 +494,11 @@ namespace GeneralImprovements.Utilities
         {
             if (_profitQuotaTexts.Any() || _deadlineTexts.Any())
             {
-                UpdateGenericTextList(_profitQuotaTexts, StartOfRound.Instance.profitQuotaMonitorText?.text);
-                UpdateGenericTextList(_deadlineTexts, StartOfRound.Instance.deadlineMonitorText?.text);
-                Plugin.MLS.LogInfo("Updated profit quota and deadline monitors");
+                if (UpdateGenericTextList(_profitQuotaTexts, StartOfRound.Instance.profitQuotaMonitorText?.text)
+                    && UpdateGenericTextList(_deadlineTexts, StartOfRound.Instance.deadlineMonitorText?.text))
+                {
+                    Plugin.MLS.LogInfo("Updated profit quota and deadline monitors");
+                }
             }
         }
 
@@ -510,8 +512,10 @@ namespace GeneralImprovements.Utilities
             var allScrap = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom && o.isInElevator && !o.isHeld).ToList();
             int shipLoot = allScrap.Sum(o => o.scrapValue);
 
-            UpdateGenericTextList(_shipScrapMonitorTexts, $"SCRAP IN SHIP:\n${shipLoot}");
-            Plugin.MLS.LogInfo($"Set ship scrap total to ${shipLoot} ({allScrap.Count} items).");
+            if (UpdateGenericTextList(_shipScrapMonitorTexts, $"SCRAP IN SHIP:\n${shipLoot}"))
+            {
+                Plugin.MLS.LogInfo($"Set ship scrap total to ${shipLoot} ({allScrap.Count} items).");
+            }
         }
 
         public static void UpdateScrapLeftMonitors()
@@ -519,15 +523,20 @@ namespace GeneralImprovements.Utilities
             if (_scrapLeftMonitorTexts.Any())
             {
                 var outsideScrap = GrabbableObjectsPatch.GetOutsideScrap(!Plugin.ScanCommandUsesExactAmount.Value);
+                bool updatedText = false;
                 if (outsideScrap.Key > 0)
                 {
-                    UpdateGenericTextList(_scrapLeftMonitorTexts, $"SCRAP LEFT:\n{outsideScrap.Key} ITEMS\n${outsideScrap.Value}");
+                    updatedText = UpdateGenericTextList(_scrapLeftMonitorTexts, $"SCRAP LEFT:\n{outsideScrap.Key} ITEMS\n${outsideScrap.Value}");
                 }
                 else
                 {
-                    UpdateGenericTextList(_scrapLeftMonitorTexts, "NO EXTERNAL SCRAP DETECTED");
+                    updatedText = UpdateGenericTextList(_scrapLeftMonitorTexts, "NO EXTERNAL SCRAP DETECTED");
                 }
-                Plugin.MLS.LogInfo("Updated remaining scrap display.");
+
+                if (updatedText)
+                {
+                    Plugin.MLS.LogInfo("Updated remaining scrap display.");
+                }
             }
         }
 
@@ -544,8 +553,11 @@ namespace GeneralImprovements.Utilities
                 {
                     time = "TIME:\nPENDING";
                 }
-                UpdateGenericTextList(_timeMonitorTexts, time);
-                Plugin.MLS.LogDebug("Updated time display.");
+
+                if (UpdateGenericTextList(_timeMonitorTexts, time))
+                {
+                    Plugin.MLS.LogDebug("Updated time display.");
+                }
             }
         }
 
@@ -555,7 +567,10 @@ namespace GeneralImprovements.Utilities
             {
                 if (_weatherMonitorTexts.Any())
                 {
-                    UpdateGenericTextList(_weatherMonitorTexts, $"WEATHER:\n{(StartOfRound.Instance.currentLevel?.currentWeather.ToString() ?? string.Empty)}");
+                    if (UpdateGenericTextList(_weatherMonitorTexts, $"WEATHER:\n{(StartOfRound.Instance.currentLevel?.currentWeather.ToString() ?? string.Empty)}"))
+                    {
+                        Plugin.MLS.LogInfo("Updated basic weather monitors");
+                    }
                 }
 
                 if (_fancyWeatherMonitorTexts.Any())
@@ -584,10 +599,12 @@ namespace GeneralImprovements.Utilities
 
                     _curWeatherAnimIndex = 0;
                     _weatherAnimTimer = 0;
-                    UpdateGenericTextList(_fancyWeatherMonitorTexts, _curWeatherAnimations[_curWeatherAnimIndex]);
-                }
 
-                Plugin.MLS.LogInfo("Updated weather monitor");
+                    if (UpdateGenericTextList(_fancyWeatherMonitorTexts, _curWeatherAnimations[_curWeatherAnimIndex]))
+                    {
+                        Plugin.MLS.LogInfo("Updated fancy weather monitors");
+                    }
+                }
             }
         }
 
@@ -681,15 +698,21 @@ namespace GeneralImprovements.Utilities
                         }
                     }
                 }
+
+                bool updatedText = false;
                 if (numSales <= 0)
                 {
-                    UpdateGenericTextList(_salesMonitorTexts, "NO SALES TODAY");
+                    updatedText = UpdateGenericTextList(_salesMonitorTexts, "NO SALES TODAY");
                 }
                 else
                 {
-                    UpdateGenericTextList(_salesMonitorTexts, $"{numSales} SALE{(numSales == 1 ? string.Empty : "S")}:\n{_curSalesAnimations[0]}");
+                    updatedText = UpdateGenericTextList(_salesMonitorTexts, $"{numSales} SALE{(numSales == 1 ? string.Empty : "S")}:\n{_curSalesAnimations[0]}");
                 }
-                Plugin.MLS.LogInfo("Updated sales display.");
+
+                if (updatedText)
+                {
+                    Plugin.MLS.LogInfo("Updated sales display.");
+                }
             }
         }
 
@@ -706,8 +729,11 @@ namespace GeneralImprovements.Utilities
                 if (_creditsMonitorTexts.Any() && (force || groupCredits != _lastUpdatedCredits))
                 {
                     _lastUpdatedCredits = groupCredits;
-                    UpdateGenericTextList(_creditsMonitorTexts, $"CREDITS:\n${_lastUpdatedCredits}");
-                    Plugin.MLS.LogInfo("Updated credits display.");
+
+                    if (UpdateGenericTextList(_creditsMonitorTexts, $"CREDITS:\n${_lastUpdatedCredits}"))
+                    {
+                        Plugin.MLS.LogInfo("Updated credits display.");
+                    }
                 }
             }
         }
@@ -735,8 +761,10 @@ namespace GeneralImprovements.Utilities
         {
             if (_totalDaysMonitorTexts.Any() && StartOfRound.Instance.gameStats != null)
             {
-                UpdateGenericTextList(_totalDaysMonitorTexts, $"DAY {StartOfRound.Instance.gameStats.daysSpent + 1}");
-                Plugin.MLS.LogInfo("Updated total days display.");
+                if (UpdateGenericTextList(_totalDaysMonitorTexts, $"DAY {StartOfRound.Instance.gameStats.daysSpent + 1}"))
+                {
+                    Plugin.MLS.LogInfo("Updated total days display.");
+                }
             }
         }
 
@@ -744,8 +772,10 @@ namespace GeneralImprovements.Utilities
         {
             if (_totalQuotasMonitorTexts.Any() && TimeOfDay.Instance != null)
             {
-                UpdateGenericTextList(_totalQuotasMonitorTexts, $"QUOTA {TimeOfDay.Instance.timesFulfilledQuota + 1}");
-                Plugin.MLS.LogInfo("Updated total quotas display.");
+                if (UpdateGenericTextList(_totalQuotasMonitorTexts, $"QUOTA {TimeOfDay.Instance.timesFulfilledQuota + 1}"))
+                {
+                    Plugin.MLS.LogInfo("Updated total quotas display.");
+                }
             }
         }
 
@@ -753,8 +783,10 @@ namespace GeneralImprovements.Utilities
         {
             if (_totalDeathsMonitorTexts.Any() && StartOfRound.Instance?.gameStats != null)
             {
-                UpdateGenericTextList(_totalDeathsMonitorTexts, $"DEATHS:\n{StartOfRound.Instance.gameStats.deaths}");
-                Plugin.MLS.LogInfo("Updated total deaths display.");
+                if (UpdateGenericTextList(_totalDeathsMonitorTexts, $"DEATHS:\n{StartOfRound.Instance.gameStats.deaths}"))
+                {
+                    Plugin.MLS.LogInfo("Updated total deaths display.");
+                }
             }
 
             if (_daysSinceDeathMonitorTexts.Any() && StartOfRound.Instance != null)
@@ -778,28 +810,40 @@ namespace GeneralImprovements.Utilities
                     }
                 }
 
+                bool updatedText = false;
                 if (StartOfRoundPatch.DaysSinceLastDeath >= 0)
                 {
-                    UpdateGenericTextList(_daysSinceDeathMonitorTexts, $"{StartOfRoundPatch.DaysSinceLastDeath} DAY{(StartOfRoundPatch.DaysSinceLastDeath == 1 ? string.Empty : "S")} WITHOUT DEATHS");
+                    updatedText = UpdateGenericTextList(_daysSinceDeathMonitorTexts, $"{StartOfRoundPatch.DaysSinceLastDeath} DAY{(StartOfRoundPatch.DaysSinceLastDeath == 1 ? string.Empty : "S")} WITHOUT DEATHS");
                 }
                 else
                 {
-                    UpdateGenericTextList(_daysSinceDeathMonitorTexts, "ZERO DEATHS (YET)");
+                    updatedText = UpdateGenericTextList(_daysSinceDeathMonitorTexts, "ZERO DEATHS (YET)");
                 }
-                Plugin.MLS.LogInfo("Updated days since death display.");
+
+                if (updatedText)
+                {
+                    Plugin.MLS.LogInfo("Updated days since death display.");
+                }
             }
         }
 
-        private static void UpdateGenericTextList(List<TextMeshProUGUI> textList, string text)
+        private static bool UpdateGenericTextList(List<TextMeshProUGUI> textList, string text)
         {
+            bool allSuccess = true;
+
             foreach (var t in textList)
             {
                 t.text = text;
                 if (_newMonitors != null)
                 {
-                    _newMonitors.RenderCameraAfterTextChange(t);
+                    if (!_newMonitors.RenderCameraAfterTextChange(t))
+                    {
+                        allSuccess = false;
+                    }
                 }
             }
+
+            return allSuccess;
         }
 
         public static void ToggleExtraMonitorsPower(bool on)

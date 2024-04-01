@@ -24,6 +24,13 @@ namespace GeneralImprovements.Patches
                 Plugin.MLS.LogInfo($"Storing surplus quota on server: ${_leftoverFunds}");
             }
 
+            if (!Plugin.AllowOvertimeBonus.Value)
+            {
+                // Reset a couple variables that are used in overtime calculations. They are important elsewhere but will be set again before they are used.
+                __instance.quotaFulfilled = __instance.profitQuota;
+                __instance.daysUntilDeadline = 0;
+            }
+
             return true;
         }
 

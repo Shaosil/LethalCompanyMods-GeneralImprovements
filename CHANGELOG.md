@@ -1,5 +1,11 @@
 # Changelog
 
+### v1.1.12 - More small fixes and improvements
+* Hosts now have an option to disable overtime bonuses (defaults to false).
+* No longer doing any render calls for better monitors if the player is outside of the ship. May be disabled in config (for example if you want to see udpates when spectating).
+* Updated wording of ship lever when disabled to be "[Ship in motion]" (instead of "[Wait for ship to land]", which also shows when taking off).
+* Fixed some cases of spray paint colors being different between host and clients.
+
 ### v1.1.11 - Hotfix
 * Updated the ship scan text to say 'exact' or 'approximate' based on the value of ScanCommandUsesExactAmount in the config.
 * Fixed the AllowPreGameLeverPullAsClient setting softlocking the game if a client tried to use it.

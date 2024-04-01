@@ -124,9 +124,10 @@ namespace GeneralImprovements.Assets
             _initialMaterialAssignments[index] = materialAssignment;
         }
 
-        public void RenderCameraAfterTextChange(TextMeshProUGUI text)
+        public bool RenderCameraAfterTextChange(TextMeshProUGUI text)
         {
-            if (_textsToMats.ContainsKey(text))
+            // Only render if we have matching textures, and we are either in orbit, or in the ship (or set to always render)
+            if (_textsToMats.ContainsKey(text) && (StartOfRound.Instance.inShipPhase || Plugin.AlwaysRenderMonitors.Value || (StartOfRound.Instance.localPlayerController?.isInElevator ?? false)))
             {
                 // Move the camera to be in front of the text component
                 _camera.transform.parent = text.transform;
@@ -152,7 +153,11 @@ namespace GeneralImprovements.Assets
                 _textsToMats[text].mainTexture = tex;
 
                 Graphics.SetRenderTarget(oldRenderTex);
+
+                return true;
             }
+
+            return false;
         }
 
         public void TogglePower(bool on)

@@ -39,6 +39,7 @@ namespace GeneralImprovements
         public static ConfigEntry<int> ShipInternalCamFPS { get; private set; }
         public static ConfigEntry<int> ShipExternalCamSizeMultiplier { get; private set; }
         public static ConfigEntry<int> ShipExternalCamFPS { get; private set; }
+        public static ConfigEntry<bool> AlwaysRenderMonitors { get; private set; }
 
         private const string FixesSection = "Fixes";
         public static ConfigEntry<bool> FixInternalFireExits { get; private set; }
@@ -65,6 +66,7 @@ namespace GeneralImprovements
         public static ConfigEntry<int> MinimumStartingMoney { get; private set; }
         public static int MinimumStartingMoneyVal => Math.Clamp(MinimumStartingMoney.Value, StartingMoneyPerPlayerVal, 1000);
         public static ConfigEntry<bool> AllowQuotaRollover { get; private set; }
+        public static ConfigEntry<bool> AllowOvertimeBonus { get; private set; }
         public static ConfigEntry<bool> AddHealthRechargeStation { get; private set; }
         public static ConfigEntry<bool> ScanCommandUsesExactAmount { get; private set; }
         public static ConfigEntry<bool> UnlockDoorsFromInventory { get; private set; }
@@ -159,6 +161,9 @@ namespace GeneralImprovements
             Harmony.CreateAndPatchAll(typeof(ShipTeleporterPatch));
             MLS.LogDebug("ShipTeleporter patched.");
 
+            Harmony.CreateAndPatchAll(typeof(SprayPaintItemPatch));
+            MLS.LogDebug("SprayPaintItem patched.");
+
             Harmony.CreateAndPatchAll(typeof(StartMatchLeverPatch));
             MLS.LogDebug("StartMatchLever patched.");
 
@@ -220,6 +225,7 @@ namespace GeneralImprovements
             ShipInternalCamFPS = Config.Bind(ExtraMonitorsSection, nameof(ShipInternalCamFPS), 0, new ConfigDescription($"Limits the FPS of the internal ship cam for performance. 0 = Unrestricted.", new AcceptableValueRange<int>(0, 30)));
             ShipExternalCamSizeMultiplier = Config.Bind(ExtraMonitorsSection, nameof(ShipExternalCamSizeMultiplier), 1, new ConfigDescription($"How many times to double the external ship cam's resolution.", new AcceptableValueRange<int>(1, 5)));
             ShipExternalCamFPS = Config.Bind(ExtraMonitorsSection, nameof(ShipExternalCamFPS), 0, new ConfigDescription($"Limits the FPS of the external ship cam for performance. 0 = Unrestricted.", new AcceptableValueRange<int>(0, 30)));
+            AlwaysRenderMonitors = Config.Bind(ExtraMonitorsSection, nameof(AlwaysRenderMonitors), false, $"If using better monitors and set to true, text-based monitors will render updates even when you are not in the ship. May slightly affect performance.");
 
             // Fixes
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
@@ -244,6 +250,7 @@ namespace GeneralImprovements
             StartingMoneyPerPlayer = Config.Bind(MechanicsSection, nameof(StartingMoneyPerPlayer), -1, new ConfigDescription("[Host Only] How much starting money the group gets per player. Set to -1 to disable. Adjusts money as players join and leave, until the game starts.", new AcceptableValueRange<int>(-1, 1000)));
             MinimumStartingMoney = Config.Bind(MechanicsSection, nameof(MinimumStartingMoney), 30, new ConfigDescription("[Host Only] When paired with StartingMoneyPerPlayer, will ensure a group always starts with at least this much money. Must be at least the value of StartingMoneyPerPlayer.", new AcceptableValueRange<int>(-1, 1000)));
             AllowQuotaRollover = Config.Bind(MechanicsSection, nameof(AllowQuotaRollover), false, "[Host Required] If set to true, will keep the surplus money remaining after selling things to the company, and roll it over to the next quota. If clients do not set this, they will see visual desyncs.");
+            AllowOvertimeBonus = Config.Bind(MechanicsSection, nameof(AllowOvertimeBonus), true, "[Host Only] If set to false, will prevent the vanilla overtime bonus from being applied after the end of a quota.");
             AddHealthRechargeStation = Config.Bind(MechanicsSection, nameof(AddHealthRechargeStation), false, "[Host Only] If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full. **WARNING:** THIS WILL PREVENT YOU FROM CONNECTING TO ANY OTHER PLAYERS THAT DO NOT ALSO HAVE IT ENABLED!");
             ScanCommandUsesExactAmount = Config.Bind(MechanicsSection, nameof(ScanCommandUsesExactAmount), false, "If set to true, the terminal's scan command (and ScrapLeft monitor) will use display the exact scrap value remaining instead of approximate.");
             UnlockDoorsFromInventory = Config.Bind(MechanicsSection, nameof(UnlockDoorsFromInventory), false, "If set to true, keys in your inventory do not have to be held when unlocking facility doors.");

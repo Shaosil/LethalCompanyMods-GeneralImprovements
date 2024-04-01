@@ -186,6 +186,25 @@ namespace GeneralImprovements.Patches
             TerminalPatch.AdjustGroupCredits(false);
         }
 
+        [HarmonyPatch(typeof(StartOfRound), nameof(OnPlayerConnectedClientRpc))]
+        [HarmonyPostfix]
+        private static void OnPlayerConnectedClientRpc()
+        {
+            // Ensure some things are properly set now that we read the map seed from the host
+            if (!StartOfRound.Instance.IsHost)
+            {
+                var sprayCanMatIndexField = typeof(SprayPaintItem).GetField("sprayCanMatsIndex", BindingFlags.Instance | BindingFlags.NonPublic);
+                foreach (var sprayPaint in Object.FindObjectsOfType<SprayPaintItem>())
+                {
+                    // Copied and lightly modified from SprayPaintItem.Start()
+                    int targetIndex = new System.Random(StartOfRound.Instance.randomMapSeed + 151).Next(0, sprayPaint.sprayCanMats.Length);
+                    sprayCanMatIndexField.SetValue(sprayPaint, targetIndex);
+                    sprayPaint.sprayParticle.GetComponent<ParticleSystemRenderer>().material = sprayPaint.particleMats[targetIndex];
+                    sprayPaint.sprayCanNeedsShakingParticle.GetComponent<ParticleSystemRenderer>().material = sprayPaint.particleMats[targetIndex];
+                }
+            }
+        }
+
         [HarmonyPatch(typeof(StartOfRound), nameof(SyncShipUnlockablesClientRpc))]
         [HarmonyPostfix]
         private static void SyncShipUnlockablesClientRpc()
@@ -208,6 +227,14 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateTotalQuotasMonitors();
             DaysSinceLastDeath = -1;
             MonitorsHelper.UpdateDeathMonitors(false);
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), "StartGame")]
+        [HarmonyPatch(typeof(StartOfRound), nameof(ResetPlayersLoadedValueClientRpc))]
+        [HarmonyPostfix]
+        private static void ResetPlayersLoadedValueClientRpc()
+        {
+            StartMatchLeverPatch.Instance.triggerScript.disabledHoverTip = "[Ship in motion]";
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(ReviveDeadPlayers))]

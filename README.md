@@ -45,6 +45,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds an option to hide player names.
 * Adds options to bring held or all items when using teleporters.
 * Adds an option to be able to scan the item dropship.
+* Adds an option to disable overtime bonuses.
 
 ### MINOR BUGFIXES:
 * Stops all non-scrap objects from showing value (when scanned and sold) when they do not actually have any.

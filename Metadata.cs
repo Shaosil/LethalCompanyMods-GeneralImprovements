@@ -4,6 +4,6 @@
     {
         public const string GUID = "ShaosilGaming.GeneralImprovements";
         public const string PLUGIN_NAME = "GeneralImprovements";
-        public const string VERSION = "1.1.11";
+        public const string VERSION = "1.1.12";
     }
 }
