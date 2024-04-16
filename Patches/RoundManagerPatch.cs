@@ -1,4 +1,5 @@
-﻿using GeneralImprovements.Utilities;
+﻿using GeneralImprovements.OtherMods;
+using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System.Linq;
 using UnityEngine;
@@ -33,6 +34,18 @@ namespace GeneralImprovements.Patches
                     CurShipNode.gameObject.SetActive(false);
 
                     _gotShipNode = true;
+                }
+            }
+
+            // If mimics are active and we want scan nodes on fire exits, create them here
+            if (Plugin.ShowDoorsOnScanner.Value && MimicsHelper.IsActive)
+            {
+                var mimics = Object.FindObjectsOfType<InteractTrigger>().Where(g => g.transform.parent?.name.StartsWith("MimicDoor") ?? false).ToList();
+                foreach (var mimic in mimics)
+                {
+                    // Manually move the scan node's position, or it will be in a noticeably different spot than real exits
+                    var mimicScanNode = ItemHelper.CreateScanNodeOnObject(mimic.transform.parent.gameObject, 0, 1, 20, "Fire Exit?");
+                    mimicScanNode.transform.localPosition += new Vector3(0, 1.5f, 0);
                 }
             }
 

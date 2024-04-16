@@ -1,5 +1,9 @@
 ﻿using GeneralImprovements.Utilities;
 using HarmonyLib;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace GeneralImprovements.Patches
 {
@@ -24,15 +28,34 @@ namespace GeneralImprovements.Patches
                 Plugin.MLS.LogInfo($"Storing surplus quota on server: ${_leftoverFunds}");
             }
 
-            if (!Plugin.AllowOvertimeBonus.Value)
-            {
-                // Reset a couple variables that are used in overtime calculations. They are important elsewhere but will be set again before they are used.
-                __instance.quotaFulfilled = __instance.profitQuota;
-                __instance.daysUntilDeadline = 0;
-            }
-
             return true;
         }
+
+        [HarmonyPatch(typeof(TimeOfDay), nameof(SetNewProfitQuota))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> SetNewProfitQuota_RemoveOvertimeBonus(IEnumerable<CodeInstruction> instructions)
+        {
+            if (Plugin.AllowOvertimeBonus.Value)
+            {
+                return instructions;
+            }
+
+            // Patch out the overtime bonus if needed
+            var codeList = instructions.ToList();
+            var callSync = codeList[codeList.Count - 2];
+            var loadOvertime = codeList[codeList.Count - 5];
+            if (callSync.opcode != OpCodes.Call || (callSync.operand as MethodInfo)?.Name != nameof(TimeOfDay.SyncNewProfitQuotaClientRpc) || loadOvertime.opcode != OpCodes.Ldloc_1)
+            {
+                Plugin.MLS.LogError("Unexpected IL code found in TimeOfDay.SetNewProfitQuota! Could not patch out overtime bonus.");
+                return instructions;
+            }
+
+            // Replace the overtime bonus parameter with a simple 0
+            Plugin.MLS.LogDebug("Patching new profit quota method to remove overtime bonus.");
+            loadOvertime.opcode = OpCodes.Ldc_I4_0;
+            return codeList.AsEnumerable();
+        }
+
 
         [HarmonyPatch(typeof(TimeOfDay), "SyncNewProfitQuotaClientRpc")]
         [HarmonyPrefix]

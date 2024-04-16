@@ -55,6 +55,8 @@ namespace GeneralImprovements.Utilities
             }
         }
 
+        private static Vector3 _originalProfitQuotaLocation = Vector3.zero;
+        private static Vector3 _originalProfitQuotaRotation = Vector3.zero;
         private static Image _originalProfitQuotaBG;
         private static TextMeshProUGUI _originalProfitQuotaText;
         private static Image _originalDeadlineBG;
@@ -94,6 +96,7 @@ namespace GeneralImprovements.Utilities
         private static int _lastUpdatedCredits = -1;
         private static float _lastUpdatedDoorPower = -1, _updateDoorPowerTimer = 0;
         private static Monitors _newMonitors;
+        private static Dictionary<TextMeshProUGUI, Action> _queuedMonitorRefreshes = new Dictionary<TextMeshProUGUI, Action>();
 
         // Weather animation
         private static int _curWeatherAnimIndex = 0;
@@ -123,7 +126,6 @@ namespace GeneralImprovements.Utilities
         public static void InitializeMonitors()
         {
             // Initialize a few necessary variables
-            _usingAnyMonitorTweaks = true;
             _originalProfitQuotaBG = StartOfRound.Instance.profitQuotaMonitorBGImage;
             _originalProfitQuotaText = StartOfRound.Instance.profitQuotaMonitorText;
             _originalDeadlineBG = StartOfRound.Instance.deadlineMonitorBGImage;
@@ -145,7 +147,7 @@ namespace GeneralImprovements.Utilities
             }
 
             // Do nothing else if none of these are true - that means the user basically hasn't changed any of the default monitor config options
-            if (!(Plugin.UseBetterMonitors.Value || !Plugin.ShowBlueMonitorBackground.Value || Plugin.ShowBackgroundOnAllScreens.Value
+            if (!(Plugin.UseBetterMonitors.Value || !Plugin.ShowBlueMonitorBackground.Value || Plugin.ShowBackgroundOnAllScreens.Value || Plugin.SyncMonitorsFromOtherHost.Value
                 || Plugin.MonitorBackgroundColor.Value != Plugin.MonitorBackgroundColor.DefaultValue.ToString() || Plugin.MonitorTextColor.Value != Plugin.MonitorTextColor.DefaultValue.ToString()
                 || Plugin.ShipInternalCamFPS.Value != (int)Plugin.ShipInternalCamFPS.DefaultValue || Plugin.ShipInternalCamSizeMultiplier.Value != (int)Plugin.ShipInternalCamSizeMultiplier.DefaultValue
                 || Plugin.ShipExternalCamFPS.Value != (int)Plugin.ShipExternalCamFPS.DefaultValue || Plugin.ShipExternalCamSizeMultiplier.Value != (int)Plugin.ShipExternalCamSizeMultiplier.DefaultValue
@@ -153,6 +155,7 @@ namespace GeneralImprovements.Utilities
             {
                 return;
             }
+            _usingAnyMonitorTweaks = true;
 
             // Load days since last death from the current save file
             if (StartOfRound.Instance.IsHost)
@@ -164,35 +167,7 @@ namespace GeneralImprovements.Utilities
             // Initialize things each time StartOfRound starts up
             _lastUpdatedCredits = -1;
             _lastUpdatedDoorPower = -1;
-            _profitQuotaBGs = new List<Image>();
-            _profitQuotaTexts = new List<TextMeshProUGUI>();
-            _deadlineBGs = new List<Image>();
-            _deadlineTexts = new List<TextMeshProUGUI>();
-            _shipScrapMonitorBGs = new List<Image>();
-            _shipScrapMonitorTexts = new List<TextMeshProUGUI>();
-            _scrapLeftMonitorBGs = new List<Image>();
-            _scrapLeftMonitorTexts = new List<TextMeshProUGUI>();
-            _timeMonitorBGs = new List<Image>();
-            _timeMonitorTexts = new List<TextMeshProUGUI>();
-            _weatherMonitorBGs = new List<Image>();
-            _weatherMonitorTexts = new List<TextMeshProUGUI>();
-            _fancyWeatherMonitorBGs = new List<Image>();
-            _fancyWeatherMonitorTexts = new List<TextMeshProUGUI>();
-            _salesMonitorBGs = new List<Image>();
-            _salesMonitorTexts = new List<TextMeshProUGUI>();
-            _creditsMonitorBGs = new List<Image>();
-            _creditsMonitorTexts = new List<TextMeshProUGUI>();
-            _doorPowerMonitorBGs = new List<Image>();
-            _doorPowerMonitorTexts = new List<TextMeshProUGUI>();
-            _totalDaysMonitorBGs = new List<Image>();
-            _totalDaysMonitorTexts = new List<TextMeshProUGUI>();
-            _totalQuotasMonitorBGs = new List<Image>();
-            _totalQuotasMonitorTexts = new List<TextMeshProUGUI>();
-            _totalDeathsMonitorBGs = new List<Image>();
-            _totalDeathsMonitorTexts = new List<TextMeshProUGUI>();
-            _daysSinceDeathMonitorBGs = new List<Image>();
-            _daysSinceDeathMonitorTexts = new List<TextMeshProUGUI>();
-            _extraBackgrounds = new List<Image>();
+            RemoveExistingMonitors();
 
             // Resize the two extra monitor texts to be the same as their respective backgrounds, and give them padding
             _originalProfitQuotaBG.color = Plugin.MonitorBackgroundColorVal;
@@ -265,21 +240,126 @@ namespace GeneralImprovements.Utilities
             return shipCam.targetTexture;
         }
 
+        private static void RemoveExistingMonitors()
+        {
+            // Clears lists and removes game objects (for old style monitors). May be used if syncing from hosts, since we will need to delete and recreate monitors
+            if (!Plugin.UseBetterMonitors.Value)
+            {
+                _profitQuotaBGs.ForEach(g => Object.Destroy(g));
+                _profitQuotaTexts.ForEach(g => Object.Destroy(g));
+
+                _deadlineBGs.ForEach(g => Object.Destroy(g));
+                _deadlineTexts.ForEach(g => Object.Destroy(g));
+
+                _shipScrapMonitorBGs.ForEach(g => Object.Destroy(g));
+                _shipScrapMonitorTexts.ForEach(g => Object.Destroy(g));
+
+                _scrapLeftMonitorBGs.ForEach(g => Object.Destroy(g));
+                _scrapLeftMonitorTexts.ForEach(g => Object.Destroy(g));
+
+                _timeMonitorBGs.ForEach(g => Object.Destroy(g));
+                _timeMonitorTexts.ForEach(g => Object.Destroy(g));
+
+                _weatherMonitorBGs.ForEach(g => Object.Destroy(g));
+                _weatherMonitorTexts.ForEach(g => Object.Destroy(g));
+
+                _fancyWeatherMonitorBGs.ForEach(g => Object.Destroy(g));
+                _fancyWeatherMonitorTexts.ForEach(g => Object.Destroy(g));
+
+                _salesMonitorBGs.ForEach(g => Object.Destroy(g));
+                _salesMonitorTexts.ForEach(g => Object.Destroy(g));
+
+                _creditsMonitorBGs.ForEach(g => Object.Destroy(g));
+                _creditsMonitorTexts.ForEach(g => Object.Destroy(g));
+
+                _doorPowerMonitorBGs.ForEach(g => Object.Destroy(g));
+                _doorPowerMonitorTexts.ForEach(g => Object.Destroy(g));
+
+                _totalDaysMonitorBGs.ForEach(g => Object.Destroy(g));
+                _totalDaysMonitorTexts.ForEach(g => Object.Destroy(g));
+
+                _totalQuotasMonitorBGs.ForEach(g => Object.Destroy(g));
+                _totalQuotasMonitorTexts.ForEach(g => Object.Destroy(g));
+
+                _totalDeathsMonitorBGs.ForEach(g => Object.Destroy(g));
+                _totalDeathsMonitorTexts.ForEach(g => Object.Destroy(g));
+
+                _daysSinceDeathMonitorBGs.ForEach(g => Object.Destroy(g));
+                _daysSinceDeathMonitorTexts.ForEach(g => Object.Destroy(g));
+
+                _extraBackgrounds.ForEach(g => Object.Destroy(g));
+            }
+            else if (_newMonitors != null)
+            {
+                Object.Destroy(_newMonitors.gameObject);
+            }
+
+            _profitQuotaBGs = new List<Image>();
+            _profitQuotaTexts = new List<TextMeshProUGUI>();
+
+            _deadlineBGs = new List<Image>();
+            _deadlineTexts = new List<TextMeshProUGUI>();
+
+            _shipScrapMonitorBGs = new List<Image>();
+            _shipScrapMonitorTexts = new List<TextMeshProUGUI>();
+
+            _scrapLeftMonitorBGs = new List<Image>();
+            _scrapLeftMonitorTexts = new List<TextMeshProUGUI>();
+
+            _timeMonitorBGs = new List<Image>();
+            _timeMonitorTexts = new List<TextMeshProUGUI>();
+
+            _weatherMonitorBGs = new List<Image>();
+            _weatherMonitorTexts = new List<TextMeshProUGUI>();
+
+            _fancyWeatherMonitorBGs = new List<Image>();
+            _fancyWeatherMonitorTexts = new List<TextMeshProUGUI>();
+
+            _salesMonitorBGs = new List<Image>();
+            _salesMonitorTexts = new List<TextMeshProUGUI>();
+
+            _creditsMonitorBGs = new List<Image>();
+            _creditsMonitorTexts = new List<TextMeshProUGUI>();
+
+            _doorPowerMonitorBGs = new List<Image>();
+            _doorPowerMonitorTexts = new List<TextMeshProUGUI>();
+
+            _totalDaysMonitorBGs = new List<Image>();
+            _totalDaysMonitorTexts = new List<TextMeshProUGUI>();
+
+            _totalQuotasMonitorBGs = new List<Image>();
+            _totalQuotasMonitorTexts = new List<TextMeshProUGUI>();
+
+            _totalDeathsMonitorBGs = new List<Image>();
+            _totalDeathsMonitorTexts = new List<TextMeshProUGUI>();
+
+            _daysSinceDeathMonitorBGs = new List<Image>();
+            _daysSinceDeathMonitorTexts = new List<TextMeshProUGUI>();
+
+            _extraBackgrounds = new List<Image>();
+        }
+
         private static void CreateOldStyleMonitors()
         {
             // Copy everything from the existing quota monitor
+            if (_originalProfitQuotaLocation == Vector3.zero)
+            {
+                _originalProfitQuotaLocation = _originalProfitQuotaBG.transform.localPosition;
+            }
+            if (_originalProfitQuotaRotation == Vector3.zero)
+            {
+                _originalProfitQuotaRotation = _originalProfitQuotaBG.transform.localEulerAngles;
+            }
             _originalProfitQuotaBG.enabled = false;
             _originalProfitQuotaText.enabled = false;
             _originalDeadlineBG.enabled = false;
             _originalDeadlineText.enabled = false;
-            _originalDeadlineBG.transform.localPosition = _originalProfitQuotaBG.transform.localPosition;
-            _originalDeadlineBG.transform.localPosition = _originalProfitQuotaBG.transform.localPosition;
-            _originalDeadlineText.transform.localPosition = _originalProfitQuotaText.transform.localPosition;
-            _originalDeadlineText.transform.localRotation = _originalProfitQuotaText.transform.localRotation;
+            _originalDeadlineBG.transform.localPosition = _originalProfitQuotaLocation;
+            _originalDeadlineBG.transform.localEulerAngles = _originalProfitQuotaRotation;
+            _originalDeadlineText.transform.localPosition = _originalProfitQuotaLocation;
+            _originalDeadlineText.transform.localEulerAngles = _originalProfitQuotaRotation;
 
             // Store positions and rotations by offset based on monitor index
-            var originalPos = _originalProfitQuotaBG.transform.localPosition;
-            var originalRot = _originalProfitQuotaBG.transform.localEulerAngles;
             var offsets = new List<KeyValuePair<Vector3, Vector3>>
             {
                 new KeyValuePair<Vector3, Vector3>(new Vector3(0, 465, -22), new Vector3(-18, 0, 0)),       // Monitor 1
@@ -337,8 +417,8 @@ namespace GeneralImprovements.Utilities
                     newBG.enabled = true;
                     newBG.name = $"{(string.IsNullOrWhiteSpace(curAssignment) ? "ExtraBackground" : curAssignment)}BG{i + 1}";
 
-                    newBG.transform.localPosition = originalPos + positionOffset;
-                    newBG.transform.localEulerAngles = originalRot + rotationOffset;
+                    newBG.transform.localPosition = _originalProfitQuotaLocation + positionOffset;
+                    newBG.transform.localEulerAngles = _originalProfitQuotaRotation + rotationOffset;
                     curBGs.Add(newBG);
                 }
 
@@ -350,8 +430,8 @@ namespace GeneralImprovements.Utilities
                     newText.enabled = true;
                     newText.name = $"{curAssignment}Text{i + 1}";
 
-                    newText.transform.localPosition = originalPos + positionOffset + new Vector3(0, 0, -1);
-                    newText.transform.localEulerAngles = originalRot + rotationOffset;
+                    newText.transform.localPosition = _originalProfitQuotaLocation + positionOffset + new Vector3(0, 0, -1);
+                    newText.transform.localEulerAngles = _originalProfitQuotaRotation + rotationOffset;
                     curTexts.Add(newText);
                 }
             }
@@ -829,21 +909,44 @@ namespace GeneralImprovements.Utilities
 
         private static bool UpdateGenericTextList(List<TextMeshProUGUI> textList, string text)
         {
-            bool allSuccess = true;
+            bool allSuccess = false;
 
             foreach (var t in textList)
             {
                 t.text = text;
                 if (_newMonitors != null)
                 {
-                    if (!_newMonitors.RenderCameraAfterTextChange(t))
+                    // If we are in orbit or in the ship (or set to always render), immediately draw the change. Otherwise, add it to the refresh queue (most recent will always override any old data)
+                    if (StartOfRound.Instance.inShipPhase || Plugin.AlwaysRenderMonitors.Value || (StartOfRound.Instance.localPlayerController?.isInElevator ?? false))
                     {
-                        allSuccess = false;
+                        if (_newMonitors.RenderCameraAfterTextChange(t))
+                        {
+                            allSuccess = true;
+                        }
+                    }
+                    else
+                    {
+                        _queuedMonitorRefreshes[t] = () => _newMonitors.RenderCameraAfterTextChange(t);
                     }
                 }
             }
 
             return allSuccess;
+        }
+
+        public static void RefreshQueuedMonitorChanges()
+        {
+            // Call all of the queued monitor refreshes, if any, then clear it
+            foreach (var text in _queuedMonitorRefreshes.Keys)
+            {
+                _queuedMonitorRefreshes[text]();
+            }
+
+            if (_queuedMonitorRefreshes.Any())
+            {
+                Plugin.MLS.LogInfo($"Applied {_queuedMonitorRefreshes.Count} queued monitor changes.");
+                _queuedMonitorRefreshes.Clear();
+            }
         }
 
         public static void ToggleExtraMonitorsPower(bool on)

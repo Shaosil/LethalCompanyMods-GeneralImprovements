@@ -126,8 +126,8 @@ namespace GeneralImprovements.Assets
 
         public bool RenderCameraAfterTextChange(TextMeshProUGUI text)
         {
-            // Only render if we have matching textures, and we are either in orbit, or in the ship (or set to always render)
-            if (_textsToMats.ContainsKey(text) && (StartOfRound.Instance.inShipPhase || Plugin.AlwaysRenderMonitors.Value || (StartOfRound.Instance.localPlayerController?.isInElevator ?? false)))
+            // Only render if we have matching textures
+            if (_textsToMats.ContainsKey(text))
             {
                 // Move the camera to be in front of the text component
                 _camera.transform.parent = text.transform;

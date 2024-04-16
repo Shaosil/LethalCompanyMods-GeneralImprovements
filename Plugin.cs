@@ -20,12 +20,14 @@ namespace GeneralImprovements
 {
     [BepInPlugin(Metadata.GUID, Metadata.PLUGIN_NAME, Metadata.VERSION)]
     [BepInDependency(TwoRadarCamsHelper.GUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(MimicsHelper.GUID, BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
         public static ManualLogSource MLS { get; private set; }
 
         private const string ExtraMonitorsSection = "ExtraMonitors";
         public static ConfigEntry<bool> UseBetterMonitors { get; private set; }
+        public static ConfigEntry<bool> SyncMonitorsFromOtherHost { get; private set; }
         public static ConfigEntry<bool> ShowBlueMonitorBackground { get; private set; }
         public static ConfigEntry<string> MonitorBackgroundColor { get; private set; }
         public static Color MonitorBackgroundColorVal { get; private set; }
@@ -76,6 +78,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> FixPersonalScanner { get; private set; }
         public static ConfigEntry<bool> ScanHeldPlayerItems { get; private set; }
         public static ConfigEntry<bool> ShowDropshipOnScanner { get; private set; }
+        public static ConfigEntry<bool> ShowDoorsOnScanner { get; private set; }
 
         private const string ShipSection = "Ship";
         public static ConfigEntry<bool> HideClipboardAndStickyNote { get; private set; }
@@ -161,9 +164,6 @@ namespace GeneralImprovements
             Harmony.CreateAndPatchAll(typeof(ShipTeleporterPatch));
             MLS.LogDebug("ShipTeleporter patched.");
 
-            Harmony.CreateAndPatchAll(typeof(SprayPaintItemPatch));
-            MLS.LogDebug("SprayPaintItem patched.");
-
             Harmony.CreateAndPatchAll(typeof(StartMatchLeverPatch));
             MLS.LogDebug("StartMatchLever patched.");
 
@@ -186,6 +186,7 @@ namespace GeneralImprovements
             ReservedItemSlotCoreHelper.Initialize();
             AdvancedCompanyHelper.Initialize();
             TwoRadarCamsHelper.Initialize();
+            MimicsHelper.Initialize();
             AssetBundleHelper.Initialize();
             GameNetworkManagerPatch.PatchNetcode();
 
@@ -209,6 +210,7 @@ namespace GeneralImprovements
 
             // Extra monitors
             UseBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(UseBetterMonitors), false, "If set to true, uses 12 fully customizable and integrated monitors instead of the 8 vanilla ones with overlays. If true, 1-6 are top, 7-12 are bottom, and 13-14 are the big ones beside the terminal. Otherwise, 1-4 are the top, and 5-8 are on the bottom.");
+            SyncMonitorsFromOtherHost = Config.Bind(ExtraMonitorsSection, nameof(SyncMonitorsFromOtherHost), false, "If set to true, all monitor placements will be synced from the host when joining a game, if the host is also using this mod. Settings such as color, FPS, etc will not be synced.");
             ShowBlueMonitorBackground = Config.Bind(ExtraMonitorsSection, nameof(ShowBlueMonitorBackground), true, "If set to true and NOT using UseBetterMonitors, keeps the vanilla blue backgrounds on the extra monitors. Set to false to hide.");
             MonitorBackgroundColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorBackgroundColor), "160959", "The hex color code of what the backgrounds of the monitors should be. A recommended value close to black is 050505.");
             MonitorTextColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorTextColor), "00FF2C", "The hex color code of what the text on the monitors should be.");
@@ -260,6 +262,7 @@ namespace GeneralImprovements
             FixPersonalScanner = Config.Bind(ScannerSection, nameof(FixPersonalScanner), false, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you, and the ship/main entrance.");
             ScanHeldPlayerItems = Config.Bind(ScannerSection, nameof(ScanHeldPlayerItems), false, "If this and FixPersonalScanner are set to true, the scanner will also ping items in other players' hands.");
             ShowDropshipOnScanner = Config.Bind(ScannerSection, nameof(ShowDropshipOnScanner), false, "If set to true, the item drop ship will be scannable.");
+            ShowDoorsOnScanner = Config.Bind(ScannerSection, nameof(ShowDoorsOnScanner), false, "If set to true, all fire entrances and facility exits will be scannable. Compatible with mimics mod (they show up as an exit as well).");
 
             // Ship
             HideClipboardAndStickyNote = Config.Bind(ShipSection, nameof(HideClipboardAndStickyNote), false, "If set to true, the game will not show the clipboard or sticky note when the game loads.");

@@ -1,5 +1,14 @@
 # Changelog
 
+### v1.1.13 - More fixes and improvements
+* Added an option to sync all monitor settings from host (only works if they are using GeneralImprovements, obviously). Will use your configured settings otherwise, or when hosting. Defaults to off.
+* Added an option to add scan nodes to fire entrances and all exits. Compatible with mimic mod! (Will say "Fire Exit?" instead of "Fire Exit"). Defaults to off.
+* Fixed the monitors staying out of date if they tried to update when you are outside of the ship. They will now refresh once you re-enter the ship.
+* Fixed the spray paint can spawning with debug "error" messages.
+* Fixed some instances of "destroyed" inventory items not applying the inventory shifting code, if active.
+* Using a more reliable method to disable overtime bonus when AllowOvertimeBonus = false.
+* Improved the behavior of AlwaysShowNews when set to false.
+
 ### v1.1.12 - More small fixes and improvements
 * Hosts now have an option to disable overtime bonuses (defaults to false).
 * No longer doing any render calls for better monitors if the player is outside of the ship. May be disabled in config (for example if you want to see udpates when spectating).

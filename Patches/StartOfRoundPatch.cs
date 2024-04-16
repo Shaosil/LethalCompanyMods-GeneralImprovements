@@ -10,6 +10,8 @@ namespace GeneralImprovements.Patches
 {
     internal static class StartOfRoundPatch
     {
+        private static bool _playerInElevatorLastFrame = true;
+
         private static MethodInfo _updatePlayerPositionClientRpcMethod;
         private static MethodInfo UpdatePlayerPositionClientRpcMethod
         {
@@ -168,13 +170,25 @@ namespace GeneralImprovements.Patches
                     }
                 }
 
-                // Send over the extra info about this quota to this client
-                if (NetworkHelper.Instance != null && __instance?.gameStats != null)
+                // Send any custom network signals to the client if they also use this mod
+                if (NetworkHelper.Instance != null)
                 {
                     var clientParams = new ClientRpcParams { Send = new ClientRpcSendParams { TargetClientIds = new[] { clientId } } };
-                    var stats = __instance.gameStats;
-                    Plugin.MLS.LogInfo("Server sending extra data sync RPC.");
-                    NetworkHelper.Instance.SyncExtraDataOnConnectClientRpc(TimeOfDay.Instance.timesFulfilledQuota, stats.daysSpent, stats.deaths, DaysSinceLastDeath, clientParams);
+
+                    // Send over the extra info about this quota to this client
+                    if (__instance?.gameStats != null)
+                    {
+                        var stats = __instance.gameStats;
+                        Plugin.MLS.LogInfo("Server sending extra data sync RPC.");
+                        NetworkHelper.Instance.SyncExtraDataOnConnectClientRpc(TimeOfDay.Instance.timesFulfilledQuota, stats.daysSpent, stats.deaths, DaysSinceLastDeath, clientParams);
+                    }
+
+                    // Send over our monitor information in case the client wants to sync from the host
+                    Plugin.MLS.LogInfo("Server sending monitor information RPC.");
+                    NetworkHelper.Instance.SyncMonitorsFromHostClientRpc(Plugin.UseBetterMonitors.Value, Plugin.ShipMonitorAssignments[0].Value, Plugin.ShipMonitorAssignments[1].Value, Plugin.ShipMonitorAssignments[2].Value,
+                        Plugin.ShipMonitorAssignments[3].Value, Plugin.ShipMonitorAssignments[4].Value, Plugin.ShipMonitorAssignments[5].Value, Plugin.ShipMonitorAssignments[6].Value, Plugin.ShipMonitorAssignments[7].Value,
+                        Plugin.ShipMonitorAssignments[8].Value, Plugin.ShipMonitorAssignments[9].Value, Plugin.ShipMonitorAssignments[10].Value, Plugin.ShipMonitorAssignments[11].Value,
+                        Plugin.ShipMonitorAssignments[12].Value, Plugin.ShipMonitorAssignments[13].Value, clientParams);
                 }
             }
         }
@@ -269,6 +283,21 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.AnimateSpecialMonitors();
             MonitorsHelper.UpdateCreditsMonitors();
             MonitorsHelper.UpdateDoorPowerMonitors();
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(LateUpdate))]
+        [HarmonyPostfix]
+        private static void LateUpdate(StartOfRound __instance)
+        {
+            // Keep track of "in elevator" changes and refresh monitors when needed
+            if (__instance.localPlayerController != null && _playerInElevatorLastFrame != __instance.localPlayerController.isInElevator)
+            {
+                _playerInElevatorLastFrame = __instance.localPlayerController.isInElevator;
+                if (_playerInElevatorLastFrame)
+                {
+                    MonitorsHelper.RefreshQueuedMonitorChanges();
+                }
+            }
         }
     }
 }

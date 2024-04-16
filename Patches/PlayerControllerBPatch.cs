@@ -111,7 +111,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPatch(typeof(PlayerControllerB), "PlaceObjectClientRpc")]
         [HarmonyPatch(typeof(PlayerControllerB), "ThrowObjectClientRpc")]
         [HarmonyPatch(typeof(PlayerControllerB), "DespawnHeldObjectClientRpc")]
-        [HarmonyPatch(typeof(PlayerControllerB), "DestroyItemInSlotClientRpc")]
+        [HarmonyPatch(typeof(PlayerControllerB), "DestroyItemInSlot")]
         [HarmonyPostfix]
         private static void ItemLeftSlot(PlayerControllerB __instance)
         {

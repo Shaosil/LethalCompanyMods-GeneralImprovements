@@ -12,7 +12,7 @@ namespace GeneralImprovements.Utilities
 
         public static MedStationItem MedStation = null;
 
-        public static void CreateScanNodeOnObject(GameObject obj, int nodeType, int minRange, int maxRange, string headerText, int size = 1)
+        public static GameObject CreateScanNodeOnObject(GameObject obj, int nodeType, int minRange, int maxRange, string headerText, int size = 1)
         {
             var scanNodeObj = new GameObject("ScanNode", typeof(ScanNodeProperties), typeof(BoxCollider));
             scanNodeObj.layer = LayerMask.NameToLayer("ScanNode");
@@ -25,6 +25,8 @@ namespace GeneralImprovements.Utilities
             newScanNode.minRange = minRange;
             newScanNode.maxRange = maxRange;
             newScanNode.headerText = headerText;
+
+            return scanNodeObj;
         }
 
         public static void CreateMedStation()

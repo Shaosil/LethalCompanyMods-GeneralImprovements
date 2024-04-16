@@ -10,7 +10,7 @@ namespace GeneralImprovements.Patches
         {
             if (!Plugin.AlwaysShowNews.Value && GameNetworkManager.Instance != null)
             {
-                GameNetworkManager.Instance.AlwaysDisplayNews = false;
+                GameNetworkManager.Instance.firstTimeInMenu = false;
             }
         }
 
