@@ -36,11 +36,6 @@ namespace GeneralImprovements.Utilities
             public const string InternalCam = "InternalCam";
             public const string ExternalCam = "ExternalCam";
 
-            public static bool MonitorExists(string monitorName)
-            {
-                return GetMonitorIndex(monitorName) >= 0;
-            }
-
             public static int GetMonitorIndex(string monitorName)
             {
                 for (int i = 0; i < MonitorCount; i++)
@@ -61,6 +56,7 @@ namespace GeneralImprovements.Utilities
         private static TextMeshProUGUI _originalProfitQuotaText;
         private static Image _originalDeadlineBG;
         private static TextMeshProUGUI _originalDeadlineText;
+        private static float _originalFontSize;
 
         private static List<Image> _profitQuotaBGs = new List<Image>();
         private static List<TextMeshProUGUI> _profitQuotaTexts = new List<TextMeshProUGUI>();
@@ -123,13 +119,14 @@ namespace GeneralImprovements.Utilities
         private static Transform _UIContainer;
         private static ScanNodeProperties _profitQuotaScanNode;
 
-        public static void InitializeMonitors()
+        public static void InitializeMonitors(string[] monitorAssignments)
         {
             // Initialize a few necessary variables
             _originalProfitQuotaBG = StartOfRound.Instance.profitQuotaMonitorBGImage;
             _originalProfitQuotaText = StartOfRound.Instance.profitQuotaMonitorText;
             _originalDeadlineBG = StartOfRound.Instance.deadlineMonitorBGImage;
             _originalDeadlineText = StartOfRound.Instance.deadlineMonitorText;
+            _originalFontSize = _originalProfitQuotaText.fontSize;
             _UIContainer = _originalProfitQuotaBG?.transform.parent;
 
             if (Plugin.CenterAlignMonitorText.Value)
@@ -176,11 +173,11 @@ namespace GeneralImprovements.Utilities
             _originalDeadlineText.color = Plugin.MonitorTextColorVal;
             _originalProfitQuotaText.rectTransform.sizeDelta = _originalProfitQuotaBG.rectTransform.sizeDelta;
             _originalProfitQuotaText.transform.position = _originalProfitQuotaBG.transform.TransformPoint(Vector3.back);
-            _originalProfitQuotaText.fontSize = _originalProfitQuotaText.fontSize * 0.9f;
+            _originalProfitQuotaText.fontSize = _originalFontSize * 0.9f;
             _originalProfitQuotaText.margin = Vector4.one * 5;
             _originalDeadlineText.rectTransform.sizeDelta = _originalDeadlineBG.rectTransform.sizeDelta;
             _originalDeadlineText.transform.position = _originalDeadlineBG.transform.TransformPoint(Vector3.back);
-            _originalDeadlineText.fontSize = _originalDeadlineText.fontSize * 0.9f;
+            _originalDeadlineText.fontSize = _originalFontSize * 0.9f;
             _originalDeadlineText.margin = Vector4.one * 5;
 
             // Find our monitor objects
@@ -197,19 +194,19 @@ namespace GeneralImprovements.Utilities
 
             if (Plugin.UseBetterMonitors.Value)
             {
-                CreateNewStyleMonitors();
+                CreateNewStyleMonitors(monitorAssignments);
             }
             else
             {
-                CreateOldStyleMonitors();
+                CreateOldStyleMonitors(monitorAssignments);
             }
 
             // Remove or update profit quota scan node
             _profitQuotaScanNode = StartOfRound.Instance.elevatorTransform.GetComponentsInChildren<ScanNodeProperties>().FirstOrDefault(s => s.headerText == "Quota");
             if (_profitQuotaScanNode != null)
             {
-                // Remove scan node
-                if (!MonitorNames.MonitorExists(MonitorNames.ProfitQuota))
+                // Remove scan node if it doesn't exist
+                if (!monitorAssignments.Any(a => a == MonitorNames.ProfitQuota))
                 {
                     Object.Destroy(_profitQuotaScanNode.gameObject);
                 }
@@ -339,7 +336,7 @@ namespace GeneralImprovements.Utilities
             _extraBackgrounds = new List<Image>();
         }
 
-        private static void CreateOldStyleMonitors()
+        private static void CreateOldStyleMonitors(string[] monitorAssignments)
         {
             // Copy everything from the existing quota monitor
             if (_originalProfitQuotaLocation == Vector3.zero)
@@ -375,7 +372,7 @@ namespace GeneralImprovements.Utilities
             // Assign monitors to the positions that were specified, ensuring to not overlap
             for (int i = 0; i < offsets.Count; i++)
             {
-                string curAssignment = Plugin.ShipMonitorAssignments[i].Value;
+                string curAssignment = monitorAssignments[i];
                 List<Image> curBGs = null;
                 List<TextMeshProUGUI> curTexts = null;
 
@@ -457,7 +454,7 @@ namespace GeneralImprovements.Utilities
             UpdateDoorPowerMonitors();
         }
 
-        private static void CreateNewStyleMonitors()
+        private static void CreateNewStyleMonitors(string[] monitorAssignments)
         {
             Plugin.MLS.LogInfo("Overwriting monitors with new model");
 
@@ -470,9 +467,9 @@ namespace GeneralImprovements.Utilities
             _newMonitors.BlankScreenMat = _oldMonitorsObject.GetComponent<MeshRenderer>().materials[1];
 
             // Assign specified TMP objects to the monitor indexes specified
-            for (int i = 0; i < Plugin.ShipMonitorAssignments.Length; i++)
+            for (int i = 0; i < monitorAssignments.Length; i++)
             {
-                string curAssignment = Plugin.ShipMonitorAssignments[i].Value;
+                string curAssignment = monitorAssignments[i];
                 Action<TextMeshProUGUI> curAction = null;
                 Material targetMat = null;
 
@@ -575,7 +572,7 @@ namespace GeneralImprovements.Utilities
             if (_profitQuotaTexts.Any() || _deadlineTexts.Any())
             {
                 if (UpdateGenericTextList(_profitQuotaTexts, StartOfRound.Instance.profitQuotaMonitorText?.text)
-                    && UpdateGenericTextList(_deadlineTexts, StartOfRound.Instance.deadlineMonitorText?.text))
+                    & UpdateGenericTextList(_deadlineTexts, StartOfRound.Instance.deadlineMonitorText?.text))
                 {
                     Plugin.MLS.LogInfo("Updated profit quota and deadline monitors");
                 }
@@ -909,7 +906,7 @@ namespace GeneralImprovements.Utilities
 
         private static bool UpdateGenericTextList(List<TextMeshProUGUI> textList, string text)
         {
-            bool allSuccess = false;
+            bool allSuccess = _newMonitors == null; // Default to true with old style
 
             foreach (var t in textList)
             {

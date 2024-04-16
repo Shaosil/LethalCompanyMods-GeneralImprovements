@@ -24,24 +24,25 @@ namespace GeneralImprovements.Utilities
                     return;
                 }
 
-                // Overwrite our config settings with whatever the host sent over, and re-initialize the monitors
-                Plugin.ShipMonitorAssignments[0].Value = monitor1;
-                Plugin.ShipMonitorAssignments[1].Value = monitor2;
-                Plugin.ShipMonitorAssignments[2].Value = monitor3;
-                Plugin.ShipMonitorAssignments[3].Value = monitor4;
-                Plugin.ShipMonitorAssignments[4].Value = monitor5;
-                Plugin.ShipMonitorAssignments[5].Value = monitor6;
-                Plugin.ShipMonitorAssignments[6].Value = monitor7;
-                Plugin.ShipMonitorAssignments[7].Value = monitor8;
-                Plugin.ShipMonitorAssignments[8].Value = monitor9;
-                Plugin.ShipMonitorAssignments[9].Value = monitor10;
-                Plugin.ShipMonitorAssignments[10].Value = monitor11;
-                Plugin.ShipMonitorAssignments[11].Value = monitor12;
-                Plugin.ShipMonitorAssignments[12].Value = monitor13;
-                Plugin.ShipMonitorAssignments[13].Value = monitor14;
+                // Reinitialize the monitors with whatever the host sent over
+                var monitorAssignments = new string[14];
+                monitorAssignments[0] = monitor1;
+                monitorAssignments[1] = monitor2;
+                monitorAssignments[2] = monitor3;
+                monitorAssignments[3] = monitor4;
+                monitorAssignments[4] = monitor5;
+                monitorAssignments[5] = monitor6;
+                monitorAssignments[6] = monitor7;
+                monitorAssignments[7] = monitor8;
+                monitorAssignments[8] = monitor9;
+                monitorAssignments[9] = monitor10;
+                monitorAssignments[10] = monitor11;
+                monitorAssignments[11] = monitor12;
+                monitorAssignments[12] = monitor13;
+                monitorAssignments[13] = monitor14;
 
                 Plugin.MLS.LogInfo("Received monitor settings from host - syncing.");
-                MonitorsHelper.InitializeMonitors();
+                MonitorsHelper.InitializeMonitors(monitorAssignments);
             }
         }
 

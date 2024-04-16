@@ -55,7 +55,7 @@ namespace GeneralImprovements.Patches
             }
 
             // Create monitors if necessary and update the texts needed
-            MonitorsHelper.InitializeMonitors();
+            MonitorsHelper.InitializeMonitors(Plugin.ShipMonitorAssignments.Select(a => a.Value).ToArray());
             MonitorsHelper.UpdateTotalDaysMonitors();
             MonitorsHelper.UpdateTotalQuotasMonitors();
             MonitorsHelper.UpdateDeathMonitors();

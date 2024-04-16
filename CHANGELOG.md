@@ -1,5 +1,10 @@
 # Changelog
 
+### v1.1.14 - Small hotfixes
+* Fixed the deadline monitor not working with the old style monitors.
+* Updated the sync monitors to host option to NOT overwrite existing configs, so clients will keep their old settings when hosting their own game.
+* Fixed old style monitor text updates not being detected for debug logging.
+
 ### v1.1.13 - More fixes and improvements
 * Added an option to sync all monitor settings from host (only works if they are using GeneralImprovements, obviously). Will use your configured settings otherwise, or when hosting. Defaults to off.
 * Added an option to add scan nodes to fire entrances and all exits. Compatible with mimic mod! (Will say "Fire Exit?" instead of "Fire Exit"). Defaults to off.
