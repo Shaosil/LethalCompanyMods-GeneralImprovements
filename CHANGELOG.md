@@ -1,5 +1,12 @@
 # Changelog
 
+### v1.1.15 - More fixes and improvements
+* Made the spray paint can color more random when they spawn, instead of using the same color per map seed.
+* Saving the spray paint can colors in the save files so they are no longer randomized each load.
+* Fixed landmines remaining on the map screen after detonating.
+* Added an option to remove the ship's storage cabinet's doors (defaults to false).
+* Added an option to display each moon's route cost in the terminal moons screen (defaults to false).
+
 ### v1.1.14 - Small hotfixes
 * Fixed the deadline monitor not working with the old style monitors.
 * Updated the sync monitors to host option to NOT overwrite existing configs, so clients will keep their old settings when hosting their own game.

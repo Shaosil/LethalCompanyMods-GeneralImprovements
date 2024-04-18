@@ -62,5 +62,21 @@ namespace GeneralImprovements.Utilities
                 MonitorsHelper.UpdateDeathMonitors();
             }
         }
+
+        [ClientRpc]
+        public void SyncSprayPaintItemColorsClientRpc(int[] matIndexes)
+        {
+            // After receiving information about which spray cans use which materials from the host, update each of them
+            if (!IsServer)
+            {
+                // Assume the number of cans match and were loaded in the same order, but make sure we don't go past either array's length
+                Plugin.MLS.LogInfo("Received spray can colors from host - syncing.");
+                var sprayPaintItems = SprayPaintItemPatch.GetAllOrderedSprayPaintItemsInShip();
+                for (int i = 0; i < sprayPaintItems.Length && i < matIndexes.Length; i++)
+                {
+                    SprayPaintItemPatch.UpdateColor(sprayPaintItems[i], matIndexes[i]);
+                }
+            }
+        }
     }
 }

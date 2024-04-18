@@ -82,6 +82,7 @@ namespace GeneralImprovements
 
         private const string ShipSection = "Ship";
         public static ConfigEntry<bool> HideClipboardAndStickyNote { get; private set; }
+        public static ConfigEntry<bool> HideShipCabinetDoors { get; private set; }
         public static ConfigEntry<int> SnapObjectsByDegrees { get; private set; }
         public static ConfigEntry<string> FreeRotateKey { get; private set; }
         public static ConfigEntry<string> CounterClockwiseKey { get; private set; }
@@ -100,6 +101,7 @@ namespace GeneralImprovements
         public static ConfigEntry<int> TerminalHistoryItemCount { get; private set; }
         public static ConfigEntry<bool> TerminalFastCamSwitch { get; private set; }
         public static ConfigEntry<bool> LockCameraAtTerminal { get; private set; }
+        public static ConfigEntry<bool> ShowMoonPricesInTerminal { get; private set; }
 
         private const string ToolsSection = "Tools";
         public static ConfigEntry<string> ScannableTools { get; private set; }
@@ -146,6 +148,9 @@ namespace GeneralImprovements
             Harmony.CreateAndPatchAll(typeof(ItemDropshipPatch));
             MLS.LogDebug("ItemDropship patched.");
 
+            Harmony.CreateAndPatchAll(typeof(LandminePatch));
+            MLS.LogDebug("Landmine patched.");
+
             Harmony.CreateAndPatchAll(typeof(ManualCameraRendererPatch));
             MLS.LogDebug("ManualCameraRenderer patched.");
 
@@ -163,6 +168,9 @@ namespace GeneralImprovements
 
             Harmony.CreateAndPatchAll(typeof(ShipTeleporterPatch));
             MLS.LogDebug("ShipTeleporter patched.");
+
+            Harmony.CreateAndPatchAll(typeof(SprayPaintItemPatch));
+            MLS.LogDebug("SprayPaintItem patched.");
 
             Harmony.CreateAndPatchAll(typeof(StartMatchLeverPatch));
             MLS.LogDebug("StartMatchLever patched.");
@@ -266,6 +274,7 @@ namespace GeneralImprovements
 
             // Ship
             HideClipboardAndStickyNote = Config.Bind(ShipSection, nameof(HideClipboardAndStickyNote), false, "If set to true, the game will not show the clipboard or sticky note when the game loads.");
+            HideShipCabinetDoors = Config.Bind(ShipSection, nameof(HideShipCabinetDoors), false, "If set to true, the storage shelves in the ship will not have doors.");
             SnapObjectsByDegrees = Config.Bind(ShipSection, nameof(SnapObjectsByDegrees), 45, new ConfigDescription("Build mode will switch to snap turning (press instead of hold) by this many degrees at a time. Setting it to 0 uses vanilla behavior.", new AcceptableValueList<int>(validSnapRotations)));
             FreeRotateKey = Config.Bind(ShipSection, nameof(FreeRotateKey), Key.LeftAlt.ToString(), new ConfigDescription("If SnapObjectsByDegrees > 0, configures which modifer key activates free rotation.", new AcceptableValueList<string>(validKeys)));
             CounterClockwiseKey = Config.Bind(ShipSection, nameof(CounterClockwiseKey), Key.LeftShift.ToString(), new ConfigDescription("If SnapObjectsByDegrees > 0, configures which modifier key spins it CCW.", new AcceptableValueList<string>(validKeys)));
@@ -284,6 +293,7 @@ namespace GeneralImprovements
             TerminalHistoryItemCount = Config.Bind(TerminalSection, nameof(TerminalHistoryItemCount), 20, new ConfigDescription("How many items to keep in your terminal's command history. Previous terminal commands may be navigated by using the up/down arrow keys.", new AcceptableValueRange<int>(0, 100)));
             TerminalFastCamSwitch = Config.Bind(TerminalSection, nameof(TerminalFastCamSwitch), true, "If set to true, will allow use of the left/right arrow keys to quickly cycle through radar cameras while using the terminal.");
             LockCameraAtTerminal = Config.Bind(TerminalSection, nameof(LockCameraAtTerminal), true, "If set to true, the camera will no longer move around when moving your mouse/controller while at the terminal.");
+            ShowMoonPricesInTerminal = Config.Bind(TerminalSection, nameof(ShowMoonPricesInTerminal), false, "If set to true, the moons will also display the cost to fly to them next to their name and weather.");
 
             // Tools
             ScannableTools = Config.Bind(ToolsSection, nameof(ScannableTools), string.Empty, $"A comma separated list of which tools, if any, should be scannable. Accepted values: {validToolStrings}");

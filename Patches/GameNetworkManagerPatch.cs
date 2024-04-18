@@ -59,5 +59,17 @@ namespace GeneralImprovements.Patches
                 }
             }
         }
+
+        [HarmonyPatch(typeof(GameNetworkManager), nameof(SaveItemsInShip))]
+        [HarmonyPostfix]
+        private static void SaveItemsInShip()
+        {
+            // Save extra things we care about
+            var sprayCanItems = SprayPaintItemPatch.GetAllOrderedSprayPaintItemsInShip().Select(s => SprayPaintItemPatch.GetColorIndex(s)).ToArray();
+            if (sprayCanItems.Any())
+            {
+                ES3.Save("sprayPaintItemColors", sprayCanItems);
+            }
+        }
     }
 }

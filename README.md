@@ -29,6 +29,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Locks the camera while at the terminal so it doesn't keep getting pulled back if you try to move it. Behavior may be disabled in config.
 * Fixed clients not knowing the amount of days spent and total deaths if joining on later quotas/days, if both the host and client have this mod.
 * Allows players to look down more (85 degrees instead of 60). May be disabled in the config.
+* Improves the spray can color randomness, and persists the colors between clients and even on reloading the saves.
 
 ### NEW FEATURES:
 * A total of 14 customizable, screen-integrated monitors for the ship (instead of the vanilla 8)! Choose which monitor to put what item, including ship cams and background color.
@@ -46,6 +47,8 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds options to bring held or all items when using teleporters.
 * Adds an option to be able to scan the item dropship.
 * Adds an option to disable overtime bonuses.
+* Adds an option to remove the ship's cupboard's doors.
+* Adds an option to display moon costs next to their names in the terminal.
 
 ### MINOR BUGFIXES:
 * Stops all non-scrap objects from showing value (when scanned and sold) when they do not actually have any.
@@ -61,6 +64,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds an option to fix the personal scanners sensitivity, making it function more reliably, for example being able to ping the ship on Rend.
 * Fixes the ship scan node showing up outside of the ship while flying in to a moon.
 * Fixes the item sales being empty every time a host starts the game, until a day passes.
+* Fixes landmines remaining on the map screens after detonating.
 
 This pairs well with my other mod, [FlashlightFix.](https://thunderstore.io/c/lethal-company/p/ShaosilGaming/FlashlightFix/)
 

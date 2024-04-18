@@ -46,6 +46,23 @@ namespace GeneralImprovements.Patches
                 }
             }
 
+            // Remove cabinet doors if specified
+            if (Plugin.HideShipCabinetDoors.Value)
+            {
+                Plugin.MLS.LogInfo("Removing ship cabinet doors.");
+                var cabinet = GameObject.Find("StorageCloset");
+                if (cabinet?.transform.GetChild(0)?.GetChild(0)?.GetComponent<InteractTrigger>() != null
+                    && cabinet?.transform.GetChild(1)?.GetChild(0)?.GetComponent<InteractTrigger>() != null)
+                {
+                    Object.Destroy(cabinet.transform.GetChild(0).gameObject);
+                    Object.Destroy(cabinet.transform.GetChild(1).gameObject);
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Could not find storage closet doors!");
+                }
+            }
+
             // Rotate ship camera if specified
             if (Plugin.ShipMapCamDueNorth.Value)
             {
@@ -189,6 +206,14 @@ namespace GeneralImprovements.Patches
                         Plugin.ShipMonitorAssignments[3].Value, Plugin.ShipMonitorAssignments[4].Value, Plugin.ShipMonitorAssignments[5].Value, Plugin.ShipMonitorAssignments[6].Value, Plugin.ShipMonitorAssignments[7].Value,
                         Plugin.ShipMonitorAssignments[8].Value, Plugin.ShipMonitorAssignments[9].Value, Plugin.ShipMonitorAssignments[10].Value, Plugin.ShipMonitorAssignments[11].Value,
                         Plugin.ShipMonitorAssignments[12].Value, Plugin.ShipMonitorAssignments[13].Value, clientParams);
+
+                    // Send over color information about existing spray cans
+                    var sprayCanMatIndexes = SprayPaintItemPatch.GetAllOrderedSprayPaintItemsInShip().Select(s => SprayPaintItemPatch.GetColorIndex(s)).ToArray();
+                    if (sprayCanMatIndexes.Any())
+                    {
+                        Plugin.MLS.LogInfo($"Server sending {sprayCanMatIndexes.Length} spray can colors RPC.");
+                        NetworkHelper.Instance.SyncSprayPaintItemColorsClientRpc(sprayCanMatIndexes);
+                    }
                 }
             }
         }
@@ -198,25 +223,6 @@ namespace GeneralImprovements.Patches
         private static void OnClientDisconnect()
         {
             TerminalPatch.AdjustGroupCredits(false);
-        }
-
-        [HarmonyPatch(typeof(StartOfRound), nameof(OnPlayerConnectedClientRpc))]
-        [HarmonyPostfix]
-        private static void OnPlayerConnectedClientRpc()
-        {
-            // Ensure some things are properly set now that we read the map seed from the host
-            if (!StartOfRound.Instance.IsHost)
-            {
-                var sprayCanMatIndexField = typeof(SprayPaintItem).GetField("sprayCanMatsIndex", BindingFlags.Instance | BindingFlags.NonPublic);
-                foreach (var sprayPaint in Object.FindObjectsOfType<SprayPaintItem>())
-                {
-                    // Copied and lightly modified from SprayPaintItem.Start()
-                    int targetIndex = new System.Random(StartOfRound.Instance.randomMapSeed + 151).Next(0, sprayPaint.sprayCanMats.Length);
-                    sprayCanMatIndexField.SetValue(sprayPaint, targetIndex);
-                    sprayPaint.sprayParticle.GetComponent<ParticleSystemRenderer>().material = sprayPaint.particleMats[targetIndex];
-                    sprayPaint.sprayCanNeedsShakingParticle.GetComponent<ParticleSystemRenderer>().material = sprayPaint.particleMats[targetIndex];
-                }
-            }
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(SyncShipUnlockablesClientRpc))]
@@ -274,6 +280,18 @@ namespace GeneralImprovements.Patches
         private static void LoadShipGrabbableItems()
         {
             MonitorsHelper.UpdateShipScrapMonitors();
+
+            // Also load any extra item info we've saved
+            if (ES3.KeyExists("sprayPaintItemColors"))
+            {
+                var sprayCans = SprayPaintItemPatch.GetAllOrderedSprayPaintItemsInShip();
+                var orderedColors = ES3.Load<int[]>("sprayPaintItemColors");
+
+                for (int i = 0; i < sprayCans.Length && i < orderedColors.Length; i++)
+                {
+                    SprayPaintItemPatch.UpdateColor(sprayCans[i], orderedColors[i]);
+                }
+            }
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(Update))]
