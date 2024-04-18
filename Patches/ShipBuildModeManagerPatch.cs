@@ -4,15 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
 
 namespace GeneralImprovements.Patches
 {
     internal static class ShipBuildModeManagerPatch
     {
-        public enum MouseButton { MouseLeft, MouseRight, MouseMiddle, MouseBackButton, MouseForwardButton };
-        private static IReadOnlyDictionary<MouseButton, ButtonControl> _mouseButtonMappings;
-
         private static int _snapObjectsByDegrees;
         private static float _curObjectDegrees;
 
@@ -25,24 +21,14 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void Awake(ShipBuildModeManager __instance)
         {
-            // Initialize the mouse button mappings
-            _mouseButtonMappings = new Dictionary<MouseButton, ButtonControl>
-            {
-                { MouseButton.MouseLeft, Mouse.current.leftButton },
-                { MouseButton.MouseRight, Mouse.current.rightButton },
-                { MouseButton.MouseMiddle, Mouse.current.middleButton },
-                { MouseButton.MouseBackButton, Mouse.current.backButton },
-                { MouseButton.MouseForwardButton, Mouse.current.forwardButton }
-            };
-
             // Set the keybinds - default to LAlt and LShift for Free Rotate Modifier and CCW Modifier, respectively
             UpdateRotateAction(__instance);
             bool hasFreeRotateModifier = Plugin.FreeRotateKey.Value != Key.None.ToString();
             bool hasCCWModifier = Plugin.CounterClockwiseKey.Value != Key.None.ToString();
-            if (Enum.TryParse<MouseButton>(Plugin.FreeRotateKey.Value, out var freeRotateMouseButton))
+            if (Enum.TryParse<Plugin.MouseButton>(Plugin.FreeRotateKey.Value, out var freeRotateMouseButton))
             {
                 _freeRotateModifierKey = freeRotateMouseButton.ToString();
-                _freeRotateHeld = () => _mouseButtonMappings[freeRotateMouseButton].isPressed;
+                _freeRotateHeld = () => Plugin.GetMouseButtonMapping(freeRotateMouseButton).isPressed;
             }
             else
             {
@@ -50,10 +36,10 @@ namespace GeneralImprovements.Patches
                 _freeRotateModifierKey = control?.keyCode.ToString();
                 _freeRotateHeld = () => hasFreeRotateModifier && control.isPressed;
             }
-            if (Enum.TryParse<MouseButton>(Plugin.CounterClockwiseKey.Value, out var ccwMouseButton))
+            if (Enum.TryParse<Plugin.MouseButton>(Plugin.CounterClockwiseKey.Value, out var ccwMouseButton))
             {
                 _ccwModifierKey = ccwMouseButton.ToString();
-                _ccwHeld = () => _mouseButtonMappings[ccwMouseButton].isPressed;
+                _ccwHeld = () => Plugin.GetMouseButtonMapping(ccwMouseButton).isPressed;
             }
             else
             {

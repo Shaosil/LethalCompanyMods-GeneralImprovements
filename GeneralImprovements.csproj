@@ -103,10 +103,15 @@
     </ItemGroup>
 
     <Target Name="CopyFilesToGamePath" AfterTargets="PostBuildEvent" Condition="$(Configuration) != 'Debug'">
+        <!-- Install the netcode-patcher CLI from here: https://github.com/EvaisaDev/UnityNetcodePatcher -->
         <Message Text="Patching netcode..." Importance="high" />
         <Exec Command="netcode-patch &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" />
+
+        <MakeDir Directories="$(GamePath)" />
+        
         <Message Text="Copying DLL to $(GamePath)..." Importance="high" />
         <Exec Command="copy $(TargetPath) &quot;$(GamePath)&quot;" />
+        
         <Message Text="Copying assets to $(GamePath)..." Importance="high" />
         <Exec Command="copy Assets\GeneralImprovementsAssets &quot;$(GamePath)&quot;" />
     </Target>

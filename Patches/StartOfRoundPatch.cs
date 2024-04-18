@@ -1,8 +1,10 @@
 ﻿using GameNetcodeStuff;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -276,16 +278,69 @@ namespace GeneralImprovements.Patches
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(LoadShipGrabbableItems))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> LoadShipGrabbableItemsTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+        {
+            if (!Plugin.FixItemsLoadingSameRotation.Value)
+            {
+                return instructions;
+            }
+
+            // This transpiler will add a new array of Vector3, fill it with rotation values from save file, and apply it to the game objects that are spawned
+            var codeList = instructions.ToList();
+            var newArrayType = typeof(Vector3[]);
+
+            // Make sure a few lines of the IL code is what we expect first
+            if (codeList[13].opcode == OpCodes.Ldstr && codeList[13].operand.ToString() == "shipGrabbableItemPos" && codeList[16].opcode == OpCodes.Call)
+            {
+                Plugin.MLS.LogDebug("Patching LoadShipGrabbableItems to include item rotations.");
+
+                // Ensure we have a new variable slot to store our array
+                generator.DeclareLocal(newArrayType);
+
+                var loadMethod = typeof(ES3).GetMethods().First(m => m.Name == nameof(ES3.Load) && m.IsGenericMethod && m.GetParameters().Length == 3 && m.GetParameters()[2].ParameterType.IsGenericParameter);
+
+                // Inject a new array variable loaded with our save file's rotations
+                codeList.InsertRange(18, new[]
+                {
+                    new CodeInstruction(OpCodes.Ldstr, "shipGrabbableItemRot"),
+                    new CodeInstruction(OpCodes.Call, typeof(GameNetworkManager).GetMethod("get_Instance")),
+                    new CodeInstruction(OpCodes.Ldfld, typeof(GameNetworkManager).GetField(nameof(GameNetworkManager.currentSaveFileName))),
+                    new CodeInstruction(OpCodes.Ldloc_2),
+                    new CodeInstruction(OpCodes.Ldlen),
+                    new CodeInstruction(OpCodes.Newarr, typeof(Vector3)),
+                    new CodeInstruction(OpCodes.Call, loadMethod.MakeGenericMethod(typeof(Vector3[]))),
+                    new CodeInstruction(OpCodes.Stloc_S, 11)
+                });
+
+                // Inject code in our instantiate call to use Quaternion.Euler instead of Quaternion.Identity
+                codeList.InsertRange(145, new[]
+                {
+                    new CodeInstruction(OpCodes.Ldloc_S, 11), // Our new array
+                    new CodeInstruction(OpCodes.Ldloc_S, 9), // i
+                    new CodeInstruction(OpCodes.Ldelem, typeof(Vector3))  // Get the Vector3 value
+                });
+                codeList[148].operand = typeof(Quaternion).GetMethod(nameof(Quaternion.Euler), new[] { typeof(Vector3) });
+            }
+            else
+            {
+                Plugin.MLS.LogError("Could not transpile LoadShipGrabbableItems! Unexpected IL code found.");
+            }
+
+            return codeList.AsEnumerable();
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(LoadShipGrabbableItems))]
         [HarmonyPostfix]
         private static void LoadShipGrabbableItems()
         {
             MonitorsHelper.UpdateShipScrapMonitors();
 
             // Also load any extra item info we've saved
-            if (ES3.KeyExists("sprayPaintItemColors"))
+            if (ES3.KeyExists("sprayPaintItemColors", GameNetworkManager.Instance.currentSaveFileName))
             {
                 var sprayCans = SprayPaintItemPatch.GetAllOrderedSprayPaintItemsInShip();
-                var orderedColors = ES3.Load<int[]>("sprayPaintItemColors");
+                var orderedColors = ES3.Load<int[]>("sprayPaintItemColors", GameNetworkManager.Instance.currentSaveFileName);
 
                 for (int i = 0; i < sprayCans.Length && i < orderedColors.Length; i++)
                 {

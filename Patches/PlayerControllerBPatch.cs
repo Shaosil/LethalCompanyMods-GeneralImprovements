@@ -9,11 +9,13 @@ using System.Reflection;
 using System.Reflection.Emit;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace GeneralImprovements.Patches
 {
     internal static class PlayerControllerBPatch
     {
+        private static Func<bool> _flashlightTogglePressed;
         private static FieldInfo _timeSinceSwitchingSlotsField = null;
         private static FieldInfo TimeSinceSwitchingSlotsField
         {
@@ -29,6 +31,22 @@ namespace GeneralImprovements.Patches
             }
         }
         private static float _originalCursorScale = 0;
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(Awake))]
+        [HarmonyPostfix]
+        private static void Awake()
+        {
+            bool hasToggleShortcut = Plugin.FlashlightToggleShortcut.Value != Key.None.ToString();
+            if (Enum.TryParse<Plugin.MouseButton>(Plugin.FlashlightToggleShortcut.Value, out var flashlightToggleMouseButton))
+            {
+                _flashlightTogglePressed = () => Plugin.GetMouseButtonMapping(flashlightToggleMouseButton).wasPressedThisFrame;
+            }
+            else
+            {
+                var control = hasToggleShortcut && Enum.TryParse<Key>(Plugin.FlashlightToggleShortcut.Value, out var flashlightToggleKey) ? Keyboard.current[flashlightToggleKey] : null;
+                _flashlightTogglePressed = () => control?.wasPressedThisFrame ?? false;
+            }
+        }
 
         [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
         [HarmonyPrefix]
@@ -47,6 +65,74 @@ namespace GeneralImprovements.Patches
             if (Plugin.UseBetterMonitors.Value)
             {
                 MonitorsHelper.HideOldMonitors();
+            }
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(ItemTertiaryUse_performed))]
+        [HarmonyPrefix]
+        private static bool ItemTertiaryUse_performed(PlayerControllerB __instance)
+        {
+            // Flashlights do not have tertiary uses, so cancel out when this is called in that case
+            return FlashlightFixHelper.IsActive || !(__instance.currentlyHeldObjectServer is FlashlightItem);
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(SwitchToItemSlot))]
+        [HarmonyPostfix]
+        private static void SwitchToItemSlot(PlayerControllerB __instance, int slot)
+        {
+            if (!FlashlightFixHelper.IsActive && __instance.ItemSlots[slot] is FlashlightItem slotFlashlight)
+            {
+                // If the player already has an active flashlight (helmet lamp will be on) when picking up a new INACTIVE one, switch to the new one
+                if (__instance.IsOwner && !slotFlashlight.isBeingUsed && __instance.helmetLight.enabled && !slotFlashlight.CheckForLaser() && Plugin.OnlyAllowOneActiveFlashlight.Value)
+                {
+                    for (int i = 0; i < __instance.ItemSlots.Length; i++)
+                    {
+                        // Find the first active flashlights in our inventory that still has battery, and turn it on
+                        if (i != slot && __instance.ItemSlots[i] is FlashlightItem otherFlashlight && otherFlashlight.usingPlayerHelmetLight
+                            && !otherFlashlight.CheckForLaser() && !slotFlashlight.insertedBattery.empty && !slotFlashlight.CheckForLaser())
+                        {
+                            Plugin.MLS.LogDebug($"Flashlight in slot {slot} turning ON after switching to it");
+                            slotFlashlight.UseItemOnClient();
+                            break;
+                        }
+                    }
+                }
+
+                // Ensure we are using the proper helmet light each time we switch to a flashlight
+                UpdateHelmetLight(__instance);
+            }
+        }
+
+        public static void UpdateHelmetLight(PlayerControllerB player)
+        {
+            // The helmet light should always be the first sorted flashlight that is on (lasers are sorted last, then pocketed flashlights are prioritized)
+            var activeLight = player.ItemSlots.OfType<FlashlightItem>()
+                .Where(f => f.isBeingUsed)
+                .OrderBy(f => f.CheckForLaser())
+                .ThenByDescending(f => f.isPocketed)
+                .FirstOrDefault();
+
+            // Update it if the current helmet light is something else
+            if (activeLight != null && player.helmetLight != player.allHelmetLights[activeLight.flashlightTypeID])
+            {
+                Plugin.MLS.LogDebug($"Updating helmet light to type {activeLight.flashlightTypeID} ({(activeLight.isPocketed ? "ON" : "OFF")}).");
+                player.ChangeHelmetLight(activeLight.flashlightTypeID, activeLight.isPocketed);
+            }
+
+            // Always make sure the helmet light state is correct
+            bool helmetLightShouldBeOn = activeLight != null && activeLight.isBeingUsed && activeLight.isPocketed;
+            if (player.helmetLight != null && player.helmetLight.enabled != helmetLightShouldBeOn)
+            {
+                // Toggle helmet light here if needed
+                Plugin.MLS.LogDebug($"Toggling helmet light {(helmetLightShouldBeOn ? "on" : "off")}.");
+                player.helmetLight.enabled = helmetLightShouldBeOn;
+
+                // Update pocket flashlight if needed
+                if (helmetLightShouldBeOn && player.pocketedFlashlight != activeLight)
+                {
+                    Plugin.MLS.LogDebug("Updating pocketed flashlight");
+                    player.pocketedFlashlight = activeLight;
+                }
             }
         }
 
@@ -382,6 +468,33 @@ namespace GeneralImprovements.Patches
                 HUDManager.Instance.holdingTwoHandedItem.enabled = player.twoHanded;
             }
             player.carryWeight = 1 + player.ItemSlots.Sum(i => (i?.itemProperties.weight ?? 1) - 1);
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(Update))]
+        [HarmonyPostfix]
+        private static void Update(PlayerControllerB __instance)
+        {
+            if (!__instance.IsOwner || Plugin.FlashlightToggleShortcut.Value == Key.None.ToString() || __instance.inTerminalMenu || __instance.isTypingChat || !__instance.isPlayerControlled)
+            {
+                return;
+            }
+
+            if (!FlashlightFixHelper.IsActive && _flashlightTogglePressed())
+            {
+                // Get the nearest flashlight with charge, whether it's held or in the inventory
+                var targetFlashlight = __instance.ItemSlots.OfType<FlashlightItem>().Where(f => !f.insertedBattery.empty) // All charged flashlight items
+                    .OrderBy(f => f.CheckForLaser()) // Sort by non-lasers first
+                    .ThenByDescending(f => __instance.currentlyHeldObjectServer == f) // ... then by held items
+                    .ThenByDescending(f => f.isBeingUsed) // ... then by active status
+                    .ThenBy(f => f.flashlightTypeID) // ... then by pro, regular, laser
+                    .FirstOrDefault();
+
+                // Active lasers in hand are toggling OFF first
+                if (targetFlashlight != null)
+                {
+                    targetFlashlight.UseItemOnClient();
+                }
+            }
         }
     }
 }

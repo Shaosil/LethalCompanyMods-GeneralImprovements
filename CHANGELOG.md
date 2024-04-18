@@ -1,5 +1,20 @@
 # Changelog
 
+### v1.2.0 - FlashlightFix implemented
+* Brought over the code from my other mod, the now deprecated [FlashlightFix](https://thunderstore.io/c/lethal-company/p/ShaosilGaming/FlashlightFix/).
+	* Although it's recommended to remove the other mod if you're using it, I did put in detection methods to avoid conflicts if needed.
+* FlashlightFix introduces the following changes:
+	* You may configure a shortcut key to toggle on/off a flashlight at any time (defaults to None).
+	* Flashlights/helmet lights no longer turn off when picking up an additional inactive flashlight.
+		* It will now turn on the new flashlight, and turn off the old one. If the new one is out of batteries, the old one will stay on. This behavior may be disabled in the config.
+	* Multiple flashlights can no longer be active at the same time. This behavior may be disabled in the config.
+	* Laser pointers are no longer treated as flashlights. This behavior may be disabled in the config.
+	* Flashlights will no longer toggle themselves when using/switching items and picking things up
+		* As a result, they will not drain battery randomly while not truly on.
+* Fixed spray can items saving/loading in a single file instead of per save.
+	* If you had some saved, this will cause a one-time reroll of the colors.
+* Added an option to save item rotations per save file so they aren't all facing the same way when you load back in (defaults to true).
+
 ### v1.1.15 - More fixes and improvements
 * Made the spray paint can color more random when they spawn, instead of using the same color per map seed.
 * Saving the spray paint can colors in the save files so they are no longer randomized each load.
@@ -14,7 +29,7 @@
 
 ### v1.1.13 - More fixes and improvements
 * Added an option to sync all monitor settings from host (only works if they are using GeneralImprovements, obviously). Will use your configured settings otherwise, or when hosting. Defaults to off.
-* Added an option to add scan nodes to fire entrances and all exits. Compatible with mimic mod! (Will say "Fire Exit?" instead of "Fire Exit"). Defaults to off.
+* Added an option to add scan nodes to fire entrances and all exits. Compatible with [mimic mod!](https://thunderstore.io/c/lethal-company/p/x753/Mimics/) (Will say "Fire Exit?" instead of "Fire Exit"). Defaults to off.
 * Fixed the monitors staying out of date if they tried to update when you are outside of the ship. They will now refresh once you re-enter the ship.
 * Fixed the spray paint can spawning with debug "error" messages.
 * Fixed some instances of "destroyed" inventory items not applying the inventory shifting code, if active.

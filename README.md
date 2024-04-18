@@ -30,6 +30,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Fixed clients not knowing the amount of days spent and total deaths if joining on later quotas/days, if both the host and client have this mod.
 * Allows players to look down more (85 degrees instead of 60). May be disabled in the config.
 * Improves the spray can color randomness, and persists the colors between clients and even on reloading the saves.
+* Saving item rotations so they aren't all facing the same way when you load up a saved game.
 
 ### NEW FEATURES:
 * A total of 14 customizable, screen-integrated monitors for the ship (instead of the vanilla 8)! Choose which monitor to put what item, including ship cams and background color.
@@ -64,9 +65,15 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds an option to fix the personal scanners sensitivity, making it function more reliably, for example being able to ping the ship on Rend.
 * Fixes the ship scan node showing up outside of the ship while flying in to a moon.
 * Fixes the item sales being empty every time a host starts the game, until a day passes.
-* Fixes landmines remaining on the map screens after detonating.
-
-This pairs well with my other mod, [FlashlightFix.](https://thunderstore.io/c/lethal-company/p/ShaosilGaming/FlashlightFix/)
+* Fixes landmines remaining on the map screens after detonating.* The flashlight toggling on or off when being placed in the ship cupboard (and certain other "E" interactions.)
+* Fixes several things about flashlights:
+	* Flashlights/helmet lights no longer turn off when picking up an additional inactive flashlight.
+		* It will now turn on the new flashlight, and turn off the old one. If the new one is out of batteries, the old one will stay on. This behavior may be disabled in the config.
+	* Multiple flashlights can no longer be active at the same time. This behavior may be disabled in the config.
+	* Laser pointers are no longer treated as flashlights. This behavior may be disabled in the config.
+	* Flashlights will no longer toggle themselves when using/switching items and picking things up
+		* As a result, they will not drain battery randomly while not truly on.
+	* WARNING: Players who do not use this mod may, in rare circumstances, not see your flashlight in the state it should be.
 
 I will probably keep adding to this as I see minor things that could be improved or fixed.
 

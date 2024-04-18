@@ -14,6 +14,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using static GeneralImprovements.Utilities.MonitorsHelper;
 
 namespace GeneralImprovements
@@ -23,6 +24,21 @@ namespace GeneralImprovements
     [BepInDependency(MimicsHelper.GUID, BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
+        // Shortcut key helpers
+        public enum MouseButton { MouseLeft, MouseRight, MouseMiddle, MouseBackButton, MouseForwardButton };
+        public static ButtonControl GetMouseButtonMapping(MouseButton mouseButton)
+        {
+            return mouseButton switch
+            {
+                MouseButton.MouseLeft => Mouse.current.leftButton,
+                MouseButton.MouseRight => Mouse.current.rightButton,
+                MouseButton.MouseMiddle => Mouse.current.middleButton,
+                MouseButton.MouseBackButton => Mouse.current.backButton,
+                MouseButton.MouseForwardButton => Mouse.current.forwardButton,
+                _ => throw new NotImplementedException()
+            };
+        }
+
         public static ManualLogSource MLS { get; private set; }
 
         private const string ExtraMonitorsSection = "ExtraMonitors";
@@ -46,6 +62,7 @@ namespace GeneralImprovements
         private const string FixesSection = "Fixes";
         public static ConfigEntry<bool> FixInternalFireExits { get; private set; }
         public static ConfigEntry<bool> FixItemsFallingThrough { get; private set; }
+        public static ConfigEntry<bool> FixItemsLoadingSameRotation { get; private set; }
         public static ConfigEntry<bool> AllowLookDownMore { get; private set; }
         public static ConfigEntry<int> DropShipItemLimit { get; private set; }
         public static ConfigEntry<int> SellCounterItemLimit { get; private set; }
@@ -104,6 +121,9 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> ShowMoonPricesInTerminal { get; private set; }
 
         private const string ToolsSection = "Tools";
+        public static ConfigEntry<bool> OnlyAllowOneActiveFlashlight { get; private set; }
+        public static ConfigEntry<bool> TreatLasersAsFlashlights { get; private set; }
+        public static ConfigEntry<string> FlashlightToggleShortcut { get; private set; }
         public static ConfigEntry<string> ScannableTools { get; private set; }
         public static List<Type> ScannableToolVals { get; private set; } = new List<Type>();
         public static ConfigEntry<bool> ToolsDoNotAttractLightning { get; private set; }
@@ -120,6 +140,14 @@ namespace GeneralImprovements
         {
             MLS = Logger;
 
+            // Load info about any external mods first
+            ReservedItemSlotCoreHelper.Initialize();
+            AdvancedCompanyHelper.Initialize();
+            TwoRadarCamsHelper.Initialize();
+            MimicsHelper.Initialize();
+            FlashlightFixHelper.Initialize();
+            AssetBundleHelper.Initialize();
+
             BindConfigs();
             MigrateOldConfigValues();
             MLS.LogDebug("Configuration Initialized.");
@@ -132,6 +160,16 @@ namespace GeneralImprovements
 
             Harmony.CreateAndPatchAll(typeof(EntranceTeleportPatch));
             MLS.LogDebug("EntranceTeleport patched.");
+
+            if (!FlashlightFixHelper.IsActive)
+            {
+                Harmony.CreateAndPatchAll(typeof(FlashlightItemPatch));
+                MLS.LogDebug("FlashlightItem patched.");
+            }
+            else
+            {
+                MLS.LogWarning("Outdated version of FlashlightFix detected - please update your mods.");
+            }
 
             Harmony.CreateAndPatchAll(typeof(GameNetworkManagerPatch));
             MLS.LogDebug("GameNetworkManager patched.");
@@ -190,12 +228,6 @@ namespace GeneralImprovements
             Harmony.CreateAndPatchAll(typeof(TimeOfDayPatch));
             MLS.LogDebug("TimeOfDay patched.");
 
-            // Load info about any external mods
-            ReservedItemSlotCoreHelper.Initialize();
-            AdvancedCompanyHelper.Initialize();
-            TwoRadarCamsHelper.Initialize();
-            MimicsHelper.Initialize();
-            AssetBundleHelper.Initialize();
             GameNetworkManagerPatch.PatchNetcode();
 
             MLS.LogInfo($"{Metadata.PLUGIN_NAME} v{Metadata.VERSION} fully loaded.");
@@ -206,7 +238,7 @@ namespace GeneralImprovements
             string[] validMonitors = new[] { "" }.Concat(typeof(MonitorNames).GetFields(BindingFlags.Static | BindingFlags.Public).Select(f => f.Name)).ToArray();
 
             var validKeys = Enum.GetValues(typeof(Key)).Cast<int>().Where(e => e < (int)Key.OEM1).Select(e => Enum.GetName(typeof(Key), e))
-                .Concat(Enum.GetValues(typeof(ShipBuildModeManagerPatch.MouseButton)).Cast<int>().Select(e => Enum.GetName(typeof(ShipBuildModeManagerPatch.MouseButton), e))).ToArray();
+                .Concat(Enum.GetValues(typeof(MouseButton)).Cast<int>().Select(e => Enum.GetName(typeof(MouseButton), e))).ToArray();
 
             var validSnapRotations = Enumerable.Range(0, 360 / 15).Select(n => n * 15).Where(n => n == 0 || 360 % n == 0).ToArray();
 
@@ -240,6 +272,7 @@ namespace GeneralImprovements
             // Fixes
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
             FixItemsFallingThrough = Config.Bind(FixesSection, nameof(FixItemsFallingThrough), true, "Fixes items falling through furniture on the ship when loading the game.");
+            FixItemsLoadingSameRotation = Config.Bind(FixesSection, nameof(FixItemsLoadingSameRotation), true, "Fixes items all facing the same way when loading a save file. Now they will store their rotations as well.");
             AllowLookDownMore = Config.Bind(FixesSection, nameof(AllowLookDownMore), true, "If set to true, you will be able to look down at a steeper angle than vanilla.");
             DropShipItemLimit = Config.Bind(FixesSection, nameof(DropShipItemLimit), 24, new ConfigDescription("Sets the max amount of items a single dropship delivery will allow. Vanilla = 12.", new AcceptableValueRange<int>(12, 100)));
             SellCounterItemLimit = Config.Bind(FixesSection, nameof(SellCounterItemLimit), 24, new ConfigDescription("Sets the max amount of items the company selling counter will hold at one time. Vanilla = 12.", new AcceptableValueRange<int>(12, 100)));
@@ -296,6 +329,10 @@ namespace GeneralImprovements
             ShowMoonPricesInTerminal = Config.Bind(TerminalSection, nameof(ShowMoonPricesInTerminal), false, "If set to true, the moons will also display the cost to fly to them next to their name and weather.");
 
             // Tools
+            OnlyAllowOneActiveFlashlight = Config.Bind(ToolsSection, nameof(OnlyAllowOneActiveFlashlight), true, "When turning on any flashlight, will turn off any others in your inventory that are still active.");
+            TreatLasersAsFlashlights = Config.Bind(ToolsSection, nameof(TreatLasersAsFlashlights), false, "If set to true, laser pointers will be like flashlights and automatically toggle off and on when switching to them, etc.");
+            FlashlightToggleShortcut = Config.Bind(ToolsSection, nameof(FlashlightToggleShortcut), Key.None.ToString(), new ConfigDescription($"A shortcut key to allow toggling a flashlight at any time.", new AcceptableValueList<string>(validKeys)));
+
             ScannableTools = Config.Bind(ToolsSection, nameof(ScannableTools), string.Empty, $"A comma separated list of which tools, if any, should be scannable. Accepted values: {validToolStrings}");
             ToolsDoNotAttractLightning = Config.Bind(ToolsSection, nameof(ToolsDoNotAttractLightning), false, "[Host Only] If set to true, all useful tools (jetpacks, keys, radar boosters, shovels & signs, tzp inhalant, and zap guns) will no longer attract lighning.");
             AutoChargeOnOrbit = Config.Bind(ToolsSection, nameof(AutoChargeOnOrbit), false, "If set to true, all owned* battery-using items will be automatically charged every time the ship goes into orbit. *You are considered to 'own' an item if you are the last person to have held it.");

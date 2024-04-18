@@ -107,6 +107,7 @@ namespace GeneralImprovements.Patches
                 __instance.fallTime = 1;
                 __instance.reachedFloorTarget = false;
                 __instance.targetFloorPosition = __instance.transform.localPosition;
+                __instance.floorYRot = -1;
                 _itemsToKeepInPlace.Remove(__instance);
             }
         }
