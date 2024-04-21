@@ -101,13 +101,17 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void Start_Post(GrabbableObject __instance)
         {
+            if (Plugin.FixItemsLoadingSameRotation.Value)
+            {
+                __instance.floorYRot = -1; // If not initialized to -1, all items will rotate to 0 Y when "hitting the floor" on spawn
+            }
+
             // Prevent ship items from falling through objects when they spawn (postfix)
             if (_itemsToKeepInPlace.Contains(__instance))
             {
                 __instance.fallTime = 1;
                 __instance.reachedFloorTarget = false;
                 __instance.targetFloorPosition = __instance.transform.localPosition;
-                __instance.floorYRot = -1;
                 _itemsToKeepInPlace.Remove(__instance);
             }
         }
@@ -158,7 +162,10 @@ namespace GeneralImprovements.Patches
                                     if (StartOfRound.Instance.localPlayerController.ItemSlots[i] == k)
                                     {
                                         StartOfRound.Instance.localPlayerController.DestroyItemInSlotAndSync(i);
-                                        HUDManager.Instance.itemSlotIcons[i].enabled = false; // Need this manually here because it only gets called if the player is holding something
+                                        if (StartOfRound.Instance.localPlayerController.ItemSlots[i] == null)
+                                        {
+                                            HUDManager.Instance.itemSlotIcons[i].enabled = false; // Need this manually here because it only gets called if the player is holding something
+                                        }
                                         return;
                                     }
                                 }
@@ -175,8 +182,9 @@ namespace GeneralImprovements.Patches
 
         public static KeyValuePair<int, int> GetOutsideScrap(bool approximate)
         {
+            // Get every non-ragdoll grabbable outside of the ship that has a minimum value
             var fixedRandom = new System.Random(StartOfRound.Instance.randomMapSeed + 91); // Why 91? Shrug. It's the offset in vanilla code and I kept it.
-            var valuables = UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(o => !o.isInShipRoom && !o.isInElevator && o.itemProperties.minValue > 0).ToList();
+            var valuables = UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(o => !o.isInShipRoom && !o.isInElevator && o.itemProperties.minValue > 0 && !(o is RagdollGrabbableObject)).ToList();
 
             float multiplier = RoundManager.Instance.scrapValueMultiplier;
             int sum = approximate ? (int)Math.Round(valuables.Sum(i => fixedRandom.Next(Mathf.Clamp(i.itemProperties.minValue, 0, i.itemProperties.maxValue), i.itemProperties.maxValue) * multiplier))

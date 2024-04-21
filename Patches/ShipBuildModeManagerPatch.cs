@@ -75,7 +75,7 @@ namespace GeneralImprovements.Patches
                 var combinedNewDescs = new List<string>();
                 if (_freeRotateModifierKey != null) combinedNewDescs.Add($"Free Rotate: Hold [{_freeRotateModifierKey}]");
                 if (_ccwModifierKey != null) combinedNewDescs.Add($"CCW: Hold [{_ccwModifierKey}]");
-                if (combinedNewDescs.Any()) vanillaDesc += '\n';
+                if (combinedNewDescs.Count > 0) vanillaDesc += '\n';
 
                 HUDManager.Instance.buildModeControlTip.text = $"{vanillaDesc}{string.Join("  |  ", combinedNewDescs.ToArray())}";
             }

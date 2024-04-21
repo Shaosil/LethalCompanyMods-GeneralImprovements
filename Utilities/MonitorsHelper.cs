@@ -569,7 +569,7 @@ namespace GeneralImprovements.Utilities
 
         public static void CopyProfitQuotaAndDeadlineTexts()
         {
-            if (_profitQuotaTexts.Any() || _deadlineTexts.Any())
+            if (_profitQuotaTexts.Count > 0 || _deadlineTexts.Count > 0)
             {
                 if (UpdateGenericTextList(_profitQuotaTexts, StartOfRound.Instance.profitQuotaMonitorText?.text)
                     & UpdateGenericTextList(_deadlineTexts, StartOfRound.Instance.deadlineMonitorText?.text))
@@ -581,12 +581,13 @@ namespace GeneralImprovements.Utilities
 
         public static void UpdateShipScrapMonitors()
         {
-            if (!_shipScrapMonitorTexts.Any())
+            if (_shipScrapMonitorTexts.Count == 0)
             {
                 return;
             }
 
-            var allScrap = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom && o.isInElevator && !o.isHeld).ToList();
+            // All dropped scrap except ragdolls
+            var allScrap = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom && o.isInElevator && !o.isHeld && !(o is RagdollGrabbableObject)).ToList();
             int shipLoot = allScrap.Sum(o => o.scrapValue);
 
             if (UpdateGenericTextList(_shipScrapMonitorTexts, $"SCRAP IN SHIP:\n${shipLoot}"))
@@ -597,7 +598,7 @@ namespace GeneralImprovements.Utilities
 
         public static void UpdateScrapLeftMonitors()
         {
-            if (_scrapLeftMonitorTexts.Any())
+            if (_scrapLeftMonitorTexts.Count > 0)
             {
                 var outsideScrap = GrabbableObjectsPatch.GetOutsideScrap(!Plugin.ScanCommandUsesExactAmount.Value);
                 bool updatedText = false;
@@ -619,7 +620,7 @@ namespace GeneralImprovements.Utilities
 
         public static void UpdateTimeMonitors()
         {
-            if (HUDManager.Instance?.clockNumber != null && _timeMonitorTexts.Any())
+            if (HUDManager.Instance?.clockNumber != null && _timeMonitorTexts.Count > 0)
             {
                 string time;
                 if (TimeOfDay.Instance.movingGlobalTimeForward)
@@ -640,9 +641,9 @@ namespace GeneralImprovements.Utilities
 
         public static void UpdateWeatherMonitors()
         {
-            if (_weatherMonitorTexts.Any() || _fancyWeatherMonitorTexts.Any())
+            if (_weatherMonitorTexts.Count > 0 || _fancyWeatherMonitorTexts.Count > 0)
             {
-                if (_weatherMonitorTexts.Any())
+                if (_weatherMonitorTexts.Count > 0)
                 {
                     if (UpdateGenericTextList(_weatherMonitorTexts, $"WEATHER:\n{(StartOfRound.Instance.currentLevel?.currentWeather.ToString() ?? string.Empty)}"))
                     {
@@ -650,7 +651,7 @@ namespace GeneralImprovements.Utilities
                     }
                 }
 
-                if (_fancyWeatherMonitorTexts.Any())
+                if (_fancyWeatherMonitorTexts.Count > 0)
                 {
                     // Change the animation we are currently referencing
                     _curWeatherAnimations = StartOfRound.Instance.currentLevel?.currentWeather switch
@@ -687,7 +688,7 @@ namespace GeneralImprovements.Utilities
 
         public static void AnimateSpecialMonitors()
         {
-            if (_fancyWeatherMonitorTexts.Any() && _curWeatherAnimations.Length >= 2)
+            if (_fancyWeatherMonitorTexts.Count > 0 && _curWeatherAnimations.Length >= 2)
             {
                 Action drawWeather = () =>
                 {
@@ -742,7 +743,7 @@ namespace GeneralImprovements.Utilities
                 }
             }
 
-            if (_salesMonitorTexts.Any() && _curSalesAnimations.Count >= 2)
+            if (_salesMonitorTexts.Count > 0 && _curSalesAnimations.Count >= 2)
             {
                 _salesAnimTimer += Time.deltaTime;
                 if (_salesAnimTimer >= _salesAnimCycle)
@@ -757,7 +758,7 @@ namespace GeneralImprovements.Utilities
 
         public static void UpdateSalesMonitors()
         {
-            if (_salesMonitorTexts.Any() && TerminalPatch.Instance != null)
+            if (_salesMonitorTexts.Count > 0 && TerminalPatch.Instance != null)
             {
                 var instance = TerminalPatch.Instance;
                 int numSales = instance.itemSalesPercentages.Count(s => s < 100);
@@ -803,7 +804,7 @@ namespace GeneralImprovements.Utilities
 
                 // Only update if there is a change
                 var groupCredits = TerminalPatch.Instance?.groupCredits ?? -1;
-                if (_creditsMonitorTexts.Any() && (force || groupCredits != _lastUpdatedCredits))
+                if (_creditsMonitorTexts.Count > 0 && (force || groupCredits != _lastUpdatedCredits))
                 {
                     _lastUpdatedCredits = groupCredits;
 
@@ -824,7 +825,7 @@ namespace GeneralImprovements.Utilities
 
             // Only update if there is a change
             float doorPower = HangarShipDoorPatch.Instance?.doorPower ?? 1;
-            if (_doorPowerMonitorTexts.Any() && (force || (_lastUpdatedDoorPower != doorPower && _updateDoorPowerTimer <= 0)))
+            if (_doorPowerMonitorTexts.Count > 0 && (force || (_lastUpdatedDoorPower != doorPower && _updateDoorPowerTimer <= 0)))
             {
                 _lastUpdatedDoorPower = doorPower;
                 UpdateGenericTextList(_doorPowerMonitorTexts, $"DOOR POWER:\n{Mathf.RoundToInt(_lastUpdatedDoorPower * 100)}%");
@@ -836,7 +837,7 @@ namespace GeneralImprovements.Utilities
 
         public static void UpdateTotalDaysMonitors()
         {
-            if (_totalDaysMonitorTexts.Any() && StartOfRound.Instance.gameStats != null)
+            if (_totalDaysMonitorTexts.Count > 0 && StartOfRound.Instance.gameStats != null)
             {
                 if (UpdateGenericTextList(_totalDaysMonitorTexts, $"DAY {StartOfRound.Instance.gameStats.daysSpent + 1}"))
                 {
@@ -847,7 +848,7 @@ namespace GeneralImprovements.Utilities
 
         public static void UpdateTotalQuotasMonitors()
         {
-            if (_totalQuotasMonitorTexts.Any() && TimeOfDay.Instance != null)
+            if (_totalQuotasMonitorTexts.Count > 0 && TimeOfDay.Instance != null)
             {
                 if (UpdateGenericTextList(_totalQuotasMonitorTexts, $"QUOTA {TimeOfDay.Instance.timesFulfilledQuota + 1}"))
                 {
@@ -858,7 +859,7 @@ namespace GeneralImprovements.Utilities
 
         public static void UpdateDeathMonitors(bool? playersDied = null)
         {
-            if (_totalDeathsMonitorTexts.Any() && StartOfRound.Instance?.gameStats != null)
+            if (_totalDeathsMonitorTexts.Count > 0 && StartOfRound.Instance?.gameStats != null)
             {
                 if (UpdateGenericTextList(_totalDeathsMonitorTexts, $"DEATHS:\n{StartOfRound.Instance.gameStats.deaths}"))
                 {
@@ -866,7 +867,7 @@ namespace GeneralImprovements.Utilities
                 }
             }
 
-            if (_daysSinceDeathMonitorTexts.Any() && StartOfRound.Instance != null)
+            if (_daysSinceDeathMonitorTexts.Count > 0 && StartOfRound.Instance != null)
             {
                 if (playersDied.HasValue)
                 {
@@ -939,7 +940,7 @@ namespace GeneralImprovements.Utilities
                 _queuedMonitorRefreshes[text]();
             }
 
-            if (_queuedMonitorRefreshes.Any())
+            if (_queuedMonitorRefreshes.Count > 0)
             {
                 Plugin.MLS.LogInfo($"Applied {_queuedMonitorRefreshes.Count} queued monitor changes.");
                 _queuedMonitorRefreshes.Clear();

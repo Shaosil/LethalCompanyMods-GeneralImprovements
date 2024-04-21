@@ -1,5 +1,16 @@
 # Changelog
 
+### v1.2.1 - Performance and compatibility improvements
+* Cleaned up certain technical pieces of code that may have been causing slight optimiziation issues.
+* Ensured that keeping vanilla teleporter cooldown options does NOT modify the teleporter cooldown code at all, thus ensuring compatibility with mods that do.
+* Fixed a small bug that would make a shifted inventory item invisible on the HUD when using a key in another slot.
+* Optimized the code for UnlockDoorsFromInventory to have less performance impact.
+* Fixed landmines retaining their scan node after they explode.
+* Fixed FixItemsLoadingSameRotation only working when FixItemsFallingThrough was enabled.
+* Fixed a bug where starting credits would be incorrect after player(s) left or rejoined after anyone bought something.
+* Fixed an old bug with my teleporter fix no longer collecting dead bodies as scrap.
+* Fixed dead bodies being counted as scrap on certain monitors.
+
 ### v1.2.0 - FlashlightFix implemented
 * Brought over the code from my other mod, the now deprecated [FlashlightFix](https://thunderstore.io/c/lethal-company/p/ShaosilGaming/FlashlightFix/).
 	* Although it's recommended to remove the other mod if you're using it, I did put in detection methods to avoid conflicts if needed.

@@ -205,7 +205,7 @@ namespace GeneralImprovements.Patches
                 bool downPressed = Keyboard.current[Key.DownArrow].wasPressedThisFrame;
                 bool leftPressed = Keyboard.current[Key.LeftArrow].wasPressedThisFrame;
 
-                if ((upPressed || downPressed) && _commandHistory.Any())
+                if ((upPressed || downPressed) && _commandHistory.Count > 0)
                 {
                     // Navigate through history
                     _curHistoryIndex += (upPressed ? -1 : 1);
@@ -245,6 +245,14 @@ namespace GeneralImprovements.Patches
                     }
                 }
             }
+        }
+
+        [HarmonyPatch(typeof(Terminal), nameof(SyncGroupCreditsClientRpc))]
+        [HarmonyPostfix]
+        private static void SyncGroupCreditsClientRpc(int newGroupCredits)
+        {
+            // Adjust our current credits tracker by the difference to ensure it is always accurate
+            _currentCredits += (newGroupCredits - _currentCredits);
         }
 
         public static void SetStartingMoneyPerPlayer()

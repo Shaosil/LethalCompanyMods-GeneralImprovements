@@ -169,7 +169,7 @@ namespace GeneralImprovements.Patches
             if ((StormyWeatherPatch.Instance?.isActiveAndEnabled ?? false) && Plugin.ShowLightningWarnings.Value)
             {
                 // Toggle lightning overlays on item slots when needed
-                if (_lightningOverlays.Any() && HUDManager.Instance != null && StartOfRound.Instance.localPlayerController != null)
+                if (_lightningOverlays.Count > 0 && HUDManager.Instance != null && StartOfRound.Instance.localPlayerController != null)
                 {
                     for (int i = 0; i < Mathf.Min(HUDManager.Instance.itemSlotIconFrames.Length, _lightningOverlays.Count, StartOfRound.Instance.localPlayerController.ItemSlots.Length); i++)
                     {

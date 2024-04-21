@@ -68,6 +68,32 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(ActivateItem_performed))]
+        [HarmonyPostfix]
+        private static void ActivateItem_performed(PlayerControllerB __instance)
+        {
+            // If specified, attempt to use the first key found in our inventory
+            if (Plugin.UnlockDoorsFromInventory.Value && CanUseAnyItem(__instance))
+            {
+                for (int i = 0; i < __instance.ItemSlots.Length; i++)
+                {
+                    if (__instance.ItemSlots[i] is KeyItem key)
+                    {
+                        key.ItemActivate(true);
+                        break;
+                    }
+                }
+            }
+        }
+
+        private static bool CanUseAnyItem(PlayerControllerB instance)
+        {
+            // Copied from CanUseItem(), but removed checks for currently held item
+            return ((instance.IsOwner && instance.isPlayerControlled && (!instance.IsServer || instance.isHostPlayerObject)) || instance.isTestingPlayer)
+                && !instance.quickMenuManager.isMenuOpen && !instance.isPlayerDead
+                && (!instance.isGrabbingObjectAnimation && !instance.inTerminalMenu && !instance.isTypingChat && (!instance.inSpecialInteractAnimation || instance.inShockingMinigame));
+        }
+
         [HarmonyPatch(typeof(PlayerControllerB), nameof(ItemTertiaryUse_performed))]
         [HarmonyPrefix]
         private static bool ItemTertiaryUse_performed(PlayerControllerB __instance)

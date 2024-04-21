@@ -65,8 +65,9 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds an option to fix the personal scanners sensitivity, making it function more reliably, for example being able to ping the ship on Rend.
 * Fixes the ship scan node showing up outside of the ship while flying in to a moon.
 * Fixes the item sales being empty every time a host starts the game, until a day passes.
-* Fixes landmines remaining on the map screens after detonating.* The flashlight toggling on or off when being placed in the ship cupboard (and certain other "E" interactions.)
+* Fixes landmines remaining on the map screens and still being scannable after detonating.
 * Fixes several things about flashlights:
+	* Flashlights will no longer toggle on or off when being placed in the ship cupboard (and certain other "E" interactions.) 
 	* Flashlights/helmet lights no longer turn off when picking up an additional inactive flashlight.
 		* It will now turn on the new flashlight, and turn off the old one. If the new one is out of batteries, the old one will stay on. This behavior may be disabled in the config.
 	* Multiple flashlights can no longer be active at the same time. This behavior may be disabled in the config.
