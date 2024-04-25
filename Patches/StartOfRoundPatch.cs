@@ -350,8 +350,11 @@ namespace GeneralImprovements.Patches
             var codeList = instructions.ToList();
             var newArrayType = typeof(Vector3[]);
             var instantiateMethod = typeof(Object).GetMethods().First(m => m.Name == nameof(Object.Instantiate) && m.ContainsGenericParameters && m.GetParameters().Length == 4).MakeGenericMethod(typeof(GameObject));
-            var theirLoad = typeof(ES3).GetMethods().First(m => m.Name == nameof(ES3.Load) && m.IsGenericMethod && m.GetParameters().Length == 2).MakeGenericMethod(typeof(Vector3[]));
-            var ourLoad = typeof(ES3).GetMethods().First(m => m.Name == nameof(ES3.Load) && m.IsGenericMethod && m.GetParameters().Length == 3).MakeGenericMethod(typeof(Vector3[]));
+            var genLoadMethods = typeof(ES3).GetMethods().Where(m => m.Name == nameof(ES3.Load) && m.IsGenericMethod).ToList();
+            var theirLoad = genLoadMethods.First(m => m.GetParameters().Length == 2 && m.GetParameters().All(p => p.ParameterType == typeof(string))).MakeGenericMethod(typeof(Vector3[]));
+            var ourLoad = genLoadMethods.First(m => m.GetParameters().Length == 3 && m.GetParameters()[2].ParameterType.IsGenericParameter).MakeGenericMethod(typeof(Vector3[]));
+
+            Plugin.MLS.LogError(ourLoad);
 
             bool foundLoad = codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
             {

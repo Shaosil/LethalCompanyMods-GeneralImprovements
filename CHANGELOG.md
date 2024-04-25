@@ -1,5 +1,9 @@
 # Changelog
 
+### v1.2.3 - Hotfix!
+* Hopefully fixing a game load exception that was causing items to be lost on load. Sorry!
+* Fixing the player's max look down angle when AllowLookDownMore = true, since the last update broke it with all the refactoring.
+
 ### v1.2.2 - More fixes and improvements
 * Refactored the transpilers to be more compatible with other mods that may modify the same functions.
 * Added extension ladders and knives to the tools that are non conductive when ToolsDoNotAttractLightning = true.

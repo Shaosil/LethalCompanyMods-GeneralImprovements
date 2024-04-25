@@ -366,12 +366,18 @@ namespace GeneralImprovements.Patches
 
             if (instructions.TryFindInstructions(new Func<CodeInstruction, bool>[]
             {
-                i => i.LoadsConstant(60),                                   // If we are putting the value of 60 on the stack
-                i => i.Calls(typeof(Math).GetMethod(nameof(Math.Clamp)))    // and the next operation is Math.Clamp
+                i => i.LoadsField(typeof(PlayerControllerB).GetField("cameraUp", BindingFlags.NonPublic | BindingFlags.Instance)),
+                i => i.LoadsConstant(-80f),
+                i => i.LoadsConstant(60f),
+                i => i.Calls(typeof(Mathf).GetMethod(nameof(Mathf.Clamp), new[] { typeof(float), typeof(float), typeof(float) }))
             }, out var found))
             {
                 Plugin.MLS.LogDebug($"Updating look down angle to 85 in {original.Name}.");
-                found.First().Instruction.operand = 85f;
+                found[2].Instruction.operand = 85f;
+            }
+            else
+            {
+                Plugin.MLS.LogError($"Unexpected IL code found - Could not patch look down angle in {original.Name}!");
             }
 
             return instructions;
