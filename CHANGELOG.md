@@ -1,5 +1,17 @@
 # Changelog
 
+### v1.2.2 - More fixes and improvements
+* Refactored the transpilers to be more compatible with other mods that may modify the same functions.
+* Added extension ladders and knives to the tools that are non conductive when ToolsDoNotAttractLightning = true.
+* Fixed exploded grenades (and eggs) counting towards monitor scrap calculations.
+* Fixed new save files always using 0 for a map seed before starting the game, which caused sales, weather, and other things to always be the same.
+* Fixed romantic table rotation not lining up perfectly for 45 degree snapping increments.
+* Fixed "ghost outlines" being incorrectly shown when using snapping during build mode.
+* Added an option to destroy keys in inventory (and ship if host) after orbiting. Pairs well with KeysHaveInfiniteUses. Defaults to false.
+* Added an option to use a 24 hour clock instead of 12. Defaults to false.
+* Added an option to have the clock always show on the HUD when landed on a moon. Defaults to false.
+* Added an option to display kg instead of pounds (yes, it converts). Defaults to false.
+
 ### v1.2.1 - Performance and compatibility improvements
 * Cleaned up certain technical pieces of code that may have been causing slight optimiziation issues.
 * Ensured that keeping vanilla teleporter cooldown options does NOT modify the teleporter cooldown code at all, thus ensuring compatibility with mods that do.

@@ -5,7 +5,6 @@ using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
 using UnityEngine.InputSystem;
@@ -115,19 +114,20 @@ namespace GeneralImprovements.Patches
         [HarmonyTranspiler]
         private static IEnumerable<CodeInstruction> PatchDropshipItemLimit(IEnumerable<CodeInstruction> instructions)
         {
-            var codeList = new List<CodeInstruction>(instructions);
-            for (int i = 3; i < codeList.Count; i++)
+            // If the current instruction is to compare the numberOfItemsInDropship to 12, update it to our defined number
+            if (instructions.TryFindInstructions(new Func<CodeInstruction, bool>[]
             {
-                // If the current instruction is to compare the numberOfItemsInDropship to 12, update it to our defined number
-                if (codeList[i].Is(OpCodes.Ldc_R4, 12f) && codeList[i - 3].opcode == OpCodes.Ldfld && (codeList[i - 3].operand as FieldInfo)?.Name == nameof(Terminal.numberOfItemsInDropship))
-                {
-                    Plugin.MLS.LogDebug($"Updating dropship item limit to {Plugin.DropShipItemLimit.Value}.");
-                    codeList[i].operand = (float)Plugin.DropShipItemLimit.Value;
-                    break;
-                }
+                i => i.LoadsField(typeof(Terminal).GetField(nameof(Terminal.numberOfItemsInDropship))),
+                i => i.opcode == OpCodes.Conv_R4,
+                i => i.opcode == OpCodes.Add,
+                i => i.LoadsConstant(12f)
+            }, out var found))
+            {
+                Plugin.MLS.LogDebug($"Updating dropship item limit to {Plugin.DropShipItemLimit.Value}.");
+                found.Last().Instruction.operand = (float)Plugin.DropShipItemLimit.Value;
             }
 
-            return codeList.AsEnumerable();
+            return instructions;
         }
 
         [HarmonyPatch(typeof(Terminal), "TextPostProcess")]

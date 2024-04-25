@@ -4,7 +4,6 @@ using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 
@@ -65,7 +64,7 @@ namespace GeneralImprovements.Patches
             if (__instance.itemProperties != null)
             {
                 var nonConductiveItems = new string[] { "Flask", "Whoopie Cushion" };
-                var tools = new string[] { "Jetpack", "Key", "Radar-booster", "Shovel", "Stop sign", "TZP-Inhalant", "Yield sign", "Zap gun" };
+                var tools = new string[] { "Extension ladder", "Jetpack", "Key", "Radar-booster", "Shovel", "Stop sign", "TZP-Inhalant", "Yield sign", "Kitchen knife", "Zap gun" };
 
                 if (nonConductiveItems.Any(n => __instance.itemProperties.itemName.Equals(n, StringComparison.OrdinalIgnoreCase))
                     || (Plugin.ToolsDoNotAttractLightning.Value && tools.Any(t => __instance.itemProperties.itemName.Equals(t, StringComparison.OrdinalIgnoreCase))))
@@ -116,9 +115,10 @@ namespace GeneralImprovements.Patches
             }
         }
 
-        [HarmonyPatch(typeof(GrabbableObject), nameof(OnHitGround))]
+        [HarmonyPatch(typeof(GrabbableObject), "OnHitGround")]
+        [HarmonyPatch(typeof(StunGrenadeItem), "ExplodeStunGrenade")]
         [HarmonyPostfix]
-        private static void OnHitGround(GrabbableObject __instance)
+        private static void OnHitGroundOrExplode(GrabbableObject __instance)
         {
             if (__instance.isInShipRoom)
             {
@@ -136,55 +136,56 @@ namespace GeneralImprovements.Patches
             if (Plugin.UnlockDoorsFromInventory.Value || Plugin.KeysHaveInfiniteUses.Value)
             {
                 // Call DestroyItemInSlot instead of DespawnHeldObject
-                for (int i = 0; i < codeList.Count; i++)
+                if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
                 {
-                    if (codeList[i].opcode == OpCodes.Callvirt && (codeList[i].operand as MethodInfo)?.Name == nameof(PlayerControllerB.DespawnHeldObject))
+                    i => i.IsLdarg(),
+                    i => i.LoadsField(typeof(GrabbableObject).GetField(nameof(GrabbableObject.playerHeldBy))),
+                    i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.DespawnHeldObject)))
+                }, out var found))
+                {
+                    if (Plugin.KeysHaveInfiniteUses.Value)
                     {
-                        if (Plugin.KeysHaveInfiniteUses.Value)
-                        {
-                            Plugin.MLS.LogDebug("Patching key activate to no longer call DespawnHeldObject.");
+                        Plugin.MLS.LogDebug("Patching key activate to no longer call DespawnHeldObject.");
 
-                            // Simply remove the call (3 lines)
-                            codeList.RemoveRange(i - 2, 3);
+                        // Simply remove the call (3 lines)
+                        for (int i = 0; i < found.Length; i++)
+                        {
+                            found[i].Instruction.opcode = OpCodes.Nop;
                         }
-                        else
+                    }
+                    else
+                    {
+                        Plugin.MLS.LogDebug("Patching key activate to call DestroyItemInSlot instead of DespawnHeldObject.");
+
+                        // Remove the previous line that loads playerHeldBy onto the stack
+                        found[1].Instruction.opcode = OpCodes.Nop;
+
+                        // Insert a new instruction delegate at the current new index
+                        Action<KeyItem> callDestroy = k =>
                         {
-                            Plugin.MLS.LogDebug("Patching key activate to call DestroyItemInSlot instead of DespawnHeldObject.");
-
-                            // Remove the previous line that loads playerHeldBy onto the stack
-                            codeList.RemoveAt(i - 1);
-
-                            // Insert a new instruction delegate at the current new index
-                            Action<KeyItem> callDestroy = k =>
+                            for (int i = 0; i < StartOfRound.Instance.localPlayerController.ItemSlots.Length; i++)
                             {
-                                for (int i = 0; i < StartOfRound.Instance.localPlayerController.ItemSlots.Length; i++)
+                                if (StartOfRound.Instance.localPlayerController.ItemSlots[i] == k)
                                 {
-                                    if (StartOfRound.Instance.localPlayerController.ItemSlots[i] == k)
-                                    {
-                                        StartOfRound.Instance.localPlayerController.DestroyItemInSlotAndSync(i);
-                                        if (StartOfRound.Instance.localPlayerController.ItemSlots[i] == null)
-                                        {
-                                            HUDManager.Instance.itemSlotIcons[i].enabled = false; // Need this manually here because it only gets called if the player is holding something
-                                        }
-                                        return;
-                                    }
+                                    ItemHelper.DestroyLocalItemAndSync(i);
+                                    return;
                                 }
-                            };
-                            codeList[i - 1] = Transpilers.EmitDelegate(callDestroy);
-                        }
-                        break;
+                            }
+                        };
+                        codeList[found.Last().Index] = Transpilers.EmitDelegate(callDestroy);
                     }
                 }
             }
 
-            return codeList.AsEnumerable();
+            return codeList;
         }
 
         public static KeyValuePair<int, int> GetOutsideScrap(bool approximate)
         {
-            // Get every non-ragdoll grabbable outside of the ship that has a minimum value
+            // Get every non-ragdoll and unexploded grenade/grabbable outside of the ship that has a minimum value
             var fixedRandom = new System.Random(StartOfRound.Instance.randomMapSeed + 91); // Why 91? Shrug. It's the offset in vanilla code and I kept it.
-            var valuables = UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(o => !o.isInShipRoom && !o.isInElevator && o.itemProperties.minValue > 0 && !(o is RagdollGrabbableObject)).ToList();
+            var valuables = UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(o => !o.isInShipRoom && !o.isInElevator && o.itemProperties.minValue > 0
+                && !(o is RagdollGrabbableObject) && (!(o is StunGrenadeItem grenade) || !grenade.hasExploded || !grenade.DestroyGrenade)).ToList();
 
             float multiplier = RoundManager.Instance.scrapValueMultiplier;
             int sum = approximate ? (int)Math.Round(valuables.Sum(i => fixedRandom.Next(Mathf.Clamp(i.itemProperties.minValue, 0, i.itemProperties.maxValue), i.itemProperties.maxValue) * multiplier))

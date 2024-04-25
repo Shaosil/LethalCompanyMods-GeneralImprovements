@@ -1,6 +1,7 @@
-﻿using HarmonyLib;
+﻿using GeneralImprovements.Utilities;
+using HarmonyLib;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection.Emit;
 
 namespace GeneralImprovements.Patches
@@ -11,18 +12,22 @@ namespace GeneralImprovements.Patches
         [HarmonyTranspiler]
         private static IEnumerable<CodeInstruction> PlaceItemOnCounter(IEnumerable<CodeInstruction> instructions)
         {
-            var codeList = instructions.ToList();
-            for (int i = 2; i < codeList.Count; i++)
+            if (instructions.TryFindInstructions(new Func<CodeInstruction, bool>[]
             {
-                if (codeList[i].Is(OpCodes.Ldc_I4_S, 12) && codeList[i - 2].opcode == OpCodes.Ldlen)
-                {
-                    Plugin.MLS.LogDebug($"Updating sell counter item limit to {Plugin.SellCounterItemLimit.Value}.");
-                    codeList[i].operand = Plugin.SellCounterItemLimit.Value;
-                    break;
-                }
+                i => i.opcode == OpCodes.Ldlen,
+                i => i.opcode == OpCodes.Conv_I4,
+                i => i.LoadsConstant(12)
+            }, out var foundInstructions))
+            {
+                Plugin.MLS.LogDebug($"Updating sell counter item limit to {Plugin.SellCounterItemLimit.Value}.");
+                foundInstructions[2].Instruction.operand = Plugin.SellCounterItemLimit.Value;
+            }
+            else
+            {
+                Plugin.MLS.LogError("Undexpected IL code - Could not transpile PlaceItemOnCounter!");
             }
 
-            return codeList.AsEnumerable();
+            return instructions;
         }
 
         [HarmonyPatch(typeof(DepositItemsDesk), nameof(Start))]

@@ -1,8 +1,8 @@
 ﻿using GameNetcodeStuff;
+using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Emit;
 
 namespace GeneralImprovements.Patches
@@ -30,23 +30,29 @@ namespace GeneralImprovements.Patches
         {
             var codeList = instructions.ToList();
 
-            for (int i = 0; i < codeList.Count; i++)
+            if (instructions.TryFindInstruction(i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.ChangeHelmetLight))), out var helmet)
+                && instructions.TryFindInstruction(i => i.Calls(typeof(FlashlightItem).GetMethod(nameof(FlashlightItem.SwitchFlashlight))), out var switchLight))
             {
-                if (codeList[i].opcode == OpCodes.Callvirt && (codeList[i].operand as MethodInfo)?.Name == nameof(PlayerControllerB.ChangeHelmetLight))
+                // Remove both lines that affect the player's helmet light
+                for (int i = 0; i < 11; i++)
                 {
-                    // Remove both lines that affect the player's helmet light
-                    codeList.RemoveRange(i - 5, 11);
+                    codeList[(helmet.Index - 5) + i] = new CodeInstruction(OpCodes.Nop);
                 }
-                else if (codeList[i].opcode == OpCodes.Call && (codeList[i].operand as MethodInfo)?.Name == nameof(FlashlightItem.SwitchFlashlight))
+
+                // Remove the call to switch flashlight (moving it to the postfix)
+                for (int i = 0; i < 6; i++)
                 {
-                    // Remove the call to switch flashlight (moving it to the postfix)
-                    codeList.RemoveRange(i - 5, 6);
+                    codeList[(switchLight.Index - 5) + i] = new CodeInstruction(OpCodes.Nop);
                 }
+
+                Plugin.MLS.LogDebug("Patched FlashlightItem.EquipItem");
+            }
+            else
+            {
+                Plugin.MLS.LogError("Unexpected code found - Could not patch FlashlightItem.EquipItem!");
             }
 
-            Plugin.MLS.LogDebug("Patched FlashlightItem.EquipItem");
-
-            return codeList.AsEnumerable();
+            return codeList;
         }
 
         [HarmonyPatch(typeof(FlashlightItem), nameof(EquipItem))]

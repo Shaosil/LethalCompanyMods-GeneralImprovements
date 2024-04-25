@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -365,20 +364,17 @@ namespace GeneralImprovements.Patches
                 return instructions;
             }
 
-            var codeList = new List<CodeInstruction>(instructions);
-            for (int i = 0; i < codeList.Count; i++)
+            if (instructions.TryFindInstructions(new Func<CodeInstruction, bool>[]
             {
-
-                if (codeList[i].opcode == OpCodes.Ldc_R4 && int.TryParse(codeList[i].operand?.ToString(), out var operand) && operand == 60 // If we are putting the value of 60 on the stack,
-                    && i + 1 < codeList.Count && codeList[i + 1].opcode == OpCodes.Call && (codeList[i + 1].operand as MethodInfo)?.Name == "Clamp") // and the next operation is Math.Clamp
-                {
-                    Plugin.MLS.LogDebug($"Updating look down angle to 85 in {original.Name}.");
-                    codeList[i].operand = 85f;
-                    break;
-                }
+                i => i.LoadsConstant(60),                                   // If we are putting the value of 60 on the stack
+                i => i.Calls(typeof(Math).GetMethod(nameof(Math.Clamp)))    // and the next operation is Math.Clamp
+            }, out var found))
+            {
+                Plugin.MLS.LogDebug($"Updating look down angle to 85 in {original.Name}.");
+                found.First().Instruction.operand = 85f;
             }
 
-            return codeList.AsEnumerable();
+            return instructions;
         }
 
         private static void ShiftRightFromSlot(PlayerControllerB player, int slot)

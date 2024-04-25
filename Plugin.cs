@@ -90,6 +90,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> ScanCommandUsesExactAmount { get; private set; }
         public static ConfigEntry<bool> UnlockDoorsFromInventory { get; private set; }
         public static ConfigEntry<bool> KeysHaveInfiniteUses { get; private set; }
+        public static ConfigEntry<bool> DestroyKeysAfterOrbiting { get; private set; }
 
         private const string ScannerSection = "Scanner";
         public static ConfigEntry<bool> FixPersonalScanner { get; private set; }
@@ -135,6 +136,9 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> ShowHitPoints { get; private set; }
         public static ConfigEntry<bool> ShowLightningWarnings { get; private set; }
         public static ConfigEntry<bool> HidePlayerNames { get; private set; }
+        public static ConfigEntry<bool> TwentyFourHourClock { get; private set; }
+        public static ConfigEntry<bool> AlwaysShowClock { get; private set; }
+        public static ConfigEntry<bool> DisplayKgInsteadOfLb { get; private set; }
 
         private void Awake()
         {
@@ -151,6 +155,9 @@ namespace GeneralImprovements
             BindConfigs();
             MigrateOldConfigValues();
             MLS.LogDebug("Configuration Initialized.");
+
+            Harmony.CreateAndPatchAll(typeof(AutoParentToShipPatch));
+            MLS.LogDebug("AutoParentToShip patched.");
 
             Harmony.CreateAndPatchAll(typeof(DepositItemsDeskPatch));
             MLS.LogDebug("DepositItemsDesk patched.");
@@ -244,7 +251,7 @@ namespace GeneralImprovements
 
             var validItemsToKeep = new[] { "None", "Held", "NonScrap", "All" };
 
-            var validToolTypes = new List<Type> { typeof(BoomboxItem), typeof(ExtensionLadderItem), typeof(FlashlightItem), typeof(JetpackItem), typeof(LockPicker), typeof(RadarBoosterItem),
+            var validToolTypes = new List<Type> { typeof(BoomboxItem), typeof(ExtensionLadderItem), typeof(FlashlightItem), typeof(JetpackItem), typeof(LockPicker), typeof(RadarBoosterItem), typeof(KnifeItem),
                                                 typeof(Shovel), typeof(SprayPaintItem), typeof(StunGrenadeItem), typeof(TetraChemicalItem), typeof(WalkieTalkie), typeof(PatcherTool) };
             var validToolStrings = string.Join(", ", new[] { "All" }.Concat(validToolTypes.Select(t => t.Name)));
 
@@ -298,6 +305,7 @@ namespace GeneralImprovements
             ScanCommandUsesExactAmount = Config.Bind(MechanicsSection, nameof(ScanCommandUsesExactAmount), false, "If set to true, the terminal's scan command (and ScrapLeft monitor) will use display the exact scrap value remaining instead of approximate.");
             UnlockDoorsFromInventory = Config.Bind(MechanicsSection, nameof(UnlockDoorsFromInventory), false, "If set to true, keys in your inventory do not have to be held when unlocking facility doors.");
             KeysHaveInfiniteUses = Config.Bind(MechanicsSection, nameof(KeysHaveInfiniteUses), false, "If set to true, keys will not despawn when they are used.");
+            DestroyKeysAfterOrbiting = Config.Bind(MechanicsSection, nameof(DestroyKeysAfterOrbiting), false, "If set to true, all keys in YOUR inventory (and IF HOSTING, the ship) will be destroyed after orbiting. Works well to nerf KeysHaveInfiniteUses. Players who do not have this enabled will keep keys currently in their inventory.");
 
             // Scanner
             FixPersonalScanner = Config.Bind(ScannerSection, nameof(FixPersonalScanner), false, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you, and the ship/main entrance.");
@@ -334,7 +342,7 @@ namespace GeneralImprovements
             FlashlightToggleShortcut = Config.Bind(ToolsSection, nameof(FlashlightToggleShortcut), Key.None.ToString(), new ConfigDescription($"A shortcut key to allow toggling a flashlight at any time.", new AcceptableValueList<string>(validKeys)));
 
             ScannableTools = Config.Bind(ToolsSection, nameof(ScannableTools), string.Empty, $"A comma separated list of which tools, if any, should be scannable. Accepted values: {validToolStrings}");
-            ToolsDoNotAttractLightning = Config.Bind(ToolsSection, nameof(ToolsDoNotAttractLightning), false, "[Host Only] If set to true, all useful tools (jetpacks, keys, radar boosters, shovels & signs, tzp inhalant, and zap guns) will no longer attract lighning.");
+            ToolsDoNotAttractLightning = Config.Bind(ToolsSection, nameof(ToolsDoNotAttractLightning), false, "[Host Only] If set to true, all useful tools (ladders, jetpacks, keys, radar boosters, shovels & signs, tzp inhalant, knives, and zap guns) will no longer attract lighning.");
             AutoChargeOnOrbit = Config.Bind(ToolsSection, nameof(AutoChargeOnOrbit), false, "If set to true, all owned* battery-using items will be automatically charged every time the ship goes into orbit. *You are considered to 'own' an item if you are the last person to have held it.");
 
             // UI
@@ -343,6 +351,9 @@ namespace GeneralImprovements
             ShowHitPoints = Config.Bind(UISection, nameof(ShowHitPoints), true, "If set to true, the HUD will display your current remaining hitpoints.");
             ShowLightningWarnings = Config.Bind(UISection, nameof(ShowLightningWarnings), true, "If set to true, the inventory slots will flash electrically when an item in the slot is being targeted by lightning.");
             HidePlayerNames = Config.Bind(UISection, nameof(HidePlayerNames), false, "If set to true, player names will no longer show above players.");
+            TwentyFourHourClock = Config.Bind(UISection, nameof(TwentyFourHourClock), false, "If set to true, the clock will be 24 hours instead of 12.");
+            AlwaysShowClock = Config.Bind(UISection, nameof(AlwaysShowClock), false, "If set to true, the clock will always be displayed on the HUD when landed on a moon.");
+            DisplayKgInsteadOfLb = Config.Bind(UISection, nameof(DisplayKgInsteadOfLb), false, "If set to true, your carry weight will be converted from lb to kg.");
 
             // Sanitize where needed
             string backgroundHex = Regex.Match(MonitorBackgroundColor.Value, "([a-fA-F0-9]{6})").Groups[1].Value.ToUpper();

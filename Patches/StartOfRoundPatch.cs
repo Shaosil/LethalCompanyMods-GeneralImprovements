@@ -99,6 +99,41 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        [HarmonyPatch(typeof(StartOfRound), nameof(SetTimeAndPlanetToSavedSettings))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> SetTimeAndPlanetToSavedSettings(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+            var loadMethod = typeof(ES3).GetMethods().First(m => m.Name == nameof(ES3.Load) && m.ContainsGenericParameters && m.GetParameters().Length == 3 && m.GetParameters()[2].ParameterType.IsGenericParameter);
+
+            if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+            {
+                i => i.IsLdarg(0),
+                i => i.Is(OpCodes.Ldstr, "RandomSeed"),
+                i => i.IsLdloc(),
+                i => i.LoadsConstant(0),
+                i => i.Calls(loadMethod.MakeGenericMethod(typeof(int))),
+                i => i.StoresField(typeof(StartOfRound).GetField(nameof(StartOfRound.randomMapSeed)))
+            }, out var found))
+            {
+                // Instead of using 0 for a default map seed, use Random.Range(1, 100000000)
+                codeList[found[3].Index] = new CodeInstruction(OpCodes.Ldc_I4_1);
+                codeList.InsertRange(found[4].Index, new[]
+                {
+                    new CodeInstruction(OpCodes.Ldc_I4, 100000000),
+                    new CodeInstruction(OpCodes.Call, typeof(Random).GetMethod(nameof(Random.Range), new[] { typeof(int), typeof(int) }))
+                });
+
+                Plugin.MLS.LogDebug("Patched SetTimeAndPlanetToSavedSettings to default the first map seed to a random value.");
+            }
+            else
+            {
+                Plugin.MLS.LogError("Could not find expected code in SetTimeAndPlanetToSavedSettings - Unable to patch randomMapSeed!");
+            }
+
+            return codeList;
+        }
+
         [HarmonyPatch(typeof(StartOfRound), nameof(OnShipLandedMiscEvents))]
         [HarmonyPostfix]
         private static void OnShipLandedMiscEvents()
@@ -143,6 +178,31 @@ namespace GeneralImprovements.Patches
                     if (zapAudio != null)
                     {
                         StartOfRound.Instance.localPlayerController.itemAudio.PlayOneShot(zapAudio);
+                    }
+                }
+            }
+
+            // Destroy keys if specified
+            if (Plugin.DestroyKeysAfterOrbiting.Value)
+            {
+                // If we are the host, despawn all keys in the ship
+                if (StartOfRound.Instance.IsHost)
+                {
+                    var allKeys = Object.FindObjectsOfType<KeyItem>().Where(k => !k.isHeld && k.isInShipRoom).ToList();
+                    Plugin.MLS.LogInfo($"Destroying {allKeys.Count} keys in ship after orbiting.");
+                    for (int i = 0; i < allKeys.Count; i++)
+                    {
+                        allKeys[i].NetworkObject.Despawn();
+                    }
+                }
+
+                // Destroy keys in our own inventory
+                for (int i = 0; i < StartOfRound.Instance.localPlayerController.ItemSlots.Length; i++)
+                {
+                    if (StartOfRound.Instance.localPlayerController.ItemSlots[i] is KeyItem key)
+                    {
+                        Plugin.MLS.LogInfo($"Destroying held key in slot {i} after orbiting.");
+                        ItemHelper.DestroyLocalItemAndSync(i);
                     }
                 }
             }
@@ -289,19 +349,37 @@ namespace GeneralImprovements.Patches
             // This transpiler will add a new array of Vector3, fill it with rotation values from save file, and apply it to the game objects that are spawned
             var codeList = instructions.ToList();
             var newArrayType = typeof(Vector3[]);
+            var instantiateMethod = typeof(Object).GetMethods().First(m => m.Name == nameof(Object.Instantiate) && m.ContainsGenericParameters && m.GetParameters().Length == 4).MakeGenericMethod(typeof(GameObject));
+            var theirLoad = typeof(ES3).GetMethods().First(m => m.Name == nameof(ES3.Load) && m.IsGenericMethod && m.GetParameters().Length == 2).MakeGenericMethod(typeof(Vector3[]));
+            var ourLoad = typeof(ES3).GetMethods().First(m => m.Name == nameof(ES3.Load) && m.IsGenericMethod && m.GetParameters().Length == 3).MakeGenericMethod(typeof(Vector3[]));
+
+            bool foundLoad = codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+            {
+                i => i.Is(OpCodes.Ldstr, "shipGrabbableItemPos"),
+                i => i.Calls(typeof(GameNetworkManager).GetMethod("get_Instance")),
+                i => i.LoadsField(typeof(GameNetworkManager).GetField(nameof(GameNetworkManager.currentSaveFileName))),
+                i => i.Calls(theirLoad),
+                i => i.IsStloc()
+            }, out var loadPositions);
+
+            bool foundRotate = codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+                {
+                    i => i.Calls(typeof(Quaternion).GetMethod("get_identity")),
+                    i => i.IsLdarg(),
+                    i => i.LoadsField(typeof(StartOfRound).GetField(nameof(StartOfRound.elevatorTransform))),
+                    i => i.Calls(instantiateMethod)
+                }, out var rotateCode);
 
             // Make sure a few lines of the IL code is what we expect first
-            if (codeList[13].opcode == OpCodes.Ldstr && codeList[13].operand.ToString() == "shipGrabbableItemPos" && codeList[16].opcode == OpCodes.Call)
+            if (foundLoad && foundRotate)
             {
                 Plugin.MLS.LogDebug("Patching LoadShipGrabbableItems to include item rotations.");
 
                 // Ensure we have a new variable slot to store our array
                 generator.DeclareLocal(newArrayType);
 
-                var loadMethod = typeof(ES3).GetMethods().First(m => m.Name == nameof(ES3.Load) && m.IsGenericMethod && m.GetParameters().Length == 3 && m.GetParameters()[2].ParameterType.IsGenericParameter);
-
                 // Inject a new array variable loaded with our save file's rotations
-                codeList.InsertRange(18, new[]
+                codeList.InsertRange(loadPositions.Last().Index + 1, new[]
                 {
                     new CodeInstruction(OpCodes.Ldstr, "shipGrabbableItemRot"),
                     new CodeInstruction(OpCodes.Call, typeof(GameNetworkManager).GetMethod("get_Instance")),
@@ -309,25 +387,25 @@ namespace GeneralImprovements.Patches
                     new CodeInstruction(OpCodes.Ldloc_2),
                     new CodeInstruction(OpCodes.Ldlen),
                     new CodeInstruction(OpCodes.Newarr, typeof(Vector3)),
-                    new CodeInstruction(OpCodes.Call, loadMethod.MakeGenericMethod(typeof(Vector3[]))),
+                    new CodeInstruction(OpCodes.Call, ourLoad),
                     new CodeInstruction(OpCodes.Stloc_S, 11)
                 });
 
                 // Inject code in our instantiate call to use Quaternion.Euler instead of Quaternion.Identity
-                codeList.InsertRange(145, new[]
+                codeList.InsertRange(rotateCode.First().Index + 8, new[]
                 {
-                    new CodeInstruction(OpCodes.Ldloc_S, 11), // Our new array
-                    new CodeInstruction(OpCodes.Ldloc_S, 9), // i
+                    new CodeInstruction(OpCodes.Ldloc_S, 11),   // Our new array
+                    new CodeInstruction(OpCodes.Ldloc_S, 9),    // i
                     new CodeInstruction(OpCodes.Ldelem, typeof(Vector3))  // Get the Vector3 value
                 });
-                codeList[148].operand = typeof(Quaternion).GetMethod(nameof(Quaternion.Euler), new[] { typeof(Vector3) });
+                rotateCode.First().Instruction.operand = typeof(Quaternion).GetMethod(nameof(Quaternion.Euler), new[] { typeof(Vector3) });
             }
             else
             {
                 Plugin.MLS.LogError("Could not transpile LoadShipGrabbableItems! Unexpected IL code found.");
             }
 
-            return codeList.AsEnumerable();
+            return codeList;
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(LoadShipGrabbableItems))]

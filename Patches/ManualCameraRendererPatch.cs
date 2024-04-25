@@ -11,10 +11,10 @@ namespace GeneralImprovements.Patches
         private static void updateMapTarget(int ___setRadarTargetIndex, bool ___calledFromRPC, bool __result)
         {
             // Wait until the enumerator is complete (result == false)
-            var instance = StartOfRound.Instance.mapScreen;
-            bool inTerminal = GameNetworkManager.Instance.localPlayerController.inTerminalMenu;
-            bool curNodeIsSwitchCam = TerminalPatch.Instance.currentNode?.name == "SwitchedCam";
-            bool validTarget = instance.radarTargets != null && instance.radarTargets[___setRadarTargetIndex] != null;
+            var instance = StartOfRound.Instance?.mapScreen;
+            bool inTerminal = GameNetworkManager.Instance?.localPlayerController?.inTerminalMenu ?? false;
+            bool curNodeIsSwitchCam = TerminalPatch.Instance?.currentNode?.name == "SwitchedCam";
+            bool validTarget = instance?.radarTargets != null && instance?.radarTargets[___setRadarTargetIndex] != null;
 
             if (!__result && !___calledFromRPC && inTerminal && curNodeIsSwitchCam && validTarget)
             {

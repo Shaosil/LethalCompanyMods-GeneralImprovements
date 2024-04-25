@@ -156,5 +156,19 @@ namespace GeneralImprovements.Utilities
             dest.velocityUpdateMode = original.velocityUpdateMode;
             dest.volume = original.volume;
         }
+
+        public static void DestroyLocalItemAndSync(int slot)
+        {
+            if (StartOfRound.Instance.localPlayerController != null)
+            {
+                // Manually disable the HUD icon since vanilla doesn't do it for this function
+                StartOfRound.Instance.localPlayerController.DestroyItemInSlotAndSync(slot);
+
+                if (StartOfRound.Instance.localPlayerController.ItemSlots[slot] == null && HUDManager.Instance != null)
+                {
+                    HUDManager.Instance.itemSlotIcons[slot].enabled = false;
+                }
+            }
+        }
     }
 }

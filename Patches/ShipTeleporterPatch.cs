@@ -1,4 +1,5 @@
 ﻿using GameNetcodeStuff;
+using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
@@ -45,8 +46,15 @@ namespace GeneralImprovements.Patches
             string itemsToKeep = Plugin.KeepItemsDuringTeleport.Value.ToLower();
 
             // Find the code that teleports dead bodies
-            if (codeList[203].opcode == OpCodes.Ldfld && codeList[203].operand as FieldInfo == typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.deadBody))
-                && codeList[208].opcode == OpCodes.Callvirt && codeList[208].operand as MethodInfo == typeof(Transform).GetMethod(nameof(Transform.SetParent), new[] { typeof(Transform), typeof(bool) }))
+            if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+            {
+                i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.deadBody))),
+                i => i.Calls(typeof(Component).GetMethod("get_transform")),
+                i => i.Calls(typeof(StartOfRound).GetMethod("get_Instance")),
+                i => i.LoadsField(typeof(StartOfRound).GetField(nameof(StartOfRound.elevatorTransform))),
+                i => i.LoadsConstant(1),
+                i => i.Calls(typeof(Transform).GetMethod(nameof(Transform.SetParent), new[] { typeof(Transform), typeof(bool) }))
+            }, out var deadBody))
             {
                 var collectBodyDelegate = Transpilers.EmitDelegate<Action>(() =>
                 {
@@ -57,7 +65,7 @@ namespace GeneralImprovements.Patches
                     }
                 });
 
-                codeList.Insert(209, collectBodyDelegate);
+                codeList.Insert(deadBody.Last().Index + 1, collectBodyDelegate);
                 Plugin.MLS.LogDebug("Patched beamUpPlayer to drop dead bodies properly.");
             }
             else
@@ -68,7 +76,13 @@ namespace GeneralImprovements.Patches
             // Find the code that drops held items otherwise (if needed)
             if (itemsToKeep != "none")
             {
-                if (codeList[246].opcode == OpCodes.Callvirt && codeList[246].operand as MethodInfo == typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.DropAllHeldItems)))
+                if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
+                    i => i.opcode == OpCodes.Ldfld && i.operand is FieldInfo fi && fi.Name.Contains("playerToBeamUp"),
+                    i => i.LoadsConstant(1),
+                    i => i.LoadsConstant(0),
+                    i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.DropAllHeldItems)))
+                }, out var dropItems))
                 {
                     if (itemsToKeep == "held" || itemsToKeep == "nonscrap")
                     {
@@ -78,15 +92,19 @@ namespace GeneralImprovements.Patches
                         });
 
                         // Replace the drop function with our own
-                        codeList[246] = dropAllExceptHeldDelegate;
+                        codeList[dropItems.Last().Index] = dropAllExceptHeldDelegate;
 
                         // Remove the two bools (no longer needed) from the stack load code
-                        codeList.RemoveRange(244, 2);
+                        codeList[dropItems[1].Index].opcode = OpCodes.Nop;
+                        codeList[dropItems[2].Index].opcode = OpCodes.Nop;
                     }
                     else
                     {
                         // Remove the 5 lines of code that call the drop function
-                        codeList.RemoveRange(242, 5);
+                        for (int i = 0; i < 5; i++)
+                        {
+                            codeList[(dropItems.First().Index - 1) + i].opcode = OpCodes.Nop;
+                        }
                     }
 
                     Plugin.MLS.LogDebug($"Patched beamUpPlayer to keep {itemsToKeep} items.");
@@ -97,7 +115,7 @@ namespace GeneralImprovements.Patches
                 }
             }
 
-            return codeList.AsEnumerable();
+            return codeList;
         }
 
         [HarmonyPatch(typeof(ShipTeleporter), "TeleportPlayerOutWithInverseTeleporter")]
@@ -109,27 +127,28 @@ namespace GeneralImprovements.Patches
 
             if (itemsToKeep != "none")
             {
-                for (int i = 5; i < codeList.Count; i++)
+                if (codeList.TryFindInstruction(i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.DropAllHeldItems))), out var found))
                 {
-                    if (codeList[i].opcode == OpCodes.Callvirt && (codeList[i].operand as MethodInfo)?.Name == nameof(PlayerControllerB.DropAllHeldItems))
+                    if (itemsToKeep == "held" || itemsToKeep == "nonscrap")
                     {
-                        if (itemsToKeep == "held" || itemsToKeep == "nonscrap")
+                        var dropAllExceptHeldDelegate = Transpilers.EmitDelegate<Action<PlayerControllerB>>((player) =>
                         {
-                            var dropAllExceptHeldDelegate = Transpilers.EmitDelegate<Action<PlayerControllerB>>((player) =>
-                            {
-                                PlayerControllerBPatch.DropAllItemsExceptHeld(player, itemsToKeep == "nonscrap");
-                            });
+                            PlayerControllerBPatch.DropAllItemsExceptHeld(player, itemsToKeep == "nonscrap");
+                        });
 
-                            // Replace the function call with our own
-                            codeList[i] = dropAllExceptHeldDelegate;
+                        // Replace the function call with our own
+                        codeList[found.Index] = dropAllExceptHeldDelegate;
 
-                            // Remove the two bools (no longer needed) from the stack load code
-                            codeList.RemoveRange(i - 2, 2);
-                        }
-                        else
+                        // Remove the two bools (no longer needed) from the stack load code
+                        codeList[found.Index - 2].opcode = OpCodes.Nop;
+                        codeList[found.Index - 1].opcode = OpCodes.Nop;
+                    }
+                    else
+                    {
+                        // Remove the 4 lines of code that call the drop function
+                        for (int i = 0; i < 4; i++)
                         {
-                            // Remove the 3 lines of code that call the drop function
-                            codeList.RemoveRange(i - 3, 4);
+                            codeList[(found.Index - 3) + i].opcode = OpCodes.Nop;
                         }
                     }
                 }
@@ -137,7 +156,7 @@ namespace GeneralImprovements.Patches
                 Plugin.MLS.LogDebug($"Patched TeleportPlayerOutWithInverseTeleporter to keep {itemsToKeep} items.");
             }
 
-            return codeList.AsEnumerable();
+            return codeList;
         }
     }
 }

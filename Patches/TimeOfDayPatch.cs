@@ -2,7 +2,6 @@
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Emit;
 
 namespace GeneralImprovements.Patches
@@ -41,19 +40,24 @@ namespace GeneralImprovements.Patches
             }
 
             // Patch out the overtime bonus if needed
-            var codeList = instructions.ToList();
-            var callSync = codeList[codeList.Count - 2];
-            var loadOvertime = codeList[codeList.Count - 5];
-            if (callSync.opcode != OpCodes.Call || (callSync.operand as MethodInfo)?.Name != nameof(TimeOfDay.SyncNewProfitQuotaClientRpc) || loadOvertime.opcode != OpCodes.Ldloc_1)
+            if (instructions.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+            {
+                i => i.IsLdloc(),
+                i => i.IsLdarg(),
+                i => i.LoadsField(typeof(TimeOfDay).GetField(nameof(TimeOfDay.timesFulfilledQuota))),
+                i => i.Calls(typeof(TimeOfDay).GetMethod(nameof(TimeOfDay.SyncNewProfitQuotaClientRpc)))
+            }, out var found))
+            {
+                // Replace the overtime bonus parameter with a simple 0
+                Plugin.MLS.LogDebug("Patching new profit quota method to remove overtime bonus.");
+                found.First().Instruction.opcode = OpCodes.Ldc_I4_0;
+            }
+            else
             {
                 Plugin.MLS.LogError("Unexpected IL code found in TimeOfDay.SetNewProfitQuota! Could not patch out overtime bonus.");
-                return instructions;
             }
 
-            // Replace the overtime bonus parameter with a simple 0
-            Plugin.MLS.LogDebug("Patching new profit quota method to remove overtime bonus.");
-            loadOvertime.opcode = OpCodes.Ldc_I4_0;
-            return codeList.AsEnumerable();
+            return instructions;
         }
 
 

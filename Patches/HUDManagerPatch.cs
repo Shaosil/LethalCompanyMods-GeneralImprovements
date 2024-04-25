@@ -4,6 +4,7 @@ using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using TMPro;
 using UnityEngine;
 
@@ -144,10 +145,85 @@ namespace GeneralImprovements.Patches
         }
 
         [HarmonyPatch(typeof(HUDManager), nameof(SetClock))]
+        [HarmonyPrefix]
+        private static bool SetClock_Pre(float timeNormalized, float numberOfHours, TextMeshProUGUI ___clockNumber, ref string __result)
+        {
+            if (Plugin.TwentyFourHourClock.Value)
+            {
+                int totalMinutes = (int)(timeNormalized * (60f * numberOfHours)) + 360;
+                int hours = (int)Mathf.Floor(totalMinutes / 60f);
+                int minutes = totalMinutes % 60;
+
+                string text = $"{hours}:{$"{minutes}".PadLeft(2, '0')}";
+                ___clockNumber.text = text;
+                __result = text;
+
+                return false;
+            }
+
+            return true;
+        }
+
+        [HarmonyPatch(typeof(HUDManager), nameof(SetClock))]
         [HarmonyPostfix]
-        private static void SetClock(TextMeshProUGUI ___clockNumber)
+        private static void SetClock()
         {
             MonitorsHelper.UpdateTimeMonitors();
+        }
+
+        [HarmonyPatch(typeof(HUDManager), nameof(SetClockVisible))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> SetClockVisible(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+
+            if (Plugin.AlwaysShowClock.Value)
+            {
+                Label? elseLabel = null;
+                var getInstanceMethod = typeof(StartOfRound).GetMethod("get_Instance");
+                var currentLevelField = typeof(StartOfRound).GetField(nameof(StartOfRound.currentLevel));
+
+                if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+                {
+                    i => i.IsLdarg(1),
+                    i => i.Branches(out elseLabel),
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(HUDManager).GetField(nameof(HUDManager.Clock)))
+                }, out var found))
+                {
+                    Plugin.MLS.LogDebug("Patching SetClockVisible to always show clock.");
+
+                    // Remove the original visible check
+                    codeList.RemoveRange(found.First().Index, 2);
+
+                    // Inject code that looks for spawnEnemiesAndScrap and planetHasTime instead
+                    codeList.InsertRange(found.First().Index, new[]
+                    {
+                        // StartOfRound.Instance != null
+                        new CodeInstruction(OpCodes.Call, getInstanceMethod),
+                        new CodeInstruction(OpCodes.Ldnull),
+                        new CodeInstruction(OpCodes.Beq_S, elseLabel),
+
+                        // && StartOfRound.Instance.currentLevel.spawnEnemiesAndScrap
+                        new CodeInstruction(OpCodes.Call, getInstanceMethod),
+                        new CodeInstruction(OpCodes.Ldfld, currentLevelField),
+                        new CodeInstruction(OpCodes.Ldfld, typeof(SelectableLevel).GetField(nameof(SelectableLevel.spawnEnemiesAndScrap))),
+                        new CodeInstruction(OpCodes.Brfalse_S, elseLabel),
+
+                        // && StartOfRound.Instance.currentLevel.planetHasTime
+                        new CodeInstruction(OpCodes.Call, getInstanceMethod),
+                        new CodeInstruction(OpCodes.Ldfld, currentLevelField),
+                        new CodeInstruction(OpCodes.Ldfld, typeof(SelectableLevel).GetField(nameof(SelectableLevel.planetHasTime))),
+                        new CodeInstruction(OpCodes.Brfalse_S, elseLabel)
+                    });
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected code found - could not transpile HUDManager.SetClockVisible to always show clock!");
+                }
+            }
+
+            return codeList;
         }
 
         [HarmonyPatch(typeof(HUDManager), nameof(CanPlayerScan))]
@@ -181,6 +257,53 @@ namespace GeneralImprovements.Patches
                     }
                 }
             }
+        }
+
+        [HarmonyPatch(typeof(HUDManager), nameof(Update))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> UpdateTranspiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+
+            if (Plugin.DisplayKgInsteadOfLb.Value)
+            {
+                if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+                {
+                    i => i.Calls(typeof(Mathf).GetMethod(nameof(Mathf.Clamp), new[] { typeof(float), typeof(float), typeof(float) })),
+                    i => i.LoadsConstant(105f),
+                    i => i.opcode == OpCodes.Mul,
+                    i => i.Calls(typeof(Mathf).GetMethod(nameof(Mathf.RoundToInt))),
+                    i => i.opcode == OpCodes.Conv_R4,
+                    i => i.IsStloc(),
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(HUDManager).GetField(nameof(HUDManager.weightCounter))),
+                    i => i.opcode == OpCodes.Ldstr,
+                    i => i.IsLdloc()
+                }, out var found))
+                {
+                    codeList[found[8].Index].operand = "{0} kg";
+
+                    // Convert UI number to a single decimal point kg
+                    codeList.InsertRange(found.Last().Index + 1, new[]
+                    {
+                        new CodeInstruction(OpCodes.Ldc_R4, 2.205f),
+                        new CodeInstruction(OpCodes.Div),
+                        new CodeInstruction(OpCodes.Conv_R8),
+                        new CodeInstruction(OpCodes.Ldc_I4_1),
+                        new CodeInstruction(OpCodes.Call, typeof(System.Math).GetMethod(nameof(System.Math.Round), new[] { typeof(double), typeof(int) }))
+                    });
+
+                    Plugin.MLS.LogDebug("Patching HUDManager.Update to use kg instead of lb.");
+
+
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected IL code found! Could not transpile HUDManager.Update to use kg instead of lb.");
+                }
+            }
+
+            return codeList;
         }
     }
 }

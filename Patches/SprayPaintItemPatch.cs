@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using GeneralImprovements.Utilities;
+using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -20,7 +21,7 @@ namespace GeneralImprovements.Patches
             // Patch out the random color assignment lines
             var codeList = instructions.ToList();
             var raycastCode = codeList[4];
-            if (raycastCode.opcode == OpCodes.Initobj && raycastCode.operand.ToString() == typeof(RaycastHit).FullName)
+            if (codeList.TryFindInstruction(i => i.Is(OpCodes.Initobj, typeof(RaycastHit)), out var found))
             {
                 Plugin.MLS.LogDebug("Patching out old spray can random color assignment.");
                 codeList = codeList.Take(5).Concat(new[] { codeList.Last() }).ToList();
@@ -29,7 +30,7 @@ namespace GeneralImprovements.Patches
             {
                 Plugin.MLS.LogError($"Could not patch spray can item Start() method.");
             }
-            return codeList.AsEnumerable();
+            return codeList;
         }
 
         [HarmonyPatch(typeof(SprayPaintItem), nameof(Start))]

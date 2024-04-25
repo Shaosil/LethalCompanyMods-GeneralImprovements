@@ -586,8 +586,9 @@ namespace GeneralImprovements.Utilities
                 return;
             }
 
-            // All dropped scrap except ragdolls
-            var allScrap = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom && o.isInElevator && !o.isHeld && !(o is RagdollGrabbableObject)).ToList();
+            // All dropped scrap except ragdolls and exploded grenades
+            var allScrap = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom && o.isInElevator && !o.isHeld
+                && !(o is RagdollGrabbableObject) && (!(o is StunGrenadeItem grenade) || !grenade.hasExploded || !grenade.DestroyGrenade)).ToList();
             int shipLoot = allScrap.Sum(o => o.scrapValue);
 
             if (UpdateGenericTextList(_shipScrapMonitorTexts, $"SCRAP IN SHIP:\n${shipLoot}"))

@@ -59,9 +59,9 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(ShipBuildModeManager), nameof(CreateGhostObjectAndHighlight))]
         [HarmonyPostfix]
-        private static void CreateGhostObjectAndHighlight(ShipBuildModeManager __instance)
+        private static void CreateGhostObjectAndHighlight(ShipBuildModeManager __instance, PlaceableShipObject ___placingObject)
         {
-            if (!__instance.InBuildMode || _snapObjectsByDegrees == 0)
+            if (!__instance.InBuildMode || _snapObjectsByDegrees == 0 || ___placingObject?.parentObject == null)
             {
                 return;
             }
@@ -81,24 +81,24 @@ namespace GeneralImprovements.Patches
             }
 
             // Set the initial degrees (and snap immediately unless they are already holding the free rotate modifier)
-            var existingAngles = __instance.ghostObject.eulerAngles;
+            var existingAngles = __instance.ghostObject.transform.eulerAngles;
             if (_freeRotateHeld())
             {
                 _curObjectDegrees = existingAngles.y;
             }
             else
             {
-                _curObjectDegrees = (float)Math.Round(existingAngles.y / _snapObjectsByDegrees) * _snapObjectsByDegrees;
+                float existingOffset = AutoParentToShipPatch.Offsets.GetValueOrDefault(___placingObject.parentObject, 0f);
+                _curObjectDegrees = ((float)Math.Round(existingAngles.y / _snapObjectsByDegrees) * _snapObjectsByDegrees) + existingOffset;
                 __instance.ghostObject.rotation = Quaternion.Euler(existingAngles.x, _curObjectDegrees, existingAngles.z);
-                __instance.selectionOutlineMesh.transform.eulerAngles = __instance.ghostObject.eulerAngles;
             }
         }
 
         [HarmonyPatch(typeof(ShipBuildModeManager), nameof(Update))]
         [HarmonyPostfix]
-        private static void Update(ShipBuildModeManager __instance)
+        private static void Update(ShipBuildModeManager __instance, PlaceableShipObject ___placingObject)
         {
-            if (!__instance.InBuildMode || _snapObjectsByDegrees == 0)
+            if (!__instance.InBuildMode || _snapObjectsByDegrees == 0 || ___placingObject?.parentObject == null)
             {
                 return;
             }
@@ -120,8 +120,7 @@ namespace GeneralImprovements.Patches
                 }
                 else if (_rotateAction.WasPressedThisFrame())
                 {
-                    // First make sure the current degrees are snapped, then add or subtract to them
-                    _curObjectDegrees = (float)Math.Round(_curObjectDegrees / _snapObjectsByDegrees) * _snapObjectsByDegrees;
+                    // Just add or subtract to the current degrees. If they want it lined up to the world grid they will need to cancel and rebuild
                     _curObjectDegrees += _snapObjectsByDegrees * (_ccwHeld() ? -1 : 1);
                 }
 
