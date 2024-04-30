@@ -1,5 +1,19 @@
 # Changelog
 
+### v1.2.4 - More fixes and improvements
+* Fixed a rare softlock where using QuotaRollover would not detect the quota was reached on day 0.
+	* Also, quota rollover will now support selling items before the final day - if you exceed the target quota afterwards, a new one will be assigned as expected.
+* Fixed a major lag spike that occurred as a client if you had SyncMonitorsFromOtherHost set to true AND the internal/external cam resolution multiplier high.
+* Finally supporting [LethalConfig's](https://thunderstore.io/c/lethal-company/p/AinaVT/LethalConfig/) dropdown options for my config values. Especially useful for ship monitors and keybinds!
+* Added an option to disable "blank screen" during view monitor, which typically requires you to scroll down after typing a comcmand while view monitor is active. Defaults to show (vanilla behavior).
+* Tweaked the original "n" fix in the terminal to use the intended number of lines so you can see the first line at the bottom.
+* Added an option to have placeable ship items check for other colliders, preventing tight/overlapping placement. Defaults to true (vanilla behavior).
+* Updated the DropShipItemLimit behavior to allow terminal purchases of up to that amount, instead of a max of 10.
+* Updated the starting money config values to take any typed value instead of being clamped to a slider up to 1k. It will still prevent values above 10k internally though.
+* Fixing items on sell counter appearing to be grabbable. This makes placing items on the counter much easier.
+* Fixed general grabbables' hover tips showing when they can't be grabbed (Nutcracker shotgun, deposit items desk, etc).
+* Updated wording of teleporters' button glass lids to be dynamic ("Shut" or "Lift" depending on the state).
+
 ### v1.2.3 - Hotfix!
 * Hopefully fixing a game load exception that was causing items to be lost on load. Sorry!
 * Fixing the player's max look down angle when AllowLookDownMore = true, since the last update broke it with all the refactoring.

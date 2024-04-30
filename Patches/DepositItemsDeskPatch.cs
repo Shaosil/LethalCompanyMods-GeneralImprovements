@@ -3,14 +3,17 @@ using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
+using Unity.Netcode;
 
 namespace GeneralImprovements.Patches
 {
     internal static class DepositItemsDeskPatch
     {
-        [HarmonyPatch(typeof(DepositItemsDesk), nameof(PlaceItemOnCounter))]
+        public static int NumItemsSoldToday = 0;
+
+        [HarmonyPatch(typeof(DepositItemsDesk), nameof(DepositItemsDesk.PlaceItemOnCounter))]
         [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> PlaceItemOnCounter(IEnumerable<CodeInstruction> instructions)
+        private static IEnumerable<CodeInstruction> PlaceItemOnCounter_Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             if (instructions.TryFindInstructions(new Func<CodeInstruction, bool>[]
             {
@@ -28,6 +31,25 @@ namespace GeneralImprovements.Patches
             }
 
             return instructions;
+        }
+
+        [HarmonyPatch(typeof(DepositItemsDesk), nameof(DepositItemsDesk.AddObjectToDeskClientRpc))]
+        [HarmonyPostfix]
+        private static void AddObjectToDeskClientRpc(NetworkObjectReference grabbableObjectNetObject)
+        {
+            // Update layer so we do not detect them anymore.
+            if (grabbableObjectNetObject.TryGet(out var netObj) && netObj.GetComponentInChildren<GrabbableObject>() is GrabbableObject obj)
+            {
+                obj.gameObject.layer = 0;
+            }
+        }
+
+        [HarmonyPatch(typeof(DepositItemsDesk), nameof(SellAndDisplayItemProfits))]
+        [HarmonyPostfix]
+        private static void SellAndDisplayItemProfits(DepositItemsDesk __instance)
+        {
+            var items = __instance.deskObjectsContainer.GetComponentsInChildren<GrabbableObject>();
+            NumItemsSoldToday += items.Length;
         }
 
         [HarmonyPatch(typeof(DepositItemsDesk), nameof(Start))]

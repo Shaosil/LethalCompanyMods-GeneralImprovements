@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 
@@ -110,29 +111,55 @@ namespace GeneralImprovements.Patches
             _curHistoryIndex = _commandHistory.Count;
         }
 
-        [HarmonyPatch(typeof(Terminal), "LoadNewNodeIfAffordable")]
+        [HarmonyPatch(typeof(Terminal), "ParsePlayerSentence")]
         [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> PatchDropshipItemLimit(IEnumerable<CodeInstruction> instructions)
+        private static IEnumerable<CodeInstruction> ParsePlayerSentence_Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             // If the current instruction is to compare the numberOfItemsInDropship to 12, update it to our defined number
             if (instructions.TryFindInstructions(new Func<CodeInstruction, bool>[]
             {
+                i => i.Calls(typeof(int).GetMethod(nameof(int.Parse), new[] { typeof(string) })),
+                i => i.LoadsConstant(0),
+                i => i.LoadsConstant(10),
+                i => i.Calls(typeof(Mathf).GetMethod(nameof(Mathf.Clamp), new[] { typeof(int), typeof(int), typeof(int) })),
+                i => i.StoresField(typeof(Terminal).GetField(nameof(Terminal.playerDefinedAmount)))
+            }, out var found))
+            {
+                Plugin.MLS.LogDebug($"Patching Terminal.ParsePlayerSentence to set dropship item limit to {Plugin.DropShipItemLimit.Value}.");
+                found[2].Instruction.operand = Plugin.DropShipItemLimit.Value;
+            }
+
+            return instructions;
+        }
+
+        [HarmonyPatch(typeof(Terminal), "LoadNewNodeIfAffordable")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> LoadNewNodeIfAffordable_Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            // If the current instruction is to compare the numberOfItemsInDropship to 12, update it to our defined number
+            if (instructions.TryFindInstructions(new Func<CodeInstruction, bool>[]
+            {
+                i => i.LoadsConstant(12),
+                i => i.Branches(out _),
+                i => i.IsLdloc(),
+                i => i.IsLdarg(0),
                 i => i.LoadsField(typeof(Terminal).GetField(nameof(Terminal.numberOfItemsInDropship))),
                 i => i.opcode == OpCodes.Conv_R4,
                 i => i.opcode == OpCodes.Add,
                 i => i.LoadsConstant(12f)
             }, out var found))
             {
-                Plugin.MLS.LogDebug($"Updating dropship item limit to {Plugin.DropShipItemLimit.Value}.");
+                Plugin.MLS.LogDebug($"Patching Terminal.LoadNewNodeIfAffordable to set dropship item limit to {Plugin.DropShipItemLimit.Value}.");
+                found.First().Instruction.operand = Plugin.DropShipItemLimit.Value;
                 found.Last().Instruction.operand = (float)Plugin.DropShipItemLimit.Value;
             }
 
             return instructions;
         }
 
-        [HarmonyPatch(typeof(Terminal), "TextPostProcess")]
+        [HarmonyPatch(typeof(Terminal), nameof(TextPostProcess))]
         [HarmonyPrefix]
-        private static void TextPostProcess_Pre(ref string modifiedDisplayText, TerminalNode node)
+        private static void TextPostProcess(ref string modifiedDisplayText)
         {
             // Improve the scanning
             if (modifiedDisplayText.Contains("[scanForItems]"))
@@ -172,11 +199,42 @@ namespace GeneralImprovements.Patches
             }
         }
 
-        [HarmonyPatch(typeof(Terminal), "TextPostProcess")]
-        [HarmonyPostfix]
-        private static void TextPostProcess_Post(string modifiedDisplayText, ref string __result)
+        [HarmonyPatch(typeof(Terminal), nameof(TextPostProcess))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> TextPostProcess_Transpiler(IEnumerable<CodeInstruction> instructions)
         {
-            __result = __result.Replace("\nn\n", "\n\n\n");
+            var codeList = instructions.ToList();
+
+            // If they don't want to show blanks, remove the entire check that adds \n's. Otherwise, just fix the \nn issue.
+            if (!Plugin.ShowBlanksDuringViewMonitor.Value)
+            {
+                if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(Terminal).GetField(nameof(Terminal.displayingPersistentImage))),
+                    null,
+                    i => i.Branches(out _),
+                    i => i.opcode == OpCodes.Ldstr && i.operand.ToString().Contains("\n\n\n\n\n\n\n"),
+                    i => i.IsLdarg(),
+                    i => i.Calls(typeof(string).GetMethod(nameof(string.Concat), new[] { typeof(string), typeof(string) })),
+                    i => i.IsStarg()
+                }, out var found))
+                {
+                    Plugin.MLS.LogDebug("Patching Terminal.TextPostProcess to remove blank screens during View Monitor.");
+                    codeList.RemoveRange(found.First().Index, found.Length);
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected IL code found - Could not patch Terminal.TextPostProcess to remove blank screens!");
+                }
+            }
+            else if (codeList.TryFindInstruction(i => i.opcode == OpCodes.Ldstr && i.operand.ToString().Contains("\n\n\n\n\n\n\n"), out var found))
+            {
+                Plugin.MLS.LogDebug("Patching Terminal.TextPostProcess to remove \\nn typo.");
+                found.Instruction.operand = new string('\n', 20);
+            }
+
+            return codeList;
         }
 
         [HarmonyPatch(typeof(Terminal), nameof(SetItemSales))]

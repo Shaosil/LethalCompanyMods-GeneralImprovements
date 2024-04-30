@@ -10,15 +10,18 @@ namespace GeneralImprovements.Patches
     {
         private static int _leftoverFunds = 0;
 
-        [HarmonyPatch(typeof(TimeOfDay), nameof(SetNewProfitQuota))]
+        [HarmonyPatch(typeof(TimeOfDay), nameof(TimeOfDay.SetNewProfitQuota))]
         [HarmonyPrefix]
         private static bool SetNewProfitQuota(TimeOfDay __instance)
         {
             if (Plugin.AllowQuotaRollover.Value)
             {
-                // If we are not yet over our deadline, make sure to cancel out of the original method here
-                if (__instance.timeUntilDeadline > 0)
+                // This will get called by vanilla code every day it detects you are over the target quota.
+                // If we are over our deadline, or we have sold items today, that's fine. Otherwise, prevent the call.
+                bool shouldSetNewQuota = __instance.timeUntilDeadline <= 0 || DepositItemsDeskPatch.NumItemsSoldToday > 0;
+                if (!shouldSetNewQuota)
                 {
+                    Plugin.MLS.LogInfo($"Skipping SetNewProfitQuota as we are not past the deadline ({__instance.timeUntilDeadline} remaining) and we did not sell any items today.");
                     return false;
                 }
 

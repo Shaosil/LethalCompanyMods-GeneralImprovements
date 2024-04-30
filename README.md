@@ -31,6 +31,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Allows players to look down more (85 degrees instead of 60). May be disabled in the config.
 * Improves the spray can color randomness, and persists the colors between clients and even on reloading the saves.
 * Saving item rotations so they aren't all facing the same way when you load up a saved game.
+* Items which cannot be grabbed will not display the "Grab" hover tip.
 
 ### NEW FEATURES:
 * A total of 14 customizable, screen-integrated monitors for the ship (instead of the vanilla 8)! Choose which monitor to put what item, including ship cams and background color.
@@ -43,13 +44,15 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds an option to display text under the 'Deadline' monitor with the current ship loot total.
 * [Host Required] Adds an option to roll over surplus credits to the next quota. If clients do NOT have this enabled, there will be visual desyncs only.
 * Adds an option for adding a little medical station above the ship's charging station that heals you back to full health when used.
-* Adds an option to use keys from any inventory slot, as well as an option to prevent them from despawning when they are used.
+* Adds an option to use keys from any inventory slot, as well as an option to prevent them from despawning when they are used, AND an option to destroy them when orbiting.
 * Adds an option to hide player names.
 * Adds options to bring held or all items when using teleporters.
 * Adds an option to be able to scan the item dropship.
 * Adds an option to disable overtime bonuses.
 * Adds an option to remove the ship's cupboard's doors.
 * Adds an option to display moon costs next to their names in the terminal.
+* Adds options for a 24 hour clock, and converting lbs to kgs.
+* Adds an option to always show the clock when landed on a moon.
 
 ### MINOR BUGFIXES:
 * Stops all non-scrap objects from showing value (when scanned and sold) when they do not actually have any.
@@ -58,6 +61,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Dead bodies will now instantly show as collected when teleported back to the ship.
 * Fixes the scan terminal command and end-of-round scrap sum to include all valuables outside the ship, as well as factor in the current scrap value multiplier (under the hood, not related to company).
 * The initial monitor view now shows the correct player name when first starting a round.
+* The map seed is now properly randomized as soon as you start a new save file, which means sales, weather, etc will be properly randomized.
 * Fixes ship scrap not being marked as 'in the ship' for clients when joining. This fixes several things client side, including terminal scans, extra scrap collection pings, and more.
 * [Host Only] Whoopie cushions and flasks will no longer be hit by lightning. If the host/server player has this enabled, it will apply to all clients.
 * [Host Only] When a new client connects to your lobby, they should see the correct position, rotation, and current emote of each player.

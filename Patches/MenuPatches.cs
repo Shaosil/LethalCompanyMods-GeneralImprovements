@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using static GeneralImprovements.Plugin.Enums;
 
 namespace GeneralImprovements.Patches
 {
@@ -28,14 +29,10 @@ namespace GeneralImprovements.Patches
         [HarmonyPrefix]
         private static bool SkipToFinalSetting(PreInitSceneScript __instance)
         {
-            string autoVal = Plugin.AutoSelectLaunchMode.Value?.ToUpper();
-            bool autoSpecified = !string.IsNullOrWhiteSpace(autoVal) && (autoVal.Contains("ON") || autoVal.Contains("LAN"));
-            bool isOnline = autoSpecified && autoVal.Contains("ON");
-
-            if (autoSpecified)
+            if (Plugin.AutoSelectLaunchMode.Value != eAutoLaunchOptions.NONE)
             {
-                Plugin.MLS.LogInfo($"Automatically launching {(isOnline ? "ONLINE" : "LAN")} mode.");
-                __instance.ChooseLaunchOption(isOnline);
+                Plugin.MLS.LogInfo($"Automatically launching {Plugin.AutoSelectLaunchMode.Value} mode.");
+                __instance.ChooseLaunchOption(Plugin.AutoSelectLaunchMode.Value == eAutoLaunchOptions.ONLINE);
                 __instance.launchSettingsPanelsContainer.SetActive(false);
 
                 return false;

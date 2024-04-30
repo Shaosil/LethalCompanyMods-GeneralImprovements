@@ -6,9 +6,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
+using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static GeneralImprovements.Plugin.Enums;
 
 namespace GeneralImprovements.Patches
 {
@@ -35,14 +38,14 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void Awake()
         {
-            bool hasToggleShortcut = Plugin.FlashlightToggleShortcut.Value != Key.None.ToString();
-            if (Enum.TryParse<Plugin.MouseButton>(Plugin.FlashlightToggleShortcut.Value, out var flashlightToggleMouseButton))
+            bool hasToggleShortcut = Plugin.FlashlightToggleShortcut.Value != eValidKeys.None;
+            if (Plugin.FlashlightToggleShortcut.Value >= eValidKeys.MouseLeft)
             {
-                _flashlightTogglePressed = () => Plugin.GetMouseButtonMapping(flashlightToggleMouseButton).wasPressedThisFrame;
+                _flashlightTogglePressed = () => GetMouseButtonMapping(Plugin.FlashlightToggleShortcut.Value).wasPressedThisFrame;
             }
             else
             {
-                var control = hasToggleShortcut && Enum.TryParse<Key>(Plugin.FlashlightToggleShortcut.Value, out var flashlightToggleKey) ? Keyboard.current[flashlightToggleKey] : null;
+                var control = hasToggleShortcut && Enum.TryParse<Key>(Plugin.FlashlightToggleShortcut.Value.ToString(), out var flashlightToggleKey) ? Keyboard.current[flashlightToggleKey] : null;
                 _flashlightTogglePressed = () => control?.wasPressedThisFrame ?? false;
             }
         }
@@ -313,6 +316,76 @@ namespace GeneralImprovements.Patches
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SetHoverTipAndCurrentInteractTrigger))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> SetHoverTipAndCurrentInteractTrigger_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+        {
+            var codeList = instructions.ToList();
+            Label? outsideLabel = null;
+
+            // Do not set grab hovertip if grabbable item is not grabbable
+            if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+            {
+                i => i.Branches(out _),
+                i => i.IsLdloc(),
+                i => i.Is(OpCodes.Ldstr, "InteractTrigger"),
+                i => i.Calls(typeof(String).GetMethod("op_Equality")),
+                i => i.Branches(out _),
+                i => i.Branches(out outsideLabel),
+
+                i => i.IsLdarg(0), // Index 6
+                i => i.Calls(typeof(PlayerControllerB).GetMethod("FirstEmptyItemSlot", BindingFlags.Instance | BindingFlags.NonPublic)),
+                i => i.LoadsConstant(-1),
+                i => i.Branches(out _), // Index 9
+                i => i.IsLdarg(0),
+                i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.cursorTip))),
+                i => i.Is(OpCodes.Ldstr, "Inventory full!"),
+                i => i.Calls(typeof(TMP_Text).GetMethod("set_text")),
+                i => i.Branches(out _),
+
+                i => i.IsLdarg(0), // Index 15
+                i => i.LoadsField(typeof(PlayerControllerB).GetField("hit", BindingFlags.Instance | BindingFlags.NonPublic), true),
+                i => i.Calls(typeof(RaycastHit).GetMethod("get_collider")),
+                i => i.Calls(typeof(Component).GetMethod("get_gameObject")),
+                i => i.Calls(typeof(GameObject).GetMethod(nameof(GameObject.GetComponent), 1, Type.EmptyTypes).MakeGenericMethod(typeof(GrabbableObject))),
+                i => i.opcode == OpCodes.Stloc_2,
+
+                i => i.Calls(typeof(GameNetworkManager).GetMethod("get_Instance"))
+            }, out var found))
+            {
+                // Create a label on the line below our GetComponent call, and branch to that instead
+                var newLabel = generator.DefineLabel();
+                codeList[found.Last().Index].labels.Add(newLabel);
+                found[9].Instruction.operand = newLabel;
+
+                // Create a label on the GetComponent variable, and make sure it is branched to
+                var componentLabel = generator.DefineLabel();
+                found[15].Instruction.labels.Add(componentLabel);
+                found[0].Instruction.operand = componentLabel;
+
+                // Move the GetComponent variable to be above the FirstEmptyItemSlot if statement
+                codeList.RemoveRange(found[15].Index, 6);
+                codeList.InsertRange(found[6].Index, found.Skip(15).Take(6).Select(f => f.Instruction));
+
+                // Add an if statement to break out of this entire section if the component is not grabbable
+                codeList.InsertRange(found[6].Index + 6, new[]
+                {
+                    new CodeInstruction(OpCodes.Ldloc_2),
+                    new CodeInstruction(OpCodes.Ldfld, typeof(GrabbableObject).GetField(nameof(GrabbableObject.grabbable))),
+                    new CodeInstruction(OpCodes.Ldc_I4_1),
+                    new CodeInstruction(OpCodes.Bne_Un_S, outsideLabel)
+                });
+
+                Plugin.MLS.LogDebug("Patching PlayerControllerB.SetHoverTipAndCurrentInteractionTrigger to remove grab notification when not needed.");
+            }
+            else
+            {
+                Plugin.MLS.LogWarning("Unexpected IL code - Could not patch PlayerControllerB.SetHoverTipAndCurrentInteractionTrigger to remove the grab notification!");
+            }
+
+            return codeList;
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(SetHoverTipAndCurrentInteractTrigger))]
         [HarmonyPostfix]
         private static void SetHoverTipAndCurrentInteractTrigger(PlayerControllerB __instance)
         {
@@ -491,18 +564,19 @@ namespace GeneralImprovements.Patches
                 }
             }
 
+            player.carryWeight = 1 + player.ItemSlots.Sum(i => (i?.itemProperties.weight ?? 1) - 1);
+            player.twoHanded = oldHeldSlot > -1 && (player.ItemSlots[oldHeldSlot]?.itemProperties.twoHanded ?? false);
             if (player.IsOwner)
             {
                 HUDManager.Instance.holdingTwoHandedItem.enabled = player.twoHanded;
             }
-            player.carryWeight = 1 + player.ItemSlots.Sum(i => (i?.itemProperties.weight ?? 1) - 1);
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(Update))]
         [HarmonyPostfix]
         private static void Update(PlayerControllerB __instance)
         {
-            if (!__instance.IsOwner || Plugin.FlashlightToggleShortcut.Value == Key.None.ToString() || __instance.inTerminalMenu || __instance.isTypingChat || !__instance.isPlayerControlled)
+            if (!__instance.IsOwner || Plugin.FlashlightToggleShortcut.Value == eValidKeys.None || __instance.inTerminalMenu || __instance.isTypingChat || !__instance.isPlayerControlled)
             {
                 return;
             }

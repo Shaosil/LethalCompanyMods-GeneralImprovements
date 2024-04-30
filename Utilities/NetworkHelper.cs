@@ -1,5 +1,7 @@
 ﻿using GeneralImprovements.Patches;
+using System;
 using Unity.Netcode;
+using static GeneralImprovements.Plugin.Enums;
 
 namespace GeneralImprovements.Utilities
 {
@@ -25,21 +27,21 @@ namespace GeneralImprovements.Utilities
                 }
 
                 // Reinitialize the monitors with whatever the host sent over
-                var monitorAssignments = new string[14];
-                monitorAssignments[0] = monitor1;
-                monitorAssignments[1] = monitor2;
-                monitorAssignments[2] = monitor3;
-                monitorAssignments[3] = monitor4;
-                monitorAssignments[4] = monitor5;
-                monitorAssignments[5] = monitor6;
-                monitorAssignments[6] = monitor7;
-                monitorAssignments[7] = monitor8;
-                monitorAssignments[8] = monitor9;
-                monitorAssignments[9] = monitor10;
-                monitorAssignments[10] = monitor11;
-                monitorAssignments[11] = monitor12;
-                monitorAssignments[12] = monitor13;
-                monitorAssignments[13] = monitor14;
+                var monitorAssignments = new eMonitorNames[14];
+                monitorAssignments[0] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor1);
+                monitorAssignments[1] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor2);
+                monitorAssignments[2] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor3);
+                monitorAssignments[3] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor4);
+                monitorAssignments[4] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor5);
+                monitorAssignments[5] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor6);
+                monitorAssignments[6] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor7);
+                monitorAssignments[7] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor8);
+                monitorAssignments[8] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor9);
+                monitorAssignments[9] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor10);
+                monitorAssignments[10] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor11);
+                monitorAssignments[11] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor12);
+                monitorAssignments[12] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor13);
+                monitorAssignments[13] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor14);
 
                 Plugin.MLS.LogInfo("Received monitor settings from host - syncing.");
                 MonitorsHelper.InitializeMonitors(monitorAssignments);

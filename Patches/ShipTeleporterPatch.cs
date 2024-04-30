@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
+using static GeneralImprovements.Plugin.Enums;
 
 namespace GeneralImprovements.Patches
 {
@@ -36,6 +37,17 @@ namespace GeneralImprovements.Patches
             {
                 __instance.GetComponentInChildren<InteractTrigger>().hoverTip = "Beam out : [E]";
             }
+
+            // Fix wording of glass lid
+            var buttonGlass = __instance.transform.Find("ButtonContainer/ButtonAnimContainer/ButtonGlass")?.GetComponent<InteractTrigger>();
+            if (buttonGlass != null && __instance.buttonAnimator != null)
+            {
+                buttonGlass.onInteract.AddListener(p =>
+                {
+                    bool isOpen = __instance.buttonAnimator.GetBool("GlassOpen");
+                    buttonGlass.hoverTip = $"{(isOpen ? "Shut" : "Lift")} glass : [LMB]";
+                });
+            }
         }
 
         [HarmonyPatch(typeof(ShipTeleporter), "beamUpPlayer", MethodType.Enumerator)]
@@ -43,7 +55,6 @@ namespace GeneralImprovements.Patches
         private static IEnumerable<CodeInstruction> PatchRegularTeleporter(IEnumerable<CodeInstruction> instructions)
         {
             var codeList = instructions.ToList();
-            string itemsToKeep = Plugin.KeepItemsDuringTeleport.Value.ToLower();
 
             // Find the code that teleports dead bodies
             if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
@@ -74,7 +85,7 @@ namespace GeneralImprovements.Patches
             }
 
             // Find the code that drops held items otherwise (if needed)
-            if (itemsToKeep != "none")
+            if (Plugin.KeepItemsDuringTeleport.Value != eItemsToKeep.None)
             {
                 if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
                 {
@@ -84,11 +95,11 @@ namespace GeneralImprovements.Patches
                     i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.DropAllHeldItems)))
                 }, out var dropItems))
                 {
-                    if (itemsToKeep == "held" || itemsToKeep == "nonscrap")
+                    if (Plugin.KeepItemsDuringTeleport.Value == eItemsToKeep.Held || Plugin.KeepItemsDuringTeleport.Value == eItemsToKeep.NonScrap)
                     {
                         var dropAllExceptHeldDelegate = Transpilers.EmitDelegate<Action<PlayerControllerB>>((player) =>
                         {
-                            PlayerControllerBPatch.DropAllItemsExceptHeld(player, itemsToKeep == "nonscrap");
+                            PlayerControllerBPatch.DropAllItemsExceptHeld(player, Plugin.KeepItemsDuringTeleport.Value == eItemsToKeep.NonScrap);
                         });
 
                         // Replace the drop function with our own
@@ -107,7 +118,7 @@ namespace GeneralImprovements.Patches
                         }
                     }
 
-                    Plugin.MLS.LogDebug($"Patched beamUpPlayer to keep {itemsToKeep} items.");
+                    Plugin.MLS.LogDebug($"Patched beamUpPlayer to keep {Plugin.KeepItemsDuringTeleport.Value} items.");
                 }
                 else
                 {
@@ -123,17 +134,16 @@ namespace GeneralImprovements.Patches
         private static IEnumerable<CodeInstruction> PatchInverseTeleporter(IEnumerable<CodeInstruction> instructions)
         {
             var codeList = instructions.ToList();
-            string itemsToKeep = Plugin.KeepItemsDuringInverse.Value.ToLower();
 
-            if (itemsToKeep != "none")
+            if (Plugin.KeepItemsDuringTeleport.Value != eItemsToKeep.None)
             {
                 if (codeList.TryFindInstruction(i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.DropAllHeldItems))), out var found))
                 {
-                    if (itemsToKeep == "held" || itemsToKeep == "nonscrap")
+                    if (Plugin.KeepItemsDuringTeleport.Value == eItemsToKeep.Held || Plugin.KeepItemsDuringTeleport.Value == eItemsToKeep.NonScrap)
                     {
                         var dropAllExceptHeldDelegate = Transpilers.EmitDelegate<Action<PlayerControllerB>>((player) =>
                         {
-                            PlayerControllerBPatch.DropAllItemsExceptHeld(player, itemsToKeep == "nonscrap");
+                            PlayerControllerBPatch.DropAllItemsExceptHeld(player, Plugin.KeepItemsDuringTeleport.Value == eItemsToKeep.NonScrap);
                         });
 
                         // Replace the function call with our own
@@ -153,7 +163,7 @@ namespace GeneralImprovements.Patches
                     }
                 }
 
-                Plugin.MLS.LogDebug($"Patched TeleportPlayerOutWithInverseTeleporter to keep {itemsToKeep} items.");
+                Plugin.MLS.LogDebug($"Patched TeleportPlayerOutWithInverseTeleporter to keep {Plugin.KeepItemsDuringTeleport.Value} items.");
             }
 
             return codeList;

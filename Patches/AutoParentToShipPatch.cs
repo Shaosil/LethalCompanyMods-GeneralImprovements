@@ -30,6 +30,26 @@ namespace GeneralImprovements.Patches
                 var meshOffset = __instance.GetComponentInChildren<PlaceableShipObject>().mainMesh.transform.localEulerAngles.y;
                 _offsets.Add(__instance, meshOffset - __instance.rotationOffset.y);
             }
+
+            if (!Plugin.ShipPlaceablesCollide.Value && __instance.GetComponentInChildren<PlaceableShipObject>() != null)
+            {
+                // Make sure all child objects have a mask of PlaceableShipObject
+                var roomMask = LayerMask.NameToLayer("Room");
+                ReplaceRoomMaskWithDefault(__instance.transform, roomMask);
+            }
+        }
+
+        private static void ReplaceRoomMaskWithDefault(Transform curTransform, int roomMask)
+        {
+            if (curTransform.gameObject.layer == roomMask)
+            {
+                curTransform.gameObject.layer = 0; // Default layer
+            }
+
+            for (int i = 0; i < curTransform.childCount; i++)
+            {
+                ReplaceRoomMaskWithDefault(curTransform.GetChild(i), roomMask);
+            }
         }
     }
 }

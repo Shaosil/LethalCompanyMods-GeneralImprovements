@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static GeneralImprovements.Plugin.Enums;
 
 namespace GeneralImprovements.Patches
 {
@@ -12,42 +13,38 @@ namespace GeneralImprovements.Patches
         private static int _snapObjectsByDegrees;
         private static float _curObjectDegrees;
 
-        private static string _rotateKeyDesc, _freeRotateModifierKey, _ccwModifierKey;
+        private static string _rotateKeyDesc;
         private static InputAction _rotateAction;
         private static Func<bool> _freeRotateHeld;
         private static Func<bool> _ccwHeld;
 
         [HarmonyPatch(typeof(ShipBuildModeManager), nameof(Awake))]
         [HarmonyPostfix]
-        private static void Awake(ShipBuildModeManager __instance)
+        private static void Awake(ShipBuildModeManager __instance, ref int ___placementMask, ref int ___placementMaskAndBlockers)
         {
             // Set the keybinds - default to LAlt and LShift for Free Rotate Modifier and CCW Modifier, respectively
             UpdateRotateAction(__instance);
-            bool hasFreeRotateModifier = Plugin.FreeRotateKey.Value != Key.None.ToString();
-            bool hasCCWModifier = Plugin.CounterClockwiseKey.Value != Key.None.ToString();
-            if (Enum.TryParse<Plugin.MouseButton>(Plugin.FreeRotateKey.Value, out var freeRotateMouseButton))
+            bool hasFreeRotateModifier = Plugin.FreeRotateKey.Value != eValidKeys.None;
+            bool hasCCWModifier = Plugin.CounterClockwiseKey.Value != eValidKeys.None;
+            if (Plugin.FreeRotateKey.Value >= eValidKeys.MouseLeft)
             {
-                _freeRotateModifierKey = freeRotateMouseButton.ToString();
-                _freeRotateHeld = () => Plugin.GetMouseButtonMapping(freeRotateMouseButton).isPressed;
+                _freeRotateHeld = () => GetMouseButtonMapping(Plugin.FreeRotateKey.Value).isPressed;
             }
             else
             {
-                var control = hasFreeRotateModifier ? Keyboard.current[Enum.TryParse<Key>(Plugin.FreeRotateKey.Value, out var freeRotateKey) ? freeRotateKey : Key.LeftAlt] : null;
-                _freeRotateModifierKey = control?.keyCode.ToString();
+                var control = hasFreeRotateModifier ? Keyboard.current[Enum.TryParse<Key>(Plugin.FreeRotateKey.Value.ToString(), out var freeRotateKey) ? freeRotateKey : Key.LeftAlt] : null;
                 _freeRotateHeld = () => hasFreeRotateModifier && control.isPressed;
             }
-            if (Enum.TryParse<Plugin.MouseButton>(Plugin.CounterClockwiseKey.Value, out var ccwMouseButton))
+            if (Plugin.CounterClockwiseKey.Value >= eValidKeys.MouseLeft)
             {
-                _ccwModifierKey = ccwMouseButton.ToString();
-                _ccwHeld = () => Plugin.GetMouseButtonMapping(ccwMouseButton).isPressed;
+                _ccwHeld = () => GetMouseButtonMapping(Plugin.CounterClockwiseKey.Value).isPressed;
             }
             else
             {
-                var control = hasCCWModifier ? Keyboard.current[Enum.TryParse<Key>(Plugin.CounterClockwiseKey.Value, out var ccwKey) ? ccwKey : Key.LeftShift] : null;
-                _ccwModifierKey = control?.keyCode.ToString();
+                var control = hasCCWModifier ? Keyboard.current[Enum.TryParse<Key>(Plugin.CounterClockwiseKey.Value.ToString(), out var ccwKey) ? ccwKey : Key.LeftShift] : null;
                 _ccwHeld = () => hasCCWModifier && control.isPressed;
             }
-            Plugin.MLS.LogInfo($"Snap keys initialized. Rotate: {_rotateKeyDesc}. Free rotate modifier: {_freeRotateModifierKey}. CCW modifier: {_ccwModifierKey}");
+            Plugin.MLS.LogInfo($"Snap keys initialized. Rotate: {_rotateKeyDesc}. Free rotate modifier: {Plugin.FreeRotateKey.Value}. CCW modifier: {Plugin.CounterClockwiseKey.Value}");
 
             // Find all intervals of 15 that go into 360
             var validNumbers = Enumerable.Range(0, 360 / 15).Select(n => n * 15).Where(n => n == 0 || 360 % n == 0).ToList();
@@ -55,6 +52,13 @@ namespace GeneralImprovements.Patches
             // Use the closest valid number to what was specified
             _snapObjectsByDegrees = validNumbers.OrderBy(n => Math.Abs(n - Plugin.SnapObjectsByDegrees.Value)).First();
             Plugin.MLS.LogInfo($"Using {_snapObjectsByDegrees} degrees for build mode snapping");
+
+            // Override placeable collision mask if specified
+            if (!Plugin.ShipPlaceablesCollide.Value)
+            {
+                ___placementMask = LayerMask.GetMask("Room", "Colliders");
+                ___placementMaskAndBlockers = LayerMask.GetMask("Room");
+            }
         }
 
         [HarmonyPatch(typeof(ShipBuildModeManager), nameof(CreateGhostObjectAndHighlight))]
@@ -73,8 +77,8 @@ namespace GeneralImprovements.Patches
             {
                 string vanillaDesc = $"Confirm: [B]   |   Rotate: [{_rotateKeyDesc}]   |   Store: [X]";
                 var combinedNewDescs = new List<string>();
-                if (_freeRotateModifierKey != null) combinedNewDescs.Add($"Free Rotate: Hold [{_freeRotateModifierKey}]");
-                if (_ccwModifierKey != null) combinedNewDescs.Add($"CCW: Hold [{_ccwModifierKey}]");
+                if (Plugin.FreeRotateKey.Value != eValidKeys.None) combinedNewDescs.Add($"Free Rotate: Hold [{Plugin.FreeRotateKey.Value}]");
+                if (Plugin.CounterClockwiseKey.Value != eValidKeys.None) combinedNewDescs.Add($"CCW: Hold [{Plugin.CounterClockwiseKey.Value}]");
                 if (combinedNewDescs.Count > 0) vanillaDesc += '\n';
 
                 HUDManager.Instance.buildModeControlTip.text = $"{vanillaDesc}{string.Join("  |  ", combinedNewDescs.ToArray())}";

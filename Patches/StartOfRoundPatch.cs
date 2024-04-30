@@ -264,10 +264,11 @@ namespace GeneralImprovements.Patches
 
                     // Send over our monitor information in case the client wants to sync from the host
                     Plugin.MLS.LogInfo("Server sending monitor information RPC.");
-                    NetworkHelper.Instance.SyncMonitorsFromHostClientRpc(Plugin.UseBetterMonitors.Value, Plugin.ShipMonitorAssignments[0].Value, Plugin.ShipMonitorAssignments[1].Value, Plugin.ShipMonitorAssignments[2].Value,
-                        Plugin.ShipMonitorAssignments[3].Value, Plugin.ShipMonitorAssignments[4].Value, Plugin.ShipMonitorAssignments[5].Value, Plugin.ShipMonitorAssignments[6].Value, Plugin.ShipMonitorAssignments[7].Value,
-                        Plugin.ShipMonitorAssignments[8].Value, Plugin.ShipMonitorAssignments[9].Value, Plugin.ShipMonitorAssignments[10].Value, Plugin.ShipMonitorAssignments[11].Value,
-                        Plugin.ShipMonitorAssignments[12].Value, Plugin.ShipMonitorAssignments[13].Value, clientParams);
+                    NetworkHelper.Instance.SyncMonitorsFromHostClientRpc(Plugin.UseBetterMonitors.Value, Plugin.ShipMonitorAssignments[0].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[1].Value.ToString() ?? null,
+                        Plugin.ShipMonitorAssignments[2].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[3].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[4].Value.ToString() ?? null,
+                        Plugin.ShipMonitorAssignments[5].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[6].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[7].Value.ToString() ?? null,
+                        Plugin.ShipMonitorAssignments[8].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[9].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[10].Value.ToString() ?? null,
+                        Plugin.ShipMonitorAssignments[11].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[12].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[13].Value.ToString() ?? null, clientParams);
 
                     // Send over color information about existing spray cans
                     var sprayCanMatIndexes = SprayPaintItemPatch.GetAllOrderedSprayPaintItemsInShip().Select(s => SprayPaintItemPatch.GetColorIndex(s)).ToArray();
@@ -331,6 +332,10 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void AllPlayersHaveRevivedClientRpc()
         {
+            // Reset any necessary after-orbit variables
+            DepositItemsDeskPatch.NumItemsSoldToday = 0;
+
+            // Reset some monitors
             MonitorsHelper.UpdateShipScrapMonitors();
             MonitorsHelper.UpdateScrapLeftMonitors();
             MonitorsHelper.UpdateTotalDaysMonitors();
@@ -353,8 +358,6 @@ namespace GeneralImprovements.Patches
             var genLoadMethods = typeof(ES3).GetMethods().Where(m => m.Name == nameof(ES3.Load) && m.IsGenericMethod).ToList();
             var theirLoad = genLoadMethods.First(m => m.GetParameters().Length == 2 && m.GetParameters().All(p => p.ParameterType == typeof(string))).MakeGenericMethod(typeof(Vector3[]));
             var ourLoad = genLoadMethods.First(m => m.GetParameters().Length == 3 && m.GetParameters()[2].ParameterType.IsGenericParameter).MakeGenericMethod(typeof(Vector3[]));
-
-            Plugin.MLS.LogError(ourLoad);
 
             bool foundLoad = codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
             {

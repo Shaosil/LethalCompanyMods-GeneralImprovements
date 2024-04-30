@@ -15,6 +15,7 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
+using static GeneralImprovements.Plugin.Enums;
 using static GeneralImprovements.Utilities.MonitorsHelper;
 
 namespace GeneralImprovements
@@ -24,19 +25,58 @@ namespace GeneralImprovements
     [BepInDependency(MimicsHelper.GUID, BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
-        // Shortcut key helpers
-        public enum MouseButton { MouseLeft, MouseRight, MouseMiddle, MouseBackButton, MouseForwardButton };
-        public static ButtonControl GetMouseButtonMapping(MouseButton mouseButton)
+        public class Enums
         {
-            return mouseButton switch
+            public enum eAutoLaunchOptions { NONE, ONLINE, LAN }
+
+            public enum eMonitorNames
             {
-                MouseButton.MouseLeft => Mouse.current.leftButton,
-                MouseButton.MouseRight => Mouse.current.rightButton,
-                MouseButton.MouseMiddle => Mouse.current.middleButton,
-                MouseButton.MouseBackButton => Mouse.current.backButton,
-                MouseButton.MouseForwardButton => Mouse.current.forwardButton,
-                _ => throw new NotImplementedException()
+                None,
+                ProfitQuota,
+                Deadline,
+                ShipScrap,
+                ScrapLeft,
+                Time,
+                Weather,
+                FancyWeather,
+                Sales,
+                Credits,
+                DoorPower,
+                TotalDays,
+                TotalQuotas,
+                TotalDeaths,
+                DaysSinceDeath,
+                InternalCam,
+                ExternalCam
+            }
+
+            // Shortcut key helpers
+            public enum eValidKeys
+            {
+                None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals,
+                A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
+                Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0,
+                LeftShift, RightShift, LeftAlt, AltGr, LeftCtrl, RightCtrl, LeftWindows, RightCommand,
+                ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace,
+                PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause,
+                NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9,
+                F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
+                MouseLeft, MouseRight, MouseMiddle, MouseBackButton, MouseForwardButton
             };
+            public static ButtonControl GetMouseButtonMapping(eValidKeys mouseButton)
+            {
+                return mouseButton switch
+                {
+                    eValidKeys.MouseLeft => Mouse.current.leftButton,
+                    eValidKeys.MouseRight => Mouse.current.rightButton,
+                    eValidKeys.MouseMiddle => Mouse.current.middleButton,
+                    eValidKeys.MouseBackButton => Mouse.current.backButton,
+                    eValidKeys.MouseForwardButton => Mouse.current.forwardButton,
+                    _ => throw new NotImplementedException()
+                };
+            }
+
+            public enum eItemsToKeep { None, Held, NonScrap, All };
         }
 
         public static ManualLogSource MLS { get; private set; }
@@ -50,7 +90,7 @@ namespace GeneralImprovements
         public static ConfigEntry<string> MonitorTextColor { get; private set; }
         public static Color MonitorTextColorVal { get; private set; }
         public static ConfigEntry<bool> ShowBackgroundOnAllScreens { get; private set; }
-        public static ConfigEntry<string>[] ShipMonitorAssignments { get; private set; }
+        public static ConfigEntry<eMonitorNames>[] ShipMonitorAssignments { get; private set; }
         public static ConfigEntry<bool> SyncExtraMonitorsPower { get; private set; }
         public static ConfigEntry<bool> CenterAlignMonitorText { get; private set; }
         public static ConfigEntry<int> ShipInternalCamSizeMultiplier { get; private set; }
@@ -69,7 +109,7 @@ namespace GeneralImprovements
 
         private const string GameLaunchSection = "GameLaunch";
         public static ConfigEntry<bool> SkipStartupScreen { get; private set; }
-        public static ConfigEntry<string> AutoSelectLaunchMode { get; private set; }
+        public static ConfigEntry<eAutoLaunchOptions> AutoSelectLaunchMode { get; private set; }
         public static ConfigEntry<bool> AlwaysShowNews { get; private set; }
         public static ConfigEntry<bool> AllowPreGameLeverPullAsClient { get; private set; }
 
@@ -81,9 +121,9 @@ namespace GeneralImprovements
 
         private const string MechanicsSection = "Mechanics";
         public static ConfigEntry<int> StartingMoneyPerPlayer { get; private set; }
-        public static int StartingMoneyPerPlayerVal => Math.Clamp(StartingMoneyPerPlayer.Value, -1, 1000);
+        public static int StartingMoneyPerPlayerVal => Math.Clamp(StartingMoneyPerPlayer.Value, -1, 10000);
         public static ConfigEntry<int> MinimumStartingMoney { get; private set; }
-        public static int MinimumStartingMoneyVal => Math.Clamp(MinimumStartingMoney.Value, StartingMoneyPerPlayerVal, 1000);
+        public static int MinimumStartingMoneyVal => Math.Clamp(MinimumStartingMoney.Value, StartingMoneyPerPlayerVal, 10000);
         public static ConfigEntry<bool> AllowQuotaRollover { get; private set; }
         public static ConfigEntry<bool> AllowOvertimeBonus { get; private set; }
         public static ConfigEntry<bool> AddHealthRechargeStation { get; private set; }
@@ -102,8 +142,9 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> HideClipboardAndStickyNote { get; private set; }
         public static ConfigEntry<bool> HideShipCabinetDoors { get; private set; }
         public static ConfigEntry<int> SnapObjectsByDegrees { get; private set; }
-        public static ConfigEntry<string> FreeRotateKey { get; private set; }
-        public static ConfigEntry<string> CounterClockwiseKey { get; private set; }
+        public static ConfigEntry<eValidKeys> FreeRotateKey { get; private set; }
+        public static ConfigEntry<eValidKeys> CounterClockwiseKey { get; private set; }
+        public static ConfigEntry<bool> ShipPlaceablesCollide { get; private set; }
         public static ConfigEntry<bool> ShipMapCamDueNorth { get; private set; }
         public static ConfigEntry<bool> SpeakerPlaysIntroVoice { get; private set; }
         public static ConfigEntry<bool> LightSwitchScanNode { get; private set; }
@@ -112,19 +153,20 @@ namespace GeneralImprovements
         private const string TeleportersSection = "Teleporters";
         public static ConfigEntry<int> RegularTeleporterCooldown { get; private set; }
         public static ConfigEntry<int> InverseTeleporterCooldown { get; private set; }
-        public static ConfigEntry<string> KeepItemsDuringTeleport { get; private set; }
-        public static ConfigEntry<string> KeepItemsDuringInverse { get; private set; }
+        public static ConfigEntry<eItemsToKeep> KeepItemsDuringTeleport { get; private set; }
+        public static ConfigEntry<eItemsToKeep> KeepItemsDuringInverse { get; private set; }
 
         private const string TerminalSection = "Terminal";
         public static ConfigEntry<int> TerminalHistoryItemCount { get; private set; }
         public static ConfigEntry<bool> TerminalFastCamSwitch { get; private set; }
         public static ConfigEntry<bool> LockCameraAtTerminal { get; private set; }
         public static ConfigEntry<bool> ShowMoonPricesInTerminal { get; private set; }
+        public static ConfigEntry<bool> ShowBlanksDuringViewMonitor { get; private set; }
 
         private const string ToolsSection = "Tools";
         public static ConfigEntry<bool> OnlyAllowOneActiveFlashlight { get; private set; }
         public static ConfigEntry<bool> TreatLasersAsFlashlights { get; private set; }
-        public static ConfigEntry<string> FlashlightToggleShortcut { get; private set; }
+        public static ConfigEntry<eValidKeys> FlashlightToggleShortcut { get; private set; }
         public static ConfigEntry<string> ScannableTools { get; private set; }
         public static List<Type> ScannableToolVals { get; private set; } = new List<Type>();
         public static ConfigEntry<bool> ToolsDoNotAttractLightning { get; private set; }
@@ -242,14 +284,7 @@ namespace GeneralImprovements
 
         public void BindConfigs()
         {
-            string[] validMonitors = new[] { "" }.Concat(typeof(MonitorNames).GetFields(BindingFlags.Static | BindingFlags.Public).Select(f => f.Name)).ToArray();
-
-            var validKeys = Enum.GetValues(typeof(Key)).Cast<int>().Where(e => e < (int)Key.OEM1).Select(e => Enum.GetName(typeof(Key), e))
-                .Concat(Enum.GetValues(typeof(MouseButton)).Cast<int>().Select(e => Enum.GetName(typeof(MouseButton), e))).ToArray();
-
             var validSnapRotations = Enumerable.Range(0, 360 / 15).Select(n => n * 15).Where(n => n == 0 || 360 % n == 0).ToArray();
-
-            var validItemsToKeep = new[] { "None", "Held", "NonScrap", "All" };
 
             var validToolTypes = new List<Type> { typeof(BoomboxItem), typeof(ExtensionLadderItem), typeof(FlashlightItem), typeof(JetpackItem), typeof(LockPicker), typeof(RadarBoosterItem), typeof(KnifeItem),
                                                 typeof(Shovel), typeof(SprayPaintItem), typeof(StunGrenadeItem), typeof(TetraChemicalItem), typeof(WalkieTalkie), typeof(PatcherTool) };
@@ -262,11 +297,11 @@ namespace GeneralImprovements
             MonitorBackgroundColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorBackgroundColor), "160959", "The hex color code of what the backgrounds of the monitors should be. A recommended value close to black is 050505.");
             MonitorTextColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorTextColor), "00FF2C", "The hex color code of what the text on the monitors should be.");
             ShowBackgroundOnAllScreens = Config.Bind(ExtraMonitorsSection, nameof(ShowBackgroundOnAllScreens), false, "If set to true, will show the MonitorBackgroundColor on ALL monitors when they are on, not just used ones.");
-            ShipMonitorAssignments = new ConfigEntry<string>[MonitorCount];
+            ShipMonitorAssignments = new ConfigEntry<eMonitorNames>[MonitorCount];
             for (int i = 0; i < ShipMonitorAssignments.Length; i++)
             {
-                string defaultVal = i == 4 ? MonitorNames.ProfitQuota : i == 5 ? MonitorNames.Deadline : i == 11 ? MonitorNames.InternalCam : i == 14 ? MonitorNames.ExternalCam : string.Empty;
-                ShipMonitorAssignments[i] = Config.Bind(ExtraMonitorsSection, $"ShipMonitor{i + 1}", defaultVal, new ConfigDescription($"What to display on the ship monitor at position {i + 1}, if anything.", new AcceptableValueList<string>(validMonitors)));
+                eMonitorNames defaultVal = i switch { 4 => eMonitorNames.ProfitQuota, 5 => eMonitorNames.Deadline, 11 => eMonitorNames.InternalCam, 14 => eMonitorNames.ExternalCam, _ => eMonitorNames.None };
+                ShipMonitorAssignments[i] = Config.Bind(ExtraMonitorsSection, $"ShipMonitor{i + 1}", defaultVal, $"What to display on the ship monitor at position {i + 1}, if anything.");
             }
             SyncExtraMonitorsPower = Config.Bind(ExtraMonitorsSection, nameof(SyncExtraMonitorsPower), true, "If set to true, The smaller monitors above the map screen will turn off and on when the map screen power is toggled.");
             CenterAlignMonitorText = Config.Bind(ExtraMonitorsSection, nameof(CenterAlignMonitorText), true, "If set to true, all small monitors in the ship will have their text center aligned, instead of left.");
@@ -286,7 +321,7 @@ namespace GeneralImprovements
 
             // Game Launch
             SkipStartupScreen = Config.Bind(GameLaunchSection, nameof(SkipStartupScreen), true, "Skips the main menu loading screen bootup animation.");
-            AutoSelectLaunchMode = Config.Bind(GameLaunchSection, nameof(AutoSelectLaunchMode), string.Empty, new ConfigDescription("If set to 'ONLINE' or 'LAN', will automatically launch the correct mode, saving you from having to click the menu option when the game loads.", new AcceptableValueList<string>(string.Empty, "ONLINE", "LAN")));
+            AutoSelectLaunchMode = Config.Bind(GameLaunchSection, nameof(AutoSelectLaunchMode), eAutoLaunchOptions.NONE, "If set to 'ONLINE' or 'LAN', will automatically launch the correct mode, saving you from having to click the menu option when the game loads.");
             AlwaysShowNews = Config.Bind(GameLaunchSection, nameof(AlwaysShowNews), false, "If set to true, will always display the news popup when starting the game.");
             AllowPreGameLeverPullAsClient = Config.Bind(GameLaunchSection, nameof(AllowPreGameLeverPullAsClient), true, "If set to true, you will be able to pull the ship lever to start the game as a connected player.");
 
@@ -297,8 +332,8 @@ namespace GeneralImprovements
             ScrollDelay = Config.Bind(InventorySection, nameof(ScrollDelay), 0.1f, new ConfigDescription("The minimum time you must wait to scroll to another item in your inventory. Vanilla: 0.3.", new AcceptableValueRange<float>(0.05f, 0.3f)));
 
             // Mechanics
-            StartingMoneyPerPlayer = Config.Bind(MechanicsSection, nameof(StartingMoneyPerPlayer), -1, new ConfigDescription("[Host Only] How much starting money the group gets per player. Set to -1 to disable. Adjusts money as players join and leave, until the game starts.", new AcceptableValueRange<int>(-1, 1000)));
-            MinimumStartingMoney = Config.Bind(MechanicsSection, nameof(MinimumStartingMoney), 30, new ConfigDescription("[Host Only] When paired with StartingMoneyPerPlayer, will ensure a group always starts with at least this much money. Must be at least the value of StartingMoneyPerPlayer.", new AcceptableValueRange<int>(-1, 1000)));
+            StartingMoneyPerPlayer = Config.Bind(MechanicsSection, nameof(StartingMoneyPerPlayer), -1, "[Host Only] How much starting money the group gets per player. Set to -1 to disable. Adjusts money as players join and leave, until the game starts. Internally capped at 10k.");
+            MinimumStartingMoney = Config.Bind(MechanicsSection, nameof(MinimumStartingMoney), 30, "[Host Only] When paired with StartingMoneyPerPlayer, will ensure a group always starts with at least this much money. Must be at least the value of StartingMoneyPerPlayer. Internally capped at 10k.");
             AllowQuotaRollover = Config.Bind(MechanicsSection, nameof(AllowQuotaRollover), false, "[Host Required] If set to true, will keep the surplus money remaining after selling things to the company, and roll it over to the next quota. If clients do not set this, they will see visual desyncs.");
             AllowOvertimeBonus = Config.Bind(MechanicsSection, nameof(AllowOvertimeBonus), true, "[Host Only] If set to false, will prevent the vanilla overtime bonus from being applied after the end of a quota.");
             AddHealthRechargeStation = Config.Bind(MechanicsSection, nameof(AddHealthRechargeStation), false, "[Host Only] If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full. **WARNING:** THIS WILL PREVENT YOU FROM CONNECTING TO ANY OTHER PLAYERS THAT DO NOT ALSO HAVE IT ENABLED!");
@@ -317,8 +352,9 @@ namespace GeneralImprovements
             HideClipboardAndStickyNote = Config.Bind(ShipSection, nameof(HideClipboardAndStickyNote), false, "If set to true, the game will not show the clipboard or sticky note when the game loads.");
             HideShipCabinetDoors = Config.Bind(ShipSection, nameof(HideShipCabinetDoors), false, "If set to true, the storage shelves in the ship will not have doors.");
             SnapObjectsByDegrees = Config.Bind(ShipSection, nameof(SnapObjectsByDegrees), 45, new ConfigDescription("Build mode will switch to snap turning (press instead of hold) by this many degrees at a time. Setting it to 0 uses vanilla behavior.", new AcceptableValueList<int>(validSnapRotations)));
-            FreeRotateKey = Config.Bind(ShipSection, nameof(FreeRotateKey), Key.LeftAlt.ToString(), new ConfigDescription("If SnapObjectsByDegrees > 0, configures which modifer key activates free rotation.", new AcceptableValueList<string>(validKeys)));
-            CounterClockwiseKey = Config.Bind(ShipSection, nameof(CounterClockwiseKey), Key.LeftShift.ToString(), new ConfigDescription("If SnapObjectsByDegrees > 0, configures which modifier key spins it CCW.", new AcceptableValueList<string>(validKeys)));
+            FreeRotateKey = Config.Bind(ShipSection, nameof(FreeRotateKey), eValidKeys.LeftAlt, "If SnapObjectsByDegrees > 0, configures which modifer key activates free rotation.");
+            CounterClockwiseKey = Config.Bind(ShipSection, nameof(CounterClockwiseKey), eValidKeys.LeftShift, "If SnapObjectsByDegrees > 0, configures which modifier key spins it CCW.");
+            ShipPlaceablesCollide = Config.Bind(ShipSection, nameof(ShipPlaceablesCollide), true, "If set to true, placeable ship objects will check for collisions with each other during placement.");
             ShipMapCamDueNorth = Config.Bind(ShipSection, nameof(ShipMapCamDueNorth), false, "If set to true, the ship's map camera will rotate so that it faces north evenly, instead of showing everything at an angle.");
             SpeakerPlaysIntroVoice = Config.Bind(ShipSection, nameof(SpeakerPlaysIntroVoice), true, "If set to true, the ship's speaker will play the introductory welcome audio on the first day.");
             LightSwitchScanNode = Config.Bind(ShipSection, nameof(LightSwitchScanNode), true, "If set to true, the light switch will have a scan node attached.");
@@ -327,19 +363,20 @@ namespace GeneralImprovements
             // Teleporters
             RegularTeleporterCooldown = Config.Bind(TeleportersSection, nameof(RegularTeleporterCooldown), 10, new ConfigDescription("How many seconds to wait in between button presses for the REGULAR teleporter. Vanilla = 10. If using the vanilla value, the teleporter code will not be modified.", new AcceptableValueRange<int>(1, 300)));
             InverseTeleporterCooldown = Config.Bind(TeleportersSection, nameof(InverseTeleporterCooldown), 210, new ConfigDescription("How many seconds to wait in between button presses for the INVERSE teleporter. Vanilla = 210. If using the vanilla value, the teleporter code will not be modified.", new AcceptableValueRange<int>(1, 300)));
-            KeepItemsDuringTeleport = Config.Bind(TeleportersSection, nameof(KeepItemsDuringTeleport), validItemsToKeep[0], new ConfigDescription("Whether to keep Held, Non Scrap, or All items in inventory when using the regular teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!", new AcceptableValueList<string>(validItemsToKeep)));
-            KeepItemsDuringInverse = Config.Bind(TeleportersSection, nameof(KeepItemsDuringInverse), validItemsToKeep[0], new ConfigDescription("Whether to keep Held, Non Scrap, or All items in inventory when using the inverse teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!", new AcceptableValueList<string>(validItemsToKeep)));
+            KeepItemsDuringTeleport = Config.Bind(TeleportersSection, nameof(KeepItemsDuringTeleport), eItemsToKeep.None, "Whether to keep Held, Non Scrap, or All items in inventory when using the regular teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!");
+            KeepItemsDuringInverse = Config.Bind(TeleportersSection, nameof(KeepItemsDuringInverse), eItemsToKeep.None, "Whether to keep Held, Non Scrap, or All items in inventory when using the inverse teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!");
 
             // Terminal
             TerminalHistoryItemCount = Config.Bind(TerminalSection, nameof(TerminalHistoryItemCount), 20, new ConfigDescription("How many items to keep in your terminal's command history. Previous terminal commands may be navigated by using the up/down arrow keys.", new AcceptableValueRange<int>(0, 100)));
             TerminalFastCamSwitch = Config.Bind(TerminalSection, nameof(TerminalFastCamSwitch), true, "If set to true, will allow use of the left/right arrow keys to quickly cycle through radar cameras while using the terminal.");
             LockCameraAtTerminal = Config.Bind(TerminalSection, nameof(LockCameraAtTerminal), true, "If set to true, the camera will no longer move around when moving your mouse/controller while at the terminal.");
             ShowMoonPricesInTerminal = Config.Bind(TerminalSection, nameof(ShowMoonPricesInTerminal), false, "If set to true, the moons will also display the cost to fly to them next to their name and weather.");
+            ShowBlanksDuringViewMonitor = Config.Bind(TerminalSection, nameof(ShowBlanksDuringViewMonitor), true, "If set to true, typing commands while View Monitor is active requires you to scroll down to see the result.");
 
             // Tools
             OnlyAllowOneActiveFlashlight = Config.Bind(ToolsSection, nameof(OnlyAllowOneActiveFlashlight), true, "When turning on any flashlight, will turn off any others in your inventory that are still active.");
             TreatLasersAsFlashlights = Config.Bind(ToolsSection, nameof(TreatLasersAsFlashlights), false, "If set to true, laser pointers will be like flashlights and automatically toggle off and on when switching to them, etc.");
-            FlashlightToggleShortcut = Config.Bind(ToolsSection, nameof(FlashlightToggleShortcut), Key.None.ToString(), new ConfigDescription($"A shortcut key to allow toggling a flashlight at any time.", new AcceptableValueList<string>(validKeys)));
+            FlashlightToggleShortcut = Config.Bind(ToolsSection, nameof(FlashlightToggleShortcut), eValidKeys.None, $"A shortcut key to allow toggling a flashlight at any time.");
 
             ScannableTools = Config.Bind(ToolsSection, nameof(ScannableTools), string.Empty, $"A comma separated list of which tools, if any, should be scannable. Accepted values: {validToolStrings}");
             ToolsDoNotAttractLightning = Config.Bind(ToolsSection, nameof(ToolsDoNotAttractLightning), false, "[Host Only] If set to true, all useful tools (ladders, jetpacks, keys, radar boosters, shovels & signs, tzp inhalant, knives, and zap guns) will no longer attract lighning.");
@@ -496,7 +533,7 @@ namespace GeneralImprovements
         {
             MLS.LogMessage($"Found unused config value: {entry.Name}. Migrating and removing if possible...");
 
-            Action<string> convertMonitor = s =>
+            Action<eMonitorNames> convertMonitor = s =>
             {
                 if (int.TryParse(entry.Value, out var num) && num >= 1 && num <= ShipMonitorAssignments.Length)
                 {
@@ -508,23 +545,23 @@ namespace GeneralImprovements
             switch (entry.Name)
             {
                 // Ship monitors
-                case "ShipProfitQuotaMonitorNum": convertMonitor(MonitorNames.ProfitQuota); break;
-                case "ShipDeadlineMonitorNum": convertMonitor(MonitorNames.Deadline); break;
-                case "ShipTotalMonitorNum": convertMonitor(MonitorNames.ShipScrap); break;
-                case "ShipTimeMonitorNum": convertMonitor(MonitorNames.Time); break;
-                case "ShipWeatherMonitorNum": convertMonitor(MonitorNames.Weather); break;
+                case "ShipProfitQuotaMonitorNum": convertMonitor(eMonitorNames.ProfitQuota); break;
+                case "ShipDeadlineMonitorNum": convertMonitor(eMonitorNames.Deadline); break;
+                case "ShipTotalMonitorNum": convertMonitor(eMonitorNames.ShipScrap); break;
+                case "ShipTimeMonitorNum": convertMonitor(eMonitorNames.Time); break;
+                case "ShipWeatherMonitorNum": convertMonitor(eMonitorNames.Weather); break;
                 case "FancyWeatherMonitor":
-                    int existingWeatherIndex = MonitorNames.GetMonitorIndex(MonitorNames.Weather);
-                    if (entry.Value.ToUpper() == "TRUE" && existingWeatherIndex >= 0)
+                    var existingWeatherMonitor = ShipMonitorAssignments.FirstOrDefault(a => a.Value == eMonitorNames.Weather);
+                    if (entry.Value.ToUpper() == "TRUE" && existingWeatherMonitor != null)
                     {
                         // Unless manually modified, the new weather monitor would have been migrated at this point so it's safe to overwrite it here
-                        MLS.LogInfo($"Migrating fancy weather to override weather at monitor position {existingWeatherIndex + 1}");
-                        ShipMonitorAssignments[existingWeatherIndex].Value = MonitorNames.FancyWeather;
+                        MLS.LogInfo($"Migrating fancy weather to override weather monitor.");
+                        existingWeatherMonitor.Value = eMonitorNames.FancyWeather;
                     }
                     break;
-                case "ShipSalesMonitorNum": convertMonitor(MonitorNames.Sales); break;
-                case "ShipInternalCamMonitorNum": convertMonitor(MonitorNames.InternalCam); break;
-                case "ShipExternalCamMonitorNum": convertMonitor(MonitorNames.ExternalCam); break;
+                case "ShipSalesMonitorNum": convertMonitor(eMonitorNames.Sales); break;
+                case "ShipInternalCamMonitorNum": convertMonitor(eMonitorNames.InternalCam); break;
+                case "ShipExternalCamMonitorNum": convertMonitor(eMonitorNames.ExternalCam); break;
 
                 // A couple things under fixes section moving to scanner section
                 case "FixPersonalScanner": FixPersonalScanner.Value = entry.Value.ToUpper() == "TRUE"; break;
