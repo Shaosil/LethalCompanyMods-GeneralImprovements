@@ -1,4 +1,5 @@
-﻿using GameNetcodeStuff;
+﻿using BepInEx.Configuration;
+using GameNetcodeStuff;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System.Collections.Generic;
@@ -30,6 +31,8 @@ namespace GeneralImprovements.Patches
         }
 
         public static int DaysSinceLastDeath = -1;
+        public static Dictionary<ulong, int> SteamIDsToSuits = new Dictionary<ulong, int>();
+        public static HashSet<string> FlownToHiddenMoons = new HashSet<string>();
 
         [HarmonyPatch(typeof(StartOfRound), nameof(Start))]
         [HarmonyPostfix]
@@ -80,7 +83,7 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateDeathMonitors();
 
             // Add medical charging station
-            ItemHelper.CreateMedStation();
+            ObjectHelper.CreateMedStation();
 
             // Fix max items allowed to be stored
             __instance.maxShipItemCapacity = 999;
@@ -95,7 +98,17 @@ namespace GeneralImprovements.Patches
             // Create the light switch scan node
             if (Plugin.LightSwitchScanNode.Value && Object.FindObjectsOfType<InteractTrigger>().FirstOrDefault(t => t.gameObject.name == "LightSwitch") is InteractTrigger light)
             {
-                ItemHelper.CreateScanNodeOnObject(light.gameObject, 0, 0, 20, "Light Switch");
+                ObjectHelper.CreateScanNodeOnObject(light.gameObject, 0, 0, 20, "Light Switch");
+            }
+
+            // Create the initial players scan nodes
+            if (Plugin.ScanPlayers.Value)
+            {
+                foreach (var player in __instance.allPlayerScripts)
+                {
+                    var node = ObjectHelper.CreateScanNodeOnObject(player.gameObject, 0, 1, 10, player.playerUsername, ObjectHelper.GetEntityHealthDescription(1, 1));
+                    node.transform.localPosition += new Vector3(0, 2.25f, 0);
+                }
             }
         }
 
@@ -202,9 +215,20 @@ namespace GeneralImprovements.Patches
                     if (StartOfRound.Instance.localPlayerController.ItemSlots[i] is KeyItem key)
                     {
                         Plugin.MLS.LogInfo($"Destroying held key in slot {i} after orbiting.");
-                        ItemHelper.DestroyLocalItemAndSync(i);
+                        ObjectHelper.DestroyLocalItemAndSync(i);
                     }
                 }
+            }
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.ChangeLevel))]
+        [HarmonyPostfix]
+        private static void ChangeLevel(StartOfRound __instance)
+        {
+            // If we're flying to a hidden moon (not in the moonsCatalogueList, keep track of it. The host will also save that value in their save file.
+            if (Plugin.ShowHiddenMoonsInCatalog.Value == Plugin.Enums.eShowHiddenMoons.AfterDiscovery && !TerminalPatch.Instance.moonsCatalogueList.Contains(__instance.currentLevel))
+            {
+                FlownToHiddenMoons.Add(__instance.currentLevel.PlanetName);
             }
         }
 
@@ -258,8 +282,9 @@ namespace GeneralImprovements.Patches
                     if (__instance?.gameStats != null)
                     {
                         var stats = __instance.gameStats;
+                        string foundMoons = string.Join(',', FlownToHiddenMoons);
                         Plugin.MLS.LogInfo("Server sending extra data sync RPC.");
-                        NetworkHelper.Instance.SyncExtraDataOnConnectClientRpc(TimeOfDay.Instance.timesFulfilledQuota, stats.daysSpent, stats.deaths, DaysSinceLastDeath, clientParams);
+                        NetworkHelper.Instance.SyncExtraDataOnConnectClientRpc(TimeOfDay.Instance.timesFulfilledQuota, stats.daysSpent, stats.deaths, DaysSinceLastDeath, foundMoons, clientParams);
                     }
 
                     // Send over our monitor information in case the client wants to sync from the host
@@ -281,9 +306,9 @@ namespace GeneralImprovements.Patches
             }
         }
 
-        [HarmonyPatch(typeof(StartOfRound), nameof(OnClientDisconnect))]
+        [HarmonyPatch(typeof(StartOfRound), nameof(OnPlayerDC))]
         [HarmonyPostfix]
-        private static void OnClientDisconnect()
+        private static void OnPlayerDC()
         {
             TerminalPatch.AdjustGroupCredits(false);
         }
@@ -295,21 +320,71 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateShipScrapMonitors();
         }
 
-        [HarmonyPatch(typeof(StartOfRound), nameof(ResetShip))]
-        [HarmonyPostfix]
-        private static void ResetShip(StartOfRound __instance)
+        [HarmonyPatch(typeof(StartOfRound), nameof(ResetShipFurniture))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> ResetShipFurniture(IEnumerable<CodeInstruction> instructions)
         {
-            TerminalPatch.SetStartingMoneyPerPlayer();
-            if (ItemHelper.MedStation != null)
+            var codeList = instructions.ToList();
+
+            if (Plugin.SaveFurnitureState.Value)
             {
-                ItemHelper.MedStation.MaxLocalPlayerHealth = __instance.localPlayerController?.health ?? 100;
+                Label? elseBlock = null;
+                if (instructions.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+                {
+                    i => i.LoadsConstant(0),
+                    i => i.StoresField(typeof(ShipTeleporter).GetField(nameof(ShipTeleporter.hasBeenSpawnedThisSession))),
+                    i => i.LoadsConstant(0),
+                    i => i.StoresField(typeof(ShipTeleporter).GetField(nameof(ShipTeleporter.hasBeenSpawnedThisSessionInverse))),
+                    i => i.IsLdarg(1),
+                    i => i.Branches(out elseBlock)
+                }, out var found))
+                {
+                    Plugin.MLS.LogDebug("Patching StartOfRound.ResetShipFurniture to save furniture state.");
+
+                    codeList.InsertRange(found.Last().Index + 1, new[]
+                    {
+                        new CodeInstruction(OpCodes.Call, typeof(Plugin).GetMethod($"get_{nameof(Plugin.SaveFurnitureState)}")),
+                        new CodeInstruction(OpCodes.Callvirt, typeof(ConfigEntry<bool>).GetMethod("get_Value")),
+                        new CodeInstruction(OpCodes.Brtrue_S, elseBlock)
+                    });
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected IL code - Could not transpile StartOfRound.ResetShipFurniture to save furniture state!");
+                }
             }
 
+            return codeList;
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.EndPlayersFiredSequenceClientRpc))]
+        [HarmonyPostfix]
+        private static void EndPlayersFiredSequenceClientRpc(StartOfRound __instance)
+        {
+            // Reset money and health
+            TerminalPatch.SetStartingMoneyPerPlayer();
+            PlayerControllerBPatch.PlayerMaxHealthValues = new Dictionary<PlayerControllerB, int>();
+            foreach (var player in __instance.allPlayerScripts.Where(p => p.isPlayerControlled))
+            {
+                Plugin.MLS.LogInfo($"Resetting player {player.playerUsername}'s health to {player.health}.");
+                PlayerControllerBPatch.PlayerMaxHealthValues[player] = player.health;
+            }
+
+            // Update monitors that may need it
             MonitorsHelper.UpdateScrapLeftMonitors();
             MonitorsHelper.UpdateTotalDaysMonitors();
             MonitorsHelper.UpdateTotalQuotasMonitors();
             DaysSinceLastDeath = -1;
             MonitorsHelper.UpdateDeathMonitors(false);
+
+            // If we are the host, update everyone's suits since they have been reset
+            if (Plugin.SavePlayerSuits.Value && StartOfRound.Instance.IsHost)
+            {
+                foreach (var player in StartOfRound.Instance.allPlayerScripts)
+                {
+                    PlayerControllerBPatch.UpdatePlayerSuitToSavedValue(player);
+                }
+            }
         }
 
         [HarmonyPatch(typeof(StartOfRound), "StartGame")]
@@ -334,6 +409,7 @@ namespace GeneralImprovements.Patches
         {
             // Reset any necessary after-orbit variables
             DepositItemsDeskPatch.NumItemsSoldToday = 0;
+            MaskedPlayerEnemyPatch.NumSpawnedThisLevel = 0;
 
             // Reset some monitors
             MonitorsHelper.UpdateShipScrapMonitors();
@@ -430,6 +506,25 @@ namespace GeneralImprovements.Patches
                 {
                     SprayPaintItemPatch.UpdateColor(sprayCans[i], orderedColors[i]);
                 }
+            }
+
+            // Load custom stats
+            var anyDeaths = StartOfRound.Instance.gameStats.deaths > 0;
+            DaysSinceLastDeath = ES3.Load("Stats_DaysSinceLastDeath", GameNetworkManager.Instance.currentSaveFileName, anyDeaths ? 0 : -1);
+            if (Plugin.ShowHiddenMoonsInCatalog.Value == Plugin.Enums.eShowHiddenMoons.AfterDiscovery)
+            {
+                FlownToHiddenMoons = new HashSet<string>();
+                string foundMoons = ES3.Load("DiscoveredMoons", GameNetworkManager.Instance.currentSaveFileName, string.Empty);
+                foreach (string foundMoon in foundMoons.Split(',', System.StringSplitOptions.RemoveEmptyEntries))
+                {
+                    FlownToHiddenMoons.Add(foundMoon);
+                }
+            }
+
+            // Load player suits (assign to host after player Steam ID is set)
+            if (Plugin.SavePlayerSuits.Value)
+            {
+                SteamIDsToSuits = ES3.Load("SteamIDsToSuitIDs", GameNetworkManager.Instance.currentSaveFileName, new Dictionary<ulong, int>());
             }
         }
 

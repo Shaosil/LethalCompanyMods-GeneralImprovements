@@ -1,5 +1,18 @@
 # Changelog
 
+### v1.2.5 - More improvements
+* Added a manual timer to the better time monitors to help with frame loss when using mods that increase the time display update cycles.
+* Added an option to save the last used suit in the current save file, which will persist between loads and being fired. Defaults to true.
+	* Only works if using Online mode, not LAN (it associates suit IDs to Steam IDs in your save files).
+	* Should be compatible with all suit mods.
+	* Saves every player's last known suit, so clients connecting to future games in the same file will have their last suit applied.
+	* Coded carefully to avoid errors in case of mod differences or changes.
+* Added an option to save the furniture position per save file, which will prevent their positions and storage states changing each time players are fired. Defaults to true.
+* Added an option to display the hidden moons on the terminal's moon list. Defaults to AfterDiscovery.
+	* If the host also has the mod, they will also sync their own already found moons when you join their lobby.
+* Added an option to be able to scan other players. Masked entities will also blend in nicely when scanned. Defaults to false.
+* Added an option to let masks blend in more visually, meaning they would look exactly like a normal player, including having different suits. Defaults to false.
+
 ### v1.2.4 - More fixes and improvements
 * Fixed a rare softlock where using QuotaRollover would not detect the quota was reached on day 0.
 	* Also, quota rollover will now support selling items before the final day - if you exceed the target quota afterwards, a new one will be assigned as expected.

@@ -1,5 +1,7 @@
-﻿using GeneralImprovements.Utilities;
+﻿using GeneralImprovements.Patches;
+using GeneralImprovements.Utilities;
 using System.Collections;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -7,25 +9,9 @@ namespace GeneralImprovements.Items
 {
     public class MedStationItem : NetworkBehaviour
     {
-        public int MaxLocalPlayerHealth;
-
-        private void Update()
-        {
-            if (StartOfRound.Instance?.localPlayerController == null)
-            {
-                return;
-            }
-
-            if (StartOfRound.Instance.localPlayerController.health > MaxLocalPlayerHealth)
-            {
-                Plugin.MLS.LogInfo($"Setting max local player health to {StartOfRound.Instance.localPlayerController.health}");
-                MaxLocalPlayerHealth = StartOfRound.Instance.localPlayerController.health;
-            }
-        }
-
         public void HealLocalPlayer()
         {
-            if (StartOfRound.Instance.localPlayerController.health < MaxLocalPlayerHealth)
+            if (StartOfRound.Instance.localPlayerController.health < PlayerControllerBPatch.PlayerMaxHealthValues.GetValueOrDefault(StartOfRound.Instance.localPlayerController))
             {
                 StartOfRound.Instance.localPlayerController.StartCoroutine(HealLocalPlayerCoroutine());
             }
@@ -36,8 +22,9 @@ namespace GeneralImprovements.Items
             PlayHealSoundServerRpc();
             yield return new WaitForSeconds(0.75f);
 
-            HUDManager.Instance.UpdateHealthUI(MaxLocalPlayerHealth, false);
-            HealPlayerServerRpc(StartOfRound.Instance.localPlayerController.playerClientId, MaxLocalPlayerHealth);
+            int maxHealth = PlayerControllerBPatch.PlayerMaxHealthValues.GetValueOrDefault(StartOfRound.Instance.localPlayerController);
+            HUDManager.Instance.UpdateHealthUI(maxHealth, false);
+            HealPlayerServerRpc(StartOfRound.Instance.localPlayerController.playerClientId, maxHealth);
         }
 
         [ServerRpc(RequireOwnership = false)]
@@ -49,9 +36,9 @@ namespace GeneralImprovements.Items
         [ClientRpc]
         private void PlayHealSoundClientRpc()
         {
-            if (ItemHelper.MedStation != null)
+            if (ObjectHelper.MedStation != null)
             {
-                ItemHelper.MedStation.GetComponentInChildren<AudioSource>().Play();
+                ObjectHelper.MedStation.GetComponentInChildren<AudioSource>().Play();
             }
         }
 

@@ -1,5 +1,6 @@
 ﻿using GeneralImprovements.Patches;
 using System;
+using System.Collections.Generic;
 using Unity.Netcode;
 using static GeneralImprovements.Plugin.Enums;
 
@@ -49,7 +50,7 @@ namespace GeneralImprovements.Utilities
         }
 
         [ClientRpc]
-        public void SyncExtraDataOnConnectClientRpc(int quotaNum, int totalDays, int totalDeaths, int daysSinceLastDeath, ClientRpcParams clientParams)
+        public void SyncExtraDataOnConnectClientRpc(int quotaNum, int totalDays, int totalDeaths, int daysSinceLastDeath, string foundMoons, ClientRpcParams clientParams)
         {
             if (!IsServer && StartOfRound.Instance != null)
             {
@@ -58,6 +59,11 @@ namespace GeneralImprovements.Utilities
                 StartOfRound.Instance.gameStats.daysSpent = totalDays;
                 StartOfRound.Instance.gameStats.deaths = totalDeaths;
                 StartOfRoundPatch.DaysSinceLastDeath = daysSinceLastDeath;
+                StartOfRoundPatch.FlownToHiddenMoons = new HashSet<string>();
+                foreach (string foundMoon in foundMoons.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    StartOfRoundPatch.FlownToHiddenMoons.Add(foundMoon);
+                }
 
                 MonitorsHelper.UpdateTotalQuotasMonitors();
                 MonitorsHelper.UpdateTotalDaysMonitors();

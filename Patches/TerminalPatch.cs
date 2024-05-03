@@ -169,32 +169,49 @@ namespace GeneralImprovements.Patches
                 modifiedDisplayText = modifiedDisplayText.Replace("[scanForItems]", $"There are {scannedItems.Key} objects outside the ship, totalling at an {desc} value of ${scannedItems.Value}.");
             }
 
-            // Show moon prices if specified
-            if (modifiedDisplayText.Contains("[planetTime]") && Plugin.ShowMoonPricesInTerminal.Value)
+            // Show extra moons and prices if specified
+            if (modifiedDisplayText.Contains("[planetTime]") && (Plugin.ShowMoonPricesInTerminal.Value || Plugin.ShowHiddenMoonsInCatalog.Value != Plugin.Enums.eShowHiddenMoons.Never))
             {
                 // Get prices by finding "route" node and matching on names. A bit risky if things change, but better than hardcoding
                 var routeNode = Instance.terminalNodes.allKeywords.FirstOrDefault(k => k.word == "route");
                 if (routeNode != null)
                 {
-                    // Make sure to include weather like vanilla behavior
-                    for (int i = 0; i < Instance.moonsCatalogueList.Length; i++)
+                    // Get all moons we can actually route to, making sure to filter out hidden moons where necessary
+                    var allmoons = StartOfRound.Instance.levels.Where(l =>
+                        routeNode.compatibleNouns.Any(n => l.PlanetName.ToLower().Contains(n.noun.word.ToLower())) // Find the name in routeable moons
+                        && (Instance.moonsCatalogueList.Contains(l) || Plugin.ShowHiddenMoonsInCatalog.Value == Plugin.Enums.eShowHiddenMoons.Always // And it's either shown in vanilla, or we always show hidden...
+                            || (Plugin.ShowHiddenMoonsInCatalog.Value == Plugin.Enums.eShowHiddenMoons.AfterDiscovery && StartOfRoundPatch.FlownToHiddenMoons.Contains(l.PlanetName)))) // ... or we've discovered it
+                        .ToList();
+
+                    // If extra moons exist that are not in our usual catalogue, add them to the display text as needed
+                    if (allmoons.Count > Instance.moonsCatalogueList.Length)
                     {
-                        string weather = Instance.moonsCatalogueList[i].currentWeather == LevelWeatherType.None ? string.Empty : $"({Instance.moonsCatalogueList[i].currentWeather}) ";
-                        var matchingMoonNode = routeNode.compatibleNouns.FirstOrDefault(n => Instance.moonsCatalogueList[i].PlanetName.Contains(n.noun.word, StringComparison.OrdinalIgnoreCase));
+                        foreach (var extraMoon in allmoons.Where(m => !Instance.moonsCatalogueList.Contains(m)))
+                        {
+                            modifiedDisplayText += $"* {Regex.Match(extraMoon.PlanetName, ".* (.+)").Groups[1].Value} [planetTime]\n";
+                        }
+                        modifiedDisplayText += '\n';
+                    }
+
+                    // Now handle [planetTime] manually, including vanilla weather
+                    for (int i = 0; i < allmoons.Count; i++)
+                    {
+                        string weather = allmoons[i].currentWeather == LevelWeatherType.None ? string.Empty : $"({allmoons[i].currentWeather}) ";
+                        var matchingMoonNode = routeNode.compatibleNouns.FirstOrDefault(n => allmoons[i].PlanetName.Contains(n.noun.word, StringComparison.OrdinalIgnoreCase));
                         if (matchingMoonNode != null)
                         {
-                            string cost = matchingMoonNode.result.itemCost <= 0 ? string.Empty : $"- ${matchingMoonNode.result.itemCost}";
-                            modifiedDisplayText = new Regex(@"\[planetTime\]").Replace(modifiedDisplayText, $"{weather}{cost}", 1);
+                            string cost = !Plugin.ShowMoonPricesInTerminal.Value || matchingMoonNode.result.itemCost <= 0 ? string.Empty : $"- ${matchingMoonNode.result.itemCost}";
+                            modifiedDisplayText = Regex.Replace(modifiedDisplayText, @$"({matchingMoonNode.noun.word}) \[planetTime\]", $"$1 {weather}{cost}", RegexOptions.IgnoreCase);
                         }
                         else
                         {
-                            Plugin.MLS.LogError($"Could not find moon cost node for {Instance.moonsCatalogueList[i].PlanetName}! Unable to display its cost.");
+                            Plugin.MLS.LogError($"Could not find moon node for {allmoons[i].PlanetName}! Unable to display its info.");
                         }
                     }
                 }
                 else
                 {
-                    Plugin.MLS.LogError("Could not find route node! Unable to display moon costs.");
+                    Plugin.MLS.LogError("Could not find terminal route node! Unable to display custom moon info.");
                 }
             }
         }

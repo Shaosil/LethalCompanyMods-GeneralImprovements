@@ -144,6 +144,31 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        [HarmonyPatch(typeof(HUDManager), nameof(AssignNodeToUIElement))]
+        [HarmonyPrefix]
+        private static void AssignNodeToUIElement(ScanNodeProperties node)
+        {
+            // If we have scanned a player or a masked entity, make sure their health subtext is up to date
+            PlayerControllerB player = null;
+            MaskedPlayerEnemy masked = null;
+            if (Plugin.ScanPlayers.Value && ((node.transform.parent?.TryGetComponent(out player) ?? false) || (node.transform.parent?.TryGetComponent(out masked) ?? false)))
+            {
+                int curHealth, maxHealth;
+                if (player != null)
+                {
+                    curHealth = player.health;
+                    maxHealth = PlayerControllerBPatch.PlayerMaxHealthValues.GetValueOrDefault(player);
+                }
+                else
+                {
+                    curHealth = masked.mimickingPlayer != null ? 0 : masked.enemyHP; // Force deceased if mimicking a player
+                    maxHealth = MaskedPlayerEnemyPatch.MaxHealth;
+                }
+                node.subText = ObjectHelper.GetEntityHealthDescription(curHealth, maxHealth);
+                node.nodeType = curHealth <= 0 ? 1 : 0; // Red or blue depending on live status
+            }
+        }
+
         [HarmonyPatch(typeof(HUDManager), nameof(SetClock))]
         [HarmonyPrefix]
         private static bool SetClock_Pre(float timeNormalized, float numberOfHours, TextMeshProUGUI ___clockNumber, ref string __result)

@@ -32,6 +32,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Improves the spray can color randomness, and persists the colors between clients and even on reloading the saves.
 * Saving item rotations so they aren't all facing the same way when you load up a saved game.
 * Items which cannot be grabbed will not display the "Grab" hover tip.
+* The host player saves everyone's last known suit, which persists when possible as the game resets and same players connect.
 
 ### NEW FEATURES:
 * A total of 14 customizable, screen-integrated monitors for the ship (instead of the vanilla 8)! Choose which monitor to put what item, including ship cams and background color.

@@ -44,7 +44,7 @@ namespace GeneralImprovements.Patches
                 foreach (var mimic in mimics)
                 {
                     // Manually move the scan node's position, or it will be in a noticeably different spot than real exits
-                    var mimicScanNode = ItemHelper.CreateScanNodeOnObject(mimic.transform.parent.gameObject, 0, 1, 20, "Fire Exit?");
+                    var mimicScanNode = ObjectHelper.CreateScanNodeOnObject(mimic.transform.parent.gameObject, 0, 1, 20, "Fire Exit?");
                     mimicScanNode.transform.localPosition += new Vector3(0, 1.5f, 0);
                 }
             }

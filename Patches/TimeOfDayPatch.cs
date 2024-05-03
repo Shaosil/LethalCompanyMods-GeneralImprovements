@@ -12,6 +12,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(TimeOfDay), nameof(TimeOfDay.SetNewProfitQuota))]
         [HarmonyPrefix]
+        [HarmonyPriority(Priority.Low)]
         private static bool SetNewProfitQuota(TimeOfDay __instance)
         {
             if (Plugin.AllowQuotaRollover.Value)

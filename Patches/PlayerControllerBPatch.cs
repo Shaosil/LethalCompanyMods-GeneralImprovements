@@ -3,6 +3,7 @@ using GeneralImprovements.OtherMods;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -17,6 +18,8 @@ namespace GeneralImprovements.Patches
 {
     internal static class PlayerControllerBPatch
     {
+        public static Dictionary<PlayerControllerB, int> PlayerMaxHealthValues = new Dictionary<PlayerControllerB, int>();
+
         private static Func<bool> _flashlightTogglePressed;
         private static FieldInfo _timeSinceSwitchingSlotsField = null;
         private static FieldInfo TimeSinceSwitchingSlotsField
@@ -61,12 +64,36 @@ namespace GeneralImprovements.Patches
         [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
         [HarmonyPriority(Priority.Low)]
         [HarmonyFinalizer] // Need a finalizer because CorporateRestructure sometimes has an exception before this, stopping our hide code
-        private static void ConnectClientToPlayerObjectPost(PlayerControllerB __instance)
+        private static void ConnectClientToPlayerObjectPost()
         {
             // If using the new monitors, hide the old text objects HERE in order to let other mods utilize them first
             if (Plugin.UseBetterMonitors.Value)
             {
                 MonitorsHelper.HideOldMonitors();
+            }
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(SendNewPlayerValuesServerRpc))]
+        [HarmonyPostfix]
+        private static void SendNewPlayerValuesServerRpc(PlayerControllerB __instance)
+        {
+            // When the host receives the steam ID, update the caller's suit if we can
+            UpdatePlayerSuitToSavedValue(__instance);
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(SendNewPlayerValuesClientRpc))]
+        [HarmonyPostfix]
+        private static void SendNewPlayerValuesClientRpc(PlayerControllerB __instance)
+        {
+            // Update scan node if needed now that we have the Steam name
+            if (Plugin.ScanPlayers.Value)
+            {
+                int curHealth = __instance.health;
+                int maxHealth = PlayerMaxHealthValues.ContainsKey(__instance) ? PlayerMaxHealthValues[__instance] : 100;
+
+                var scanNode = __instance.GetComponentInChildren<ScanNodeProperties>();
+                scanNode.headerText = __instance.playerUsername;
+                scanNode.subText = ObjectHelper.GetEntityHealthDescription(curHealth, maxHealth);
             }
         }
 
@@ -413,9 +440,9 @@ namespace GeneralImprovements.Patches
                 }
             }
 
-            if (Plugin.AddHealthRechargeStation.Value && ItemHelper.MedStation != null && __instance.hoveringOverTrigger?.transform.parent == ItemHelper.MedStation.transform)
+            if (Plugin.AddHealthRechargeStation.Value && ObjectHelper.MedStation != null && __instance.hoveringOverTrigger?.transform.parent == ObjectHelper.MedStation.transform && PlayerMaxHealthValues.ContainsKey(__instance))
             {
-                __instance.hoveringOverTrigger.interactable = __instance.health < ItemHelper.MedStation.MaxLocalPlayerHealth;
+                __instance.hoveringOverTrigger.interactable = __instance.health < PlayerMaxHealthValues[__instance];
             }
         }
 
@@ -576,6 +603,13 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void Update(PlayerControllerB __instance)
         {
+            // Keep max health values up to date
+            if (PlayerMaxHealthValues.GetValueOrDefault(__instance) < __instance.health)
+            {
+                Plugin.MLS.LogInfo($"Storing player {__instance.playerUsername}'s max health as {__instance.health}");
+                PlayerMaxHealthValues[__instance] = __instance.health;
+            }
+
             if (!__instance.IsOwner || Plugin.FlashlightToggleShortcut.Value == eValidKeys.None || __instance.inTerminalMenu || __instance.isTypingChat || !__instance.isPlayerControlled)
             {
                 return;
@@ -596,6 +630,39 @@ namespace GeneralImprovements.Patches
                 {
                     targetFlashlight.UseItemOnClient();
                 }
+            }
+        }
+
+        public static void UpdatePlayerSuitToSavedValue(PlayerControllerB player)
+        {
+            // Only do this if we are configured to and hosting
+            if (Plugin.SavePlayerSuits.Value && StartOfRound.Instance.IsHost && player.playerSteamId != default && StartOfRoundPatch.SteamIDsToSuits.ContainsKey(player.playerSteamId))
+            {
+                // First, make sure we can find the suit object that matches the saved ID
+                int suitID = StartOfRoundPatch.SteamIDsToSuits[player.playerSteamId];
+                var matchingSuit = UnityEngine.Object.FindObjectsOfType<UnlockableSuit>().FirstOrDefault(s => s.syncedSuitID?.Value == suitID);
+                var unlockable = StartOfRound.Instance.unlockablesList.unlockables.ElementAtOrDefault(suitID);
+
+                // If the suit was found and valid, send a client RPC to everyone who has this suit
+                if (matchingSuit != null && unlockable != null && unlockable.suitMaterial != null)
+                {
+                    player.StartCoroutine(SwitchSuitAfterInitialized(player, matchingSuit, unlockable));
+                }
+                else
+                {
+                    Plugin.MLS.LogWarning($"Found a saved suit ID for {player.playerUsername} but it was either not found or not yet unlocked. Suit changing will be skipped.");
+                }
+            }
+        }
+
+        private static IEnumerator SwitchSuitAfterInitialized(PlayerControllerB player, UnlockableSuit suit, UnlockableItem unlockable)
+        {
+            yield return new WaitUntil(() => suit.suitID == suit.syncedSuitID?.Value);
+
+            if (player.currentSuitID != suit.suitID)
+            {
+                Plugin.MLS.LogInfo($"Found saved suit ID for player {player.playerUsername} - changing to {unlockable.unlockableName}.");
+                suit.SwitchSuitToThis(player);
             }
         }
     }

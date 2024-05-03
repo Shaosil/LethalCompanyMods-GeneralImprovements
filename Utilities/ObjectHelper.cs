@@ -6,13 +6,12 @@ using UnityEngine;
 
 namespace GeneralImprovements.Utilities
 {
-    internal static class ItemHelper
+    internal static class ObjectHelper
     {
         private static IReadOnlyList<NetworkPrefab> AllPrefabs => NetworkManager.Singleton.NetworkConfig.Prefabs.Prefabs;
-
         public static MedStationItem MedStation = null;
 
-        public static GameObject CreateScanNodeOnObject(GameObject obj, int nodeType, int minRange, int maxRange, string headerText, int size = 1)
+        public static ScanNodeProperties CreateScanNodeOnObject(GameObject obj, int nodeType, int minRange, int maxRange, string headerText, string subText = "", int size = 1)
         {
             var scanNodeObj = new GameObject("ScanNode", typeof(ScanNodeProperties), typeof(BoxCollider));
             scanNodeObj.layer = LayerMask.NameToLayer("ScanNode");
@@ -26,7 +25,7 @@ namespace GeneralImprovements.Utilities
             newScanNode.maxRange = maxRange;
             newScanNode.headerText = headerText;
 
-            return scanNodeObj;
+            return newScanNode;
         }
 
         public static void CreateMedStation()
@@ -169,6 +168,13 @@ namespace GeneralImprovements.Utilities
                     HUDManager.Instance.itemSlotIcons[slot].enabled = false;
                 }
             }
+        }
+
+        public static string GetEntityHealthDescription(int curHP, int maxHP)
+        {
+            float pct = (float)curHP / maxHP;
+
+            return pct > 1 ? "Radiant" : pct >= 0.75f ? "Healthy" : pct >= 0.5f ? "Injured" : pct >= 0.25f ? "Badly Injured" : pct > 0 ? "Near Death" : "Deceased";
         }
     }
 }

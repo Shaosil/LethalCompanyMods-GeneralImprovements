@@ -29,6 +29,8 @@ namespace GeneralImprovements
         {
             public enum eAutoLaunchOptions { NONE, ONLINE, LAN }
 
+            public enum eShowHiddenMoons { Never, AfterDiscovery, Always }
+
             public enum eMonitorNames
             {
                 None,
@@ -131,9 +133,12 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> UnlockDoorsFromInventory { get; private set; }
         public static ConfigEntry<bool> KeysHaveInfiniteUses { get; private set; }
         public static ConfigEntry<bool> DestroyKeysAfterOrbiting { get; private set; }
+        public static ConfigEntry<bool> SavePlayerSuits { get; private set; }
+        public static ConfigEntry<bool> MaskedLookLikePlayers { get; private set; }
 
         private const string ScannerSection = "Scanner";
         public static ConfigEntry<bool> FixPersonalScanner { get; private set; }
+        public static ConfigEntry<bool> ScanPlayers { get; private set; }
         public static ConfigEntry<bool> ScanHeldPlayerItems { get; private set; }
         public static ConfigEntry<bool> ShowDropshipOnScanner { get; private set; }
         public static ConfigEntry<bool> ShowDoorsOnScanner { get; private set; }
@@ -145,6 +150,7 @@ namespace GeneralImprovements
         public static ConfigEntry<eValidKeys> FreeRotateKey { get; private set; }
         public static ConfigEntry<eValidKeys> CounterClockwiseKey { get; private set; }
         public static ConfigEntry<bool> ShipPlaceablesCollide { get; private set; }
+        public static ConfigEntry<bool> SaveFurnitureState { get; private set; }
         public static ConfigEntry<bool> ShipMapCamDueNorth { get; private set; }
         public static ConfigEntry<bool> SpeakerPlaysIntroVoice { get; private set; }
         public static ConfigEntry<bool> LightSwitchScanNode { get; private set; }
@@ -162,6 +168,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> LockCameraAtTerminal { get; private set; }
         public static ConfigEntry<bool> ShowMoonPricesInTerminal { get; private set; }
         public static ConfigEntry<bool> ShowBlanksDuringViewMonitor { get; private set; }
+        public static ConfigEntry<eShowHiddenMoons> ShowHiddenMoonsInCatalog { get; private set; }
 
         private const string ToolsSection = "Tools";
         public static ConfigEntry<bool> OnlyAllowOneActiveFlashlight { get; private set; }
@@ -241,6 +248,9 @@ namespace GeneralImprovements
             Harmony.CreateAndPatchAll(typeof(ManualCameraRendererPatch));
             MLS.LogDebug("ManualCameraRenderer patched.");
 
+            Harmony.CreateAndPatchAll(typeof(MaskedPlayerEnemyPatch));
+            MLS.LogDebug("MaskedPlayerEnemy patched.");
+
             Harmony.CreateAndPatchAll(typeof(MenuPatches));
             MLS.LogDebug("Menus patched.");
 
@@ -276,6 +286,9 @@ namespace GeneralImprovements
 
             Harmony.CreateAndPatchAll(typeof(TimeOfDayPatch));
             MLS.LogDebug("TimeOfDay patched.");
+
+            Harmony.CreateAndPatchAll(typeof(UnlockableSuitPatch));
+            MLS.LogDebug("UnlockableSuit patched.");
 
             GameNetworkManagerPatch.PatchNetcode();
 
@@ -341,9 +354,12 @@ namespace GeneralImprovements
             UnlockDoorsFromInventory = Config.Bind(MechanicsSection, nameof(UnlockDoorsFromInventory), false, "If set to true, keys in your inventory do not have to be held when unlocking facility doors.");
             KeysHaveInfiniteUses = Config.Bind(MechanicsSection, nameof(KeysHaveInfiniteUses), false, "If set to true, keys will not despawn when they are used.");
             DestroyKeysAfterOrbiting = Config.Bind(MechanicsSection, nameof(DestroyKeysAfterOrbiting), false, "If set to true, all keys in YOUR inventory (and IF HOSTING, the ship) will be destroyed after orbiting. Works well to nerf KeysHaveInfiniteUses. Players who do not have this enabled will keep keys currently in their inventory.");
+            SavePlayerSuits = Config.Bind(MechanicsSection, nameof(SavePlayerSuits), true, "If set to true, the host will keep track of every player's last used suit, and will persist between loads and ship resets for each save file. Only works in Online mode.");
+            MaskedLookLikePlayers = Config.Bind(MechanicsSection, nameof(MaskedLookLikePlayers), false, "If set to true, masked entities will NOT be wearing masks, and wear a random player's suit instead of always using the default one.");
 
             // Scanner
             FixPersonalScanner = Config.Bind(ScannerSection, nameof(FixPersonalScanner), false, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you, and the ship/main entrance.");
+            ScanPlayers = Config.Bind(ScannerSection, nameof(ScanPlayers), false, "If set to true, players (and sneaky masked entities) will be scannable.");
             ScanHeldPlayerItems = Config.Bind(ScannerSection, nameof(ScanHeldPlayerItems), false, "If this and FixPersonalScanner are set to true, the scanner will also ping items in other players' hands.");
             ShowDropshipOnScanner = Config.Bind(ScannerSection, nameof(ShowDropshipOnScanner), false, "If set to true, the item drop ship will be scannable.");
             ShowDoorsOnScanner = Config.Bind(ScannerSection, nameof(ShowDoorsOnScanner), false, "If set to true, all fire entrances and facility exits will be scannable. Compatible with mimics mod (they show up as an exit as well).");
@@ -355,6 +371,7 @@ namespace GeneralImprovements
             FreeRotateKey = Config.Bind(ShipSection, nameof(FreeRotateKey), eValidKeys.LeftAlt, "If SnapObjectsByDegrees > 0, configures which modifer key activates free rotation.");
             CounterClockwiseKey = Config.Bind(ShipSection, nameof(CounterClockwiseKey), eValidKeys.LeftShift, "If SnapObjectsByDegrees > 0, configures which modifier key spins it CCW.");
             ShipPlaceablesCollide = Config.Bind(ShipSection, nameof(ShipPlaceablesCollide), true, "If set to true, placeable ship objects will check for collisions with each other during placement.");
+            SaveFurnitureState = Config.Bind(ShipSection, nameof(SaveFurnitureState), true, "If set to true, all default ship furniture positions and storage states will not be reset after being fired.");
             ShipMapCamDueNorth = Config.Bind(ShipSection, nameof(ShipMapCamDueNorth), false, "If set to true, the ship's map camera will rotate so that it faces north evenly, instead of showing everything at an angle.");
             SpeakerPlaysIntroVoice = Config.Bind(ShipSection, nameof(SpeakerPlaysIntroVoice), true, "If set to true, the ship's speaker will play the introductory welcome audio on the first day.");
             LightSwitchScanNode = Config.Bind(ShipSection, nameof(LightSwitchScanNode), true, "If set to true, the light switch will have a scan node attached.");
@@ -372,6 +389,7 @@ namespace GeneralImprovements
             LockCameraAtTerminal = Config.Bind(TerminalSection, nameof(LockCameraAtTerminal), true, "If set to true, the camera will no longer move around when moving your mouse/controller while at the terminal.");
             ShowMoonPricesInTerminal = Config.Bind(TerminalSection, nameof(ShowMoonPricesInTerminal), false, "If set to true, the moons will also display the cost to fly to them next to their name and weather.");
             ShowBlanksDuringViewMonitor = Config.Bind(TerminalSection, nameof(ShowBlanksDuringViewMonitor), true, "If set to true, typing commands while View Monitor is active requires you to scroll down to see the result.");
+            ShowHiddenMoonsInCatalog = Config.Bind(TerminalSection, nameof(ShowHiddenMoonsInCatalog), eShowHiddenMoons.AfterDiscovery, "When to show any hidden moons in the terminal's moon catalog. AfterDiscovery is per save file.");
 
             // Tools
             OnlyAllowOneActiveFlashlight = Config.Bind(ToolsSection, nameof(OnlyAllowOneActiveFlashlight), true, "When turning on any flashlight, will turn off any others in your inventory that are still active.");

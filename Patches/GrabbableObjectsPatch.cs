@@ -92,7 +92,7 @@ namespace GeneralImprovements.Patches
             // Add scan nodes to tools if requested
             if (Plugin.ScannableToolVals.Any(t => __instance.GetType() == t) && __instance.GetComponentInChildren<ScanNodeProperties>() == null)
             {
-                ItemHelper.CreateScanNodeOnObject(__instance.gameObject, 0, 1, 13, __instance.itemProperties.itemName);
+                ObjectHelper.CreateScanNodeOnObject(__instance.gameObject, 0, 1, 13, __instance.itemProperties.itemName);
             }
         }
 
@@ -167,7 +167,7 @@ namespace GeneralImprovements.Patches
                             {
                                 if (StartOfRound.Instance.localPlayerController.ItemSlots[i] == k)
                                 {
-                                    ItemHelper.DestroyLocalItemAndSync(i);
+                                    ObjectHelper.DestroyLocalItemAndSync(i);
                                     return;
                                 }
                             }

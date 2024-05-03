@@ -11,7 +11,7 @@ namespace GeneralImprovements.Patches
         {
             if (Plugin.ShowDropshipOnScanner.Value)
             {
-                ItemHelper.CreateScanNodeOnObject(__instance.gameObject, 0, 5, 50, "Dropship", 4);
+                ObjectHelper.CreateScanNodeOnObject(__instance.gameObject, 0, 5, 50, "Dropship", size: 4);
             }
         }
     }

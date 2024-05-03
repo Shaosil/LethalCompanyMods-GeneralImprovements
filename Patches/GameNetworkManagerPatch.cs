@@ -40,7 +40,7 @@ namespace GeneralImprovements.Patches
                 NetworkManager.Singleton.AddNetworkPrefab(AssetBundleHelper.MedStationPrefab);
             }
 
-            ItemHelper.AlterFancyLampPrefab();
+            ObjectHelper.AlterFancyLampPrefab();
 
             // Attach our own network helper to this gameobject
             __instance.gameObject.AddComponent<NetworkHelper>();
@@ -49,7 +49,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(GameNetworkManager), nameof(Disconnect))]
         [HarmonyPrefix]
-        private static void Disconnect(GameNetworkManager __instance)
+        private static void Disconnect()
         {
             // If we are about to disconnect as a host, first "drop" all held items so they don't save in mid air
             if (StartOfRound.Instance?.IsHost ?? false)
@@ -174,11 +174,32 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SaveItemsInShip(GameNetworkManager __instance)
         {
+            // Save extra game stats
+            ES3.Save("Stats_DaysSinceLastDeath", StartOfRoundPatch.DaysSinceLastDeath, GameNetworkManager.Instance.currentSaveFileName);
+            if (Plugin.ShowHiddenMoonsInCatalog.Value == Plugin.Enums.eShowHiddenMoons.AfterDiscovery)
+            {
+                ES3.Save("DiscoveredMoons", string.Join(',', StartOfRoundPatch.FlownToHiddenMoons), GameNetworkManager.Instance.currentSaveFileName);
+            }
+
             // Save spray can colors
             var sprayCanItems = SprayPaintItemPatch.GetAllOrderedSprayPaintItemsInShip().Select(s => SprayPaintItemPatch.GetColorIndex(s)).ToArray();
-            if (sprayCanItems.Any())
+            ES3.Save("sprayPaintItemColors", sprayCanItems, __instance.currentSaveFileName);
+
+            // Save suit data
+            if (Plugin.SavePlayerSuits.Value)
             {
-                ES3.Save("sprayPaintItemColors", sprayCanItems, __instance.currentSaveFileName);
+                ES3.Save("SteamIDsToSuitIDs", StartOfRoundPatch.SteamIDsToSuits, __instance.currentSaveFileName);
+            }
+        }
+
+        [HarmonyPatch(typeof(GameNetworkManager), nameof(GameNetworkManager.ResetUnlockablesListValues))]
+        [HarmonyPrefix]
+        private static void ResetUnlockablesListValues(ref bool onlyResetPrefabItems)
+        {
+            // Make sure not to reset furniture if specified
+            if (Plugin.SaveFurnitureState.Value && !onlyResetPrefabItems)
+            {
+                onlyResetPrefabItems = true;
             }
         }
     }

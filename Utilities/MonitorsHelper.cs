@@ -62,6 +62,10 @@ namespace GeneralImprovements.Utilities
         private static Monitors _newMonitors;
         private static Dictionary<TextMeshProUGUI, Action> _queuedMonitorRefreshes = new Dictionary<TextMeshProUGUI, Action>();
 
+        // Time monitor manual control
+        private static float _curTimeMonitorTimer = 1;
+        private static float _timeMonitorCycleTime = 1f;
+
         // Weather animation
         private static int _curWeatherAnimIndex = 0;
         private static int _curWeatherOverlayIndex = 0;
@@ -122,13 +126,6 @@ namespace GeneralImprovements.Utilities
                 return;
             }
             _usingAnyMonitorTweaks = true;
-
-            // Load days since last death from the current save file
-            if (StartOfRound.Instance.IsHost)
-            {
-                var anyDeaths = StartOfRound.Instance.gameStats.deaths > 0;
-                StartOfRoundPatch.DaysSinceLastDeath = ES3.Load("Stats_DaysSinceLastDeath", GameNetworkManager.Instance.currentSaveFileName, anyDeaths ? 0 : -1);
-            }
 
             // Initialize things each time StartOfRound starts up
             _lastUpdatedCredits = -1;
@@ -602,6 +599,13 @@ namespace GeneralImprovements.Utilities
         {
             if (HUDManager.Instance?.clockNumber != null && _timeMonitorTexts.Count > 0)
             {
+                // Do not update faster than we should - some mods may increase the vanilla time update call
+                if (_curTimeMonitorTimer < _timeMonitorCycleTime)
+                {
+                    return;
+                }
+
+                _curTimeMonitorTimer = 0;
                 string time;
                 if (TimeOfDay.Instance.movingGlobalTimeForward)
                 {
@@ -723,6 +727,7 @@ namespace GeneralImprovements.Utilities
                 }
             }
 
+            // Sales monitor
             if (_salesMonitorTexts.Count > 0 && _curSalesAnimations.Count >= 2)
             {
                 _salesAnimTimer += Time.deltaTime;
@@ -733,6 +738,12 @@ namespace GeneralImprovements.Utilities
                     string firstLine = _salesMonitorTexts.First().text.Split('\n')[0];
                     UpdateGenericTextList(_salesMonitorTexts, $"{firstLine}\n{_curSalesAnimations[_curSalesAnimIndex]}");
                 }
+            }
+
+            // Handle the timer increment for the time monitors as well
+            if (_timeMonitorTexts.Count > 0)
+            {
+                _curTimeMonitorTimer += Time.deltaTime;
             }
         }
 
@@ -860,11 +871,6 @@ namespace GeneralImprovements.Utilities
                     {
                         // No death this time, but there have been at some point - increment counter
                         StartOfRoundPatch.DaysSinceLastDeath++;
-                    }
-
-                    if (StartOfRound.Instance.IsHost)
-                    {
-                        ES3.Save("Stats_DaysSinceLastDeath", StartOfRoundPatch.DaysSinceLastDeath, GameNetworkManager.Instance.currentSaveFileName);
                     }
                 }
 

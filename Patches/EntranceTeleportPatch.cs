@@ -32,7 +32,7 @@ namespace GeneralImprovements.Patches
             if (Plugin.ShowDoorsOnScanner.Value && !(__instance.entranceId == 0 && __instance.isEntranceToBuilding))
             {
                 string text = __instance.isEntranceToBuilding ? "Fire Entrance" : __instance.entranceId == 0 ? "Main Exit" : $"Fire Exit{(MimicsHelper.IsActive ? "?" : "")}";
-                ItemHelper.CreateScanNodeOnObject(__instance.gameObject, 0, 1, __instance.isEntranceToBuilding ? 50 : 20, text);
+                ObjectHelper.CreateScanNodeOnObject(__instance.gameObject, 0, 1, __instance.isEntranceToBuilding ? 50 : 20, text);
             }
         }
 
