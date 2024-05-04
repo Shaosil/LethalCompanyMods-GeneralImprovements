@@ -100,16 +100,6 @@ namespace GeneralImprovements.Patches
             {
                 ObjectHelper.CreateScanNodeOnObject(light.gameObject, 0, 0, 20, "Light Switch");
             }
-
-            // Create the initial players scan nodes
-            if (Plugin.ScanPlayers.Value)
-            {
-                foreach (var player in __instance.allPlayerScripts)
-                {
-                    var node = ObjectHelper.CreateScanNodeOnObject(player.gameObject, 0, 1, 10, player.playerUsername, ObjectHelper.GetEntityHealthDescription(1, 1));
-                    node.transform.localPosition += new Vector3(0, 2.25f, 0);
-                }
-            }
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(SetTimeAndPlanetToSavedSettings))]

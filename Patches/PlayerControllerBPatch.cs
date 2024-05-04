@@ -71,6 +71,16 @@ namespace GeneralImprovements.Patches
             {
                 MonitorsHelper.HideOldMonitors();
             }
+
+            // Create the initial other players scan nodes
+            if (Plugin.ScanPlayers.Value)
+            {
+                foreach (var player in StartOfRound.Instance.allPlayerScripts.Where(p => StartOfRound.Instance.localPlayerController != p))
+                {
+                    var node = ObjectHelper.CreateScanNodeOnObject(player.gameObject, 0, 1, 10, player.playerUsername, ObjectHelper.GetEntityHealthDescription(1, 1));
+                    node.transform.localPosition += new Vector3(0, 2.25f, 0);
+                }
+            }
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SendNewPlayerValuesServerRpc))]
@@ -83,17 +93,23 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SendNewPlayerValuesClientRpc))]
         [HarmonyPostfix]
-        private static void SendNewPlayerValuesClientRpc(PlayerControllerB __instance)
+        private static void SendNewPlayerValuesClientRpc()
         {
-            // Update scan node if needed now that we have the Steam name
+            // Update scan nodes now that we have the Steam names
             if (Plugin.ScanPlayers.Value)
             {
-                int curHealth = __instance.health;
-                int maxHealth = PlayerMaxHealthValues.ContainsKey(__instance) ? PlayerMaxHealthValues[__instance] : 100;
+                foreach (var player in StartOfRound.Instance.allPlayerScripts)
+                {
+                    var scanNode = player.GetComponentInChildren<ScanNodeProperties>();
+                    if (scanNode != null)
+                    {
+                        int curHealth = player.health;
+                        int maxHealth = PlayerMaxHealthValues.ContainsKey(player) ? PlayerMaxHealthValues[player] : 100;
 
-                var scanNode = __instance.GetComponentInChildren<ScanNodeProperties>();
-                scanNode.headerText = __instance.playerUsername;
-                scanNode.subText = ObjectHelper.GetEntityHealthDescription(curHealth, maxHealth);
+                        scanNode.headerText = player.playerUsername;
+                        scanNode.subText = ObjectHelper.GetEntityHealthDescription(curHealth, maxHealth);
+                    }
+                }
             }
         }
 

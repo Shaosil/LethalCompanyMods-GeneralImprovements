@@ -165,7 +165,7 @@ namespace GeneralImprovements.Patches
                     maxHealth = MaskedPlayerEnemyPatch.MaxHealth;
                 }
                 node.subText = ObjectHelper.GetEntityHealthDescription(curHealth, maxHealth);
-                node.nodeType = curHealth <= 0 ? 1 : 0; // Red or blue depending on live status
+                node.nodeType = curHealth <= 0 && (masked == null || masked.enemyHP <= 0) ? 1 : 0; // Red or blue depending on live status
             }
         }
 

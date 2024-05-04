@@ -14,6 +14,7 @@ namespace GeneralImprovements.Patches
     internal static class ShipTeleporterPatch
     {
         private static PlayerControllerB _lastPlayerTeleported;
+        private static Dictionary<ShipTeleporter, InteractTrigger> _buttonGlasses = new Dictionary<ShipTeleporter, InteractTrigger>();
 
         [HarmonyPatch(typeof(ShipTeleporter), "Awake")]
         [HarmonyPrefix]
@@ -38,15 +39,10 @@ namespace GeneralImprovements.Patches
                 __instance.GetComponentInChildren<InteractTrigger>().hoverTip = "Beam out : [E]";
             }
 
-            // Fix wording of glass lid
             var buttonGlass = __instance.transform.Find("ButtonContainer/ButtonAnimContainer/ButtonGlass")?.GetComponent<InteractTrigger>();
-            if (buttonGlass != null && __instance.buttonAnimator != null)
+            if (buttonGlass != null)
             {
-                buttonGlass.onInteract.AddListener(p =>
-                {
-                    bool isOpen = __instance.buttonAnimator.GetBool("GlassOpen");
-                    buttonGlass.hoverTip = $"{(isOpen ? "Shut" : "Lift")} glass : [LMB]";
-                });
+                _buttonGlasses[__instance] = buttonGlass;
             }
         }
 
@@ -167,6 +163,23 @@ namespace GeneralImprovements.Patches
             }
 
             return codeList;
+        }
+
+        [HarmonyPatch(typeof(ShipTeleporter), nameof(Update))]
+        [HarmonyPostfix]
+        private static void Update(ShipTeleporter __instance)
+        {
+            // Fix wording of glass lid
+            if (_buttonGlasses.ContainsKey(__instance) && __instance.buttonAnimator != null)
+            {
+                var buttonGlass = _buttonGlasses[__instance];
+                bool tipSaysLift = buttonGlass.hoverTip.Contains("Lift");
+                bool isOpen = __instance.buttonAnimator.GetBool("GlassOpen");
+                if (tipSaysLift == isOpen)
+                {
+                    buttonGlass.hoverTip = $"{(isOpen ? "Shut" : "Lift")} glass : [LMB]";
+                }
+            }
         }
     }
 }

@@ -38,6 +38,10 @@ namespace GeneralImprovements.Patches
                         mask.enabled = false;
                     }
                     __instance.SetSuit(playerToTarget.currentSuitID);
+
+                    // Set isMimicking and SetOutside to trigger MoreCompany cosmetics if they exist
+                    __instance.mimickingPlayer = playerToTarget;
+                    __instance.SetEnemyOutside(__instance.isOutside);
                 }
 
                 MaxHealth = __instance.enemyHP;
