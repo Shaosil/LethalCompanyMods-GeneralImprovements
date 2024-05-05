@@ -32,7 +32,6 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Improves the spray can color randomness, and persists the colors between clients and even on reloading the saves.
 * Saving item rotations so they aren't all facing the same way when you load up a saved game.
 * Items which cannot be grabbed will not display the "Grab" hover tip.
-* The host player saves everyone's last known suit, which persists when possible as the game resets and same players connect.
 
 ### NEW FEATURES:
 * A total of 14 customizable, screen-integrated monitors for the ship (instead of the vanilla 8)! Choose which monitor to put what item, including ship cams and background color.
@@ -54,6 +53,13 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds an option to display moon costs next to their names in the terminal.
 * Adds options for a 24 hour clock, and converting lbs to kgs.
 * Adds an option to always show the clock when landed on a moon.
+* Adds an option to disable some colliders for placeable ship objects, allowing them to intersect.
+* Allows the host player to save everyone's last known suit, which persists when possible as the game resets and the same players connect.
+* Allows the host to save furniture position (per save file), which means default furniture will not be reset after being fired.
+* Adds an option to display any hidden moons in the terminal's moon catalog. Defaults to "AfterDiscovery".
+* Adds an option to be able to scan other players. This works nicely with masks as well, as they will take the name of a random connected player.
+* Adds an option to allow the masked entities to blend in more, which means they will not wear masks, and will don the suit (and MoreCompany cosmetics if necessary) of a random real player.
+* Adds an option to control the menu music volume.
 
 ### MINOR BUGFIXES:
 * Stops all non-scrap objects from showing value (when scanned and sold) when they do not actually have any.
@@ -80,6 +86,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 	* Flashlights will no longer toggle themselves when using/switching items and picking things up
 		* As a result, they will not drain battery randomly while not truly on.
 	* WARNING: Players who do not use this mod may, in rare circumstances, not see your flashlight in the state it should be.
+* Fixes grabbable objects having a hovertip that they are grabbable when they are not (Nutcracker shotgun, deposit items desk, etc).
 
 I will probably keep adding to this as I see minor things that could be improved or fixed.
 

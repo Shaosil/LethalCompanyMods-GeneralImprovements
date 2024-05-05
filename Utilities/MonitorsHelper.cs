@@ -462,7 +462,7 @@ namespace GeneralImprovements.Utilities
                     case eMonitorNames.Deadline: curAction = t => { _deadlineTexts.Add(t); CopyProfitQuotaAndDeadlineTexts(); }; break;
                     case eMonitorNames.ShipScrap: curAction = t => { _shipScrapMonitorTexts.Add(t); UpdateShipScrapMonitors(); }; break;
                     case eMonitorNames.ScrapLeft: curAction = t => { _scrapLeftMonitorTexts.Add(t); UpdateScrapLeftMonitors(); }; break;
-                    case eMonitorNames.Time: curAction = t => { _timeMonitorTexts.Add(t); UpdateTimeMonitors(); }; break;
+                    case eMonitorNames.Time: curAction = t => { _timeMonitorTexts.Add(t); UpdateTimeMonitors(true); }; break;
                     case eMonitorNames.Weather: curAction = t => { _weatherMonitorTexts.Add(t); UpdateWeatherMonitors(); }; break;
                     case eMonitorNames.FancyWeather:
                         curAction = t =>
@@ -595,12 +595,12 @@ namespace GeneralImprovements.Utilities
             }
         }
 
-        public static void UpdateTimeMonitors()
+        public static void UpdateTimeMonitors(bool force = false)
         {
             if (HUDManager.Instance?.clockNumber != null && _timeMonitorTexts.Count > 0)
             {
                 // Do not update faster than we should - some mods may increase the vanilla time update call
-                if (_curTimeMonitorTimer < _timeMonitorCycleTime)
+                if (!force && _curTimeMonitorTimer < _timeMonitorCycleTime)
                 {
                     return;
                 }

@@ -296,6 +296,20 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        [HarmonyPatch(typeof(StartOfRound), nameof(OnPlayerConnectedClientRpc))]
+        [HarmonyPostfix]
+        private static void OnPlayerConnectedClientRpc(StartOfRound __instance, ulong clientId)
+        {
+            // When we receive this as our own initial join to a host, make sure we add everyone who is already here into the fullyLoadedPlayers collection
+            if (Plugin.AllowPreGameLeverPullAsClient.Value && !__instance.IsHost && NetworkManager.Singleton.LocalClientId == clientId)
+            {
+                foreach (var player in __instance.allPlayerScripts.Where(p => !p.IsOwner && p.isPlayerControlled))
+                {
+                    __instance.fullyLoadedPlayers.Add(player.actualClientId);
+                }
+            }
+        }
+
         [HarmonyPatch(typeof(StartOfRound), nameof(OnPlayerDC))]
         [HarmonyPostfix]
         private static void OnPlayerDC()

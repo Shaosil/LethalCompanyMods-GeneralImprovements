@@ -1,5 +1,4 @@
-﻿using GeneralImprovements.OtherMods;
-using GeneralImprovements.Utilities;
+﻿using GeneralImprovements.Utilities;
 using HarmonyLib;
 
 namespace GeneralImprovements.Patches
@@ -69,7 +68,7 @@ namespace GeneralImprovements.Patches
             }
 
             // View monitor will break in some cases, perhaps related to culling, if the internal ship security cam is manually rendering
-            if (!__result && __instance == StartOfRound.Instance.mapScreen && !TwoRadarCamsHelper.IsActive && TerminalPatch.Instance.terminalUIScreen.isActiveAndEnabled)
+            if (!__result && __instance == StartOfRound.Instance.mapScreen && !OtherModHelper.TwoRadarCamsActive && TerminalPatch.Instance.terminalUIScreen.isActiveAndEnabled)
             {
                 __result = true;
             }

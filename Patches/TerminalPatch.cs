@@ -1,5 +1,4 @@
 ﻿using GameNetcodeStuff;
-using GeneralImprovements.OtherMods;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System;
@@ -25,7 +24,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(Terminal), nameof(Start))]
         [HarmonyPrefix]
-        [HarmonyAfter(TwoRadarCamsHelper.GUID)]
+        [HarmonyAfter(OtherModHelper.TwoRadarCamsGUID)]
         private static void Start(Terminal __instance)
         {
             _instance = __instance;
@@ -50,7 +49,10 @@ namespace GeneralImprovements.Patches
             var tooManyItemsNode = __instance.terminalNodes.specialNodes[4];
             tooManyItemsNode.displayText = tooManyItemsNode.displayText.Replace("12 items", $"{Plugin.DropShipItemLimit.Value} items");
 
-            TwoRadarCamsHelper.TerminalStarted(__instance);
+            if (OtherModHelper.TwoRadarCamsActive)
+            {
+                OtherModHelper.TwoRadarCamsMapRenderer = __instance.GetComponent<ManualCameraRenderer>();
+            }
         }
 
         [HarmonyPatch(typeof(Terminal), nameof(Start))]
@@ -159,7 +161,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(Terminal), nameof(TextPostProcess))]
         [HarmonyPrefix]
-        private static void TextPostProcess(ref string modifiedDisplayText)
+        private static void TextPostProcess(ref string modifiedDisplayText, TerminalNode node)
         {
             // Improve the scanning
             if (modifiedDisplayText.Contains("[scanForItems]"))
@@ -170,7 +172,7 @@ namespace GeneralImprovements.Patches
             }
 
             // Show extra moons and prices if specified
-            if (modifiedDisplayText.Contains("[planetTime]") && (Plugin.ShowMoonPricesInTerminal.Value || Plugin.ShowHiddenMoonsInCatalog.Value != Plugin.Enums.eShowHiddenMoons.Never))
+            if (node.name == "MoonsCatalogue" && (Plugin.ShowMoonPricesInTerminal.Value || Plugin.ShowHiddenMoonsInCatalog.Value != Plugin.Enums.eShowHiddenMoons.Never))
             {
                 // Get prices by finding "route" node and matching on names. A bit risky if things change, but better than hardcoding
                 var routeNode = Instance.terminalNodes.allKeywords.FirstOrDefault(k => k.word == "route");
@@ -188,20 +190,20 @@ namespace GeneralImprovements.Patches
                     {
                         foreach (var extraMoon in allmoons.Where(m => !Instance.moonsCatalogueList.Contains(m)))
                         {
-                            modifiedDisplayText += $"* {Regex.Match(extraMoon.PlanetName, ".* (.+)").Groups[1].Value} [planetTime]\n";
+                            modifiedDisplayText += $"* {Regex.Match(extraMoon.PlanetName, ".* (.+)").Groups[1].Value}\n";
                         }
                         modifiedDisplayText += '\n';
                     }
 
-                    // Now handle [planetTime] manually, including vanilla weather
+                    // Now handle weather and optional price manually
                     for (int i = 0; i < allmoons.Count; i++)
                     {
-                        string weather = allmoons[i].currentWeather == LevelWeatherType.None ? string.Empty : $"({allmoons[i].currentWeather}) ";
+                        string weather = OtherModHelper.WeatherTweaksActive || allmoons[i].currentWeather == LevelWeatherType.None ? string.Empty : $"({allmoons[i].currentWeather}) ";
                         var matchingMoonNode = routeNode.compatibleNouns.FirstOrDefault(n => allmoons[i].PlanetName.Contains(n.noun.word, StringComparison.OrdinalIgnoreCase));
                         if (matchingMoonNode != null)
                         {
                             string cost = !Plugin.ShowMoonPricesInTerminal.Value || matchingMoonNode.result.itemCost <= 0 ? string.Empty : $"- ${matchingMoonNode.result.itemCost}";
-                            modifiedDisplayText = Regex.Replace(modifiedDisplayText, @$"({matchingMoonNode.noun.word}) \[planetTime\]", $"$1 {weather}{cost}", RegexOptions.IgnoreCase);
+                            modifiedDisplayText = Regex.Replace(modifiedDisplayText, @$"({matchingMoonNode.noun.word}).+", $"$1 {weather}{cost}", RegexOptions.IgnoreCase);
                         }
                         else
                         {
@@ -296,7 +298,7 @@ namespace GeneralImprovements.Patches
                 else if (Plugin.TerminalFastCamSwitch.Value && (leftPressed || rightPressed))
                 {
                     // Cycle through cameras
-                    ManualCameraRenderer mapRenderer = TwoRadarCamsHelper.MapRenderer ?? StartOfRound.Instance.mapScreen;
+                    ManualCameraRenderer mapRenderer = OtherModHelper.TwoRadarCamsMapRenderer ?? StartOfRound.Instance.mapScreen;
                     int originalIndex = mapRenderer.targetTransformIndex;
                     int nextIndex = originalIndex;
                     bool isInactivePlayer;

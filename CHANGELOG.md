@@ -11,7 +11,10 @@
 * Added an option to display the hidden moons on the terminal's moon list. Defaults to AfterDiscovery.
 	* If the host also has the mod, they will also sync their own already found moons when you join their lobby.
 * Added an option to be able to scan other players. Masked entities will also blend in nicely when scanned. Defaults to false.
-* Added an option to let masks blend in more visually, meaning they would look exactly like a normal player, including having different suits. Defaults to false.
+* Added an option to let masks blend in more visually, meaning they would look exactly like a normal player, including having different suits. Works with MoreCompany cosmetics. Defaults to false.
+* Improved compatibility with [WeatherTweaks](https://thunderstore.io/c/lethal-company/p/mrov/WeatherTweaks/) when using certain Terminal config options.
+* Fixed a bug that softlocked the game in certain situations if a client tried to start the game before the host (when using AllowPreGameLeverPullAsClient).
+* Added an option to change the menu music volume percentage. Defaults to 100.
 
 ### v1.2.4 - More fixes and improvements
 * Fixed a rare softlock where using QuotaRollover would not detect the quota was reached on day 0.

@@ -12,11 +12,10 @@ namespace GeneralImprovements.Patches
         {
             Instance = __instance;
 
-            if (Plugin.AllowPreGameLeverPullAsClient.Value)
+            if (Plugin.AllowPreGameLeverPullAsClient.Value && !__instance.IsHost)
             {
                 __instance.triggerScript.hoverTip = "Start game : [LMB]";
                 __instance.triggerScript.interactable = true;
-                __instance.playersManager.fullyLoadedPlayers.Add(0); // Make sure the host exists in this list so certain checks pass
             }
         }
     }

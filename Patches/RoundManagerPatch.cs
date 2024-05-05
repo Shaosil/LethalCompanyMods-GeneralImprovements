@@ -1,5 +1,4 @@
-﻿using GeneralImprovements.OtherMods;
-using GeneralImprovements.Utilities;
+﻿using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System.Linq;
 using UnityEngine;
@@ -38,7 +37,7 @@ namespace GeneralImprovements.Patches
             }
 
             // If mimics are active and we want scan nodes on fire exits, create them here
-            if (Plugin.ShowDoorsOnScanner.Value && MimicsHelper.IsActive)
+            if (Plugin.ShowDoorsOnScanner.Value && OtherModHelper.MimicsActive)
             {
                 var mimics = Object.FindObjectsOfType<InteractTrigger>().Where(g => g.transform.parent?.name.StartsWith("MimicDoor") ?? false).ToList();
                 foreach (var mimic in mimics)

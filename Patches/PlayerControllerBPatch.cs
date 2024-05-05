@@ -1,5 +1,4 @@
 ﻿using GameNetcodeStuff;
-using GeneralImprovements.OtherMods;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System;
@@ -144,14 +143,14 @@ namespace GeneralImprovements.Patches
         private static bool ItemTertiaryUse_performed(PlayerControllerB __instance)
         {
             // Flashlights do not have tertiary uses, so cancel out when this is called in that case
-            return FlashlightFixHelper.IsActive || !(__instance.currentlyHeldObjectServer is FlashlightItem);
+            return OtherModHelper.FlashlightFixActive || !(__instance.currentlyHeldObjectServer is FlashlightItem);
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SwitchToItemSlot))]
         [HarmonyPostfix]
         private static void SwitchToItemSlot(PlayerControllerB __instance, int slot)
         {
-            if (!FlashlightFixHelper.IsActive && __instance.ItemSlots[slot] is FlashlightItem slotFlashlight)
+            if (!OtherModHelper.FlashlightFixActive && __instance.ItemSlots[slot] is FlashlightItem slotFlashlight)
             {
                 // If the player already has an active flashlight (helmet lamp will be on) when picking up a new INACTIVE one, switch to the new one
                 if (__instance.IsOwner && !slotFlashlight.isBeingUsed && __instance.helmetLight.enabled && !slotFlashlight.CheckForLaser() && Plugin.OnlyAllowOneActiveFlashlight.Value)
@@ -212,7 +211,7 @@ namespace GeneralImprovements.Patches
         private static bool FirstEmptyItemSlot(PlayerControllerB __instance, ref int __result)
         {
             // If not configured to pickup in order, OR the reserved item slot or advanced company mods exist, pass over this patch
-            if (!Plugin.PickupInOrder.Value || ReservedItemSlotCoreHelper.Assembly != null || AdvancedCompanyHelper.IsActive)
+            if (!Plugin.PickupInOrder.Value || OtherModHelper.ReservedItemSlotCoreActive || OtherModHelper.AdvancedCompanyActive)
             {
                 return true;
             }
@@ -273,7 +272,7 @@ namespace GeneralImprovements.Patches
         private static void ItemLeftSlot(PlayerControllerB __instance)
         {
             // If we are not configured to rearrange, or AdvancedCompany is active, skip this patch
-            if (!Plugin.RearrangeOnDrop.Value || AdvancedCompanyHelper.IsActive)
+            if (!Plugin.RearrangeOnDrop.Value || OtherModHelper.AdvancedCompanyActive)
             {
                 return;
             }
@@ -286,7 +285,7 @@ namespace GeneralImprovements.Patches
                     for (int j = i + 1; j < __instance.ItemSlots.Length; j++)
                     {
                         // If we found a reserved core slot, skip it
-                        if (ReservedItemSlotCoreHelper.IsReservedItemSlot(__instance, j))
+                        if (OtherModHelper.IsReservedItemSlot(__instance, j))
                         {
                             continue;
                         }
@@ -631,7 +630,7 @@ namespace GeneralImprovements.Patches
                 return;
             }
 
-            if (!FlashlightFixHelper.IsActive && _flashlightTogglePressed())
+            if (!OtherModHelper.FlashlightFixActive && _flashlightTogglePressed())
             {
                 // Get the nearest flashlight with charge, whether it's held or in the inventory
                 var targetFlashlight = __instance.ItemSlots.OfType<FlashlightItem>().Where(f => !f.insertedBattery.empty) // All charged flashlight items

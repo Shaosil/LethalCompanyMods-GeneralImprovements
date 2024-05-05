@@ -1,7 +1,6 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
-using GeneralImprovements.OtherMods;
 using GeneralImprovements.Patches;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
@@ -21,8 +20,9 @@ using static GeneralImprovements.Utilities.MonitorsHelper;
 namespace GeneralImprovements
 {
     [BepInPlugin(Metadata.GUID, Metadata.PLUGIN_NAME, Metadata.VERSION)]
-    [BepInDependency(TwoRadarCamsHelper.GUID, BepInDependency.DependencyFlags.SoftDependency)]
-    [BepInDependency(MimicsHelper.GUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(OtherModHelper.TwoRadarCamsGUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(OtherModHelper.MimicsGUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(OtherModHelper.WeatherTweaksGUID, BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
         public class Enums
@@ -114,6 +114,7 @@ namespace GeneralImprovements
         public static ConfigEntry<eAutoLaunchOptions> AutoSelectLaunchMode { get; private set; }
         public static ConfigEntry<bool> AlwaysShowNews { get; private set; }
         public static ConfigEntry<bool> AllowPreGameLeverPullAsClient { get; private set; }
+        public static ConfigEntry<int> MenuMusicVolume { get; private set; }
 
         private const string InventorySection = "Inventory";
         public static ConfigEntry<bool> PickupInOrder { get; private set; }
@@ -194,11 +195,7 @@ namespace GeneralImprovements
             MLS = Logger;
 
             // Load info about any external mods first
-            ReservedItemSlotCoreHelper.Initialize();
-            AdvancedCompanyHelper.Initialize();
-            TwoRadarCamsHelper.Initialize();
-            MimicsHelper.Initialize();
-            FlashlightFixHelper.Initialize();
+            OtherModHelper.Initialize();
             AssetBundleHelper.Initialize();
 
             BindConfigs();
@@ -217,7 +214,7 @@ namespace GeneralImprovements
             Harmony.CreateAndPatchAll(typeof(EntranceTeleportPatch));
             MLS.LogDebug("EntranceTeleport patched.");
 
-            if (!FlashlightFixHelper.IsActive)
+            if (!OtherModHelper.FlashlightFixActive)
             {
                 Harmony.CreateAndPatchAll(typeof(FlashlightItemPatch));
                 MLS.LogDebug("FlashlightItem patched.");
@@ -337,6 +334,7 @@ namespace GeneralImprovements
             AutoSelectLaunchMode = Config.Bind(GameLaunchSection, nameof(AutoSelectLaunchMode), eAutoLaunchOptions.NONE, "If set to 'ONLINE' or 'LAN', will automatically launch the correct mode, saving you from having to click the menu option when the game loads.");
             AlwaysShowNews = Config.Bind(GameLaunchSection, nameof(AlwaysShowNews), false, "If set to true, will always display the news popup when starting the game.");
             AllowPreGameLeverPullAsClient = Config.Bind(GameLaunchSection, nameof(AllowPreGameLeverPullAsClient), true, "If set to true, you will be able to pull the ship lever to start the game as a connected player.");
+            MenuMusicVolume = Config.Bind(GameLaunchSection, nameof(MenuMusicVolume), 100, new ConfigDescription("Controls the volume of the menu music, from 0-100.", new AcceptableValueRange<int>(0, 100)));
 
             // Inventory
             PickupInOrder = Config.Bind(InventorySection, nameof(PickupInOrder), false, "When picking up items, will always put them in left - right order.");
@@ -355,7 +353,7 @@ namespace GeneralImprovements
             KeysHaveInfiniteUses = Config.Bind(MechanicsSection, nameof(KeysHaveInfiniteUses), false, "If set to true, keys will not despawn when they are used.");
             DestroyKeysAfterOrbiting = Config.Bind(MechanicsSection, nameof(DestroyKeysAfterOrbiting), false, "If set to true, all keys in YOUR inventory (and IF HOSTING, the ship) will be destroyed after orbiting. Works well to nerf KeysHaveInfiniteUses. Players who do not have this enabled will keep keys currently in their inventory.");
             SavePlayerSuits = Config.Bind(MechanicsSection, nameof(SavePlayerSuits), true, "If set to true, the host will keep track of every player's last used suit, and will persist between loads and ship resets for each save file. Only works in Online mode.");
-            MaskedLookLikePlayers = Config.Bind(MechanicsSection, nameof(MaskedLookLikePlayers), false, "If set to true, masked entities will NOT be wearing masks, and wear a random player's suit instead of always using the default one.");
+            MaskedLookLikePlayers = Config.Bind(MechanicsSection, nameof(MaskedLookLikePlayers), false, "If set to true, masked entities will NOT be wearing masks, and spawned masks will look identical to a random real player of their choice. Works with MoreCompany cosmetics.");
 
             // Scanner
             FixPersonalScanner = Config.Bind(ScannerSection, nameof(FixPersonalScanner), false, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you, and the ship/main entrance.");
