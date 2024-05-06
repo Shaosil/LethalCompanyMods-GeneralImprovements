@@ -431,8 +431,6 @@ namespace GeneralImprovements.Utilities
 
         private static void CreateNewStyleMonitors(eMonitorNames[] monitorAssignments)
         {
-            Plugin.MLS.LogInfo("Overwriting monitors with new model");
-
             var newMonitorsObj = Object.Instantiate(AssetBundleHelper.MonitorsPrefab, _oldMonitorsObject.transform.parent);
             newMonitorsObj.transform.SetLocalPositionAndRotation(_oldMonitorsObject.localPosition, Quaternion.identity);
 
@@ -789,7 +787,7 @@ namespace GeneralImprovements.Utilities
         {
             // This is getting called every frame, so limit the check to a few times per second
             _curCreditsUpdateCounter += Time.deltaTime;
-            if (_curCreditsUpdateCounter >= 0.25f)
+            if (force || _curCreditsUpdateCounter >= 0.25f)
             {
                 _curCreditsUpdateCounter = 0;
 

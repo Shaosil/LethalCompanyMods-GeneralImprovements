@@ -1,6 +1,6 @@
 # Changelog
 
-### v1.2.5 - More improvements
+### v1.2.5 - More fixes and improvements
 * Added a manual timer to the better time monitors to help with frame loss when using mods that increase the time display update cycles.
 * Added an option to save the last used suit in the current save file, which will persist between loads and being fired. Defaults to true.
 	* Only works if using Online mode, not LAN (it associates suit IDs to Steam IDs in your save files).

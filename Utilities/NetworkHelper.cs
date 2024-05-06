@@ -44,7 +44,7 @@ namespace GeneralImprovements.Utilities
                 monitorAssignments[12] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor13);
                 monitorAssignments[13] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor14);
 
-                Plugin.MLS.LogInfo("Received monitor settings from host - syncing.");
+                Plugin.MLS.LogInfo("Received monitor settings from host - overwriting with synced settings.");
                 MonitorsHelper.InitializeMonitors(monitorAssignments);
             }
         }
