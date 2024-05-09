@@ -3,6 +3,7 @@ using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using System.Text.RegularExpressions;
 
 namespace GeneralImprovements.Patches
 {
@@ -95,6 +96,14 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void UpdateProfitQuotaCurrentTime()
         {
+            // Always make sure the two quota numbers are on separate lines if nothing else modified them
+            var match = new Regex(@"PROFIT QUOTA:\n(.+\d+) / (.+\d+)").Match(StartOfRound.Instance?.profitQuotaMonitorText?.text ?? string.Empty);
+            if (match.Success)
+            {
+                // Keep it as vanilla as possible and just use whatever we found
+                StartOfRound.Instance.profitQuotaMonitorText.text = $"PROFIT\nQUOTA:\n{match.Groups[1]} /\n{match.Groups[2]}";
+            }
+
             MonitorsHelper.CopyProfitQuotaAndDeadlineTexts();
         }
     }

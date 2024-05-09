@@ -45,6 +45,42 @@ namespace GeneralImprovements.Patches
             // Attach our own network helper to this gameobject
             __instance.gameObject.AddComponent<NetworkHelper>();
             __instance.gameObject.AddComponent<NetworkObject>();
+
+            var allItems = NetworkManager.Singleton.NetworkConfig.Prefabs.Prefabs
+                .Where(p => p.Prefab.TryGetComponent<GrabbableObject>(out var go) && go.itemProperties != null)
+                .Select(p => p.Prefab.GetComponent<GrabbableObject>().itemProperties).ToList();
+            var nonConductiveItems = new string[] { "Flask", "Whoopie Cushion" };
+            var tools = new string[] { "Extension ladder", "Jetpack", "Key", "Radar-booster", "Shovel", "Stop sign", "TZP-Inhalant", "Yield sign", "Kitchen knife", "Zap gun" };
+            foreach (var item in allItems)
+            {
+                // Allow all items to be grabbed before game start
+                if (!item.canBeGrabbedBeforeGameStart)
+                {
+                    item.canBeGrabbedBeforeGameStart = true;
+                }
+
+                // Fix conductivity of certain objects
+                if (nonConductiveItems.Any(n => item.itemName.Equals(n, StringComparison.OrdinalIgnoreCase))
+                    || (Plugin.ToolsDoNotAttractLightning.Value && tools.Any(t => item.itemName.Equals(t, StringComparison.OrdinalIgnoreCase))))
+                {
+                    Plugin.MLS.LogInfo($"Item {item.itemName} being set to NON conductive.");
+                    item.isConductiveMetal = false;
+                }
+
+                // Fix any min and max values being reversed
+                if (item.minValue > item.maxValue)
+                {
+                    int oldMin = item.minValue;
+                    item.minValue = item.maxValue;
+                    item.maxValue = oldMin;
+                }
+
+                // Fix gold bar rotation
+                if (item.itemName == "Gold bar")
+                {
+                    item.restingRotation = new Vector3(-90, 0, 0);
+                }
+            }
         }
 
         [HarmonyPatch(typeof(GameNetworkManager), nameof(Disconnect))]
@@ -176,7 +212,7 @@ namespace GeneralImprovements.Patches
         {
             // Save extra game stats
             ES3.Save("Stats_DaysSinceLastDeath", StartOfRoundPatch.DaysSinceLastDeath, GameNetworkManager.Instance.currentSaveFileName);
-            if (Plugin.ShowHiddenMoonsInCatalog.Value == Plugin.Enums.eShowHiddenMoons.AfterDiscovery)
+            if (Plugin.ShowHiddenMoonsInCatalog.Value == Enums.eShowHiddenMoons.AfterDiscovery)
             {
                 ES3.Save("DiscoveredMoons", string.Join(',', StartOfRoundPatch.FlownToHiddenMoons), GameNetworkManager.Instance.currentSaveFileName);
             }
@@ -192,15 +228,66 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        [HarmonyPatch(typeof(GameNetworkManager), nameof(ResetSavedGameValues))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> ResetSavedGameValues(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+
+            if (Plugin.SaveShipFurniturePlaces.Value == Enums.eSaveFurniturePlacement.All)
+            {
+                Label? forLabelEnd = null;
+                if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
+                    i => i.Is(OpCodes.Ldstr, "UnlockedShipObjects"),
+                    i => i.Calls(typeof(GameNetworkManager).GetMethod("get_Instance")),
+                    i => i.LoadsField(typeof(GameNetworkManager).GetField(nameof(GameNetworkManager.currentSaveFileName))),
+                    i => i.Calls(typeof(ES3).GetMethod(nameof(ES3.DeleteKey), new[] { typeof(string), typeof(string) })),
+                    i => i.LoadsConstant(0),
+                    i => i.IsStloc(),
+                    i => i.Branches(out forLabelEnd)
+                }, out var forBlockStart)
+                && codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
+                    i => i.labels.Contains(forLabelEnd.Value),
+                    null, null, null, null, // Don't care what these are
+                    i => i.Branches(out _)
+                }, out var forBlockEnd))
+                {
+                    Plugin.MLS.LogDebug("patching GameNetworkManager.ResetSavedGameValues to keep bought ship decor positions.");
+
+                    // NOP out entire for loop
+                    for (int i = forBlockStart[4].Index; i <= forBlockEnd.Last().Index; i++)
+                    {
+                        codeList[i] = new CodeInstruction(OpCodes.Nop);
+                    }
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected IL code - Could not patch GameNetworkManager.ResetSavedGameValues to keep bought ship decor positions!");
+                }
+            }
+
+            return codeList;
+        }
+
         [HarmonyPatch(typeof(GameNetworkManager), nameof(GameNetworkManager.ResetUnlockablesListValues))]
         [HarmonyPrefix]
-        private static void ResetUnlockablesListValues(ref bool onlyResetPrefabItems)
+        private static bool ResetUnlockablesListValues(ref bool onlyResetPrefabItems)
         {
-            // Make sure not to reset furniture if specified
-            if (Plugin.SaveFurnitureState.Value && !onlyResetPrefabItems)
+            if (Plugin.SaveShipFurniturePlaces.Value == Enums.eSaveFurniturePlacement.StartingFurniture && !onlyResetPrefabItems)
             {
+                // Make sure not to reset default furniture if specified
                 onlyResetPrefabItems = true;
             }
+            else if (Plugin.SaveShipFurniturePlaces.Value == Enums.eSaveFurniturePlacement.All && StartOfRound.Instance?.unlockablesList?.unlockables != null)
+            {
+                // If we want to save everything, just manually reset their unlocked state but keep everything else
+                StartOfRound.Instance.unlockablesList.unlockables.ForEach(u => u.hasBeenUnlockedByPlayer = false);
+                return false;
+            }
+
+            return true;
         }
     }
 }

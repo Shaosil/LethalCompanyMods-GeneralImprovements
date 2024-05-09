@@ -54,39 +54,11 @@ namespace GeneralImprovements.Patches
                 }
             }
 
-            // Allow all items to be grabbed before game start
-            if (!__instance.itemProperties.canBeGrabbedBeforeGameStart)
-            {
-                __instance.itemProperties.canBeGrabbedBeforeGameStart = true;
-            }
-
-            // Fix conductivity of certain objects
-            if (__instance.itemProperties != null)
-            {
-                var nonConductiveItems = new string[] { "Flask", "Whoopie Cushion" };
-                var tools = new string[] { "Extension ladder", "Jetpack", "Key", "Radar-booster", "Shovel", "Stop sign", "TZP-Inhalant", "Yield sign", "Kitchen knife", "Zap gun" };
-
-                if (nonConductiveItems.Any(n => __instance.itemProperties.itemName.Equals(n, StringComparison.OrdinalIgnoreCase))
-                    || (Plugin.ToolsDoNotAttractLightning.Value && tools.Any(t => __instance.itemProperties.itemName.Equals(t, StringComparison.OrdinalIgnoreCase))))
-                {
-                    Plugin.MLS.LogInfo($"Item {__instance.itemProperties.itemName} being set to NON conductive.");
-                    __instance.itemProperties.isConductiveMetal = false;
-                }
-            }
-
             // Prevent ship items from falling through objects when they spawn (prefix)
             if (Plugin.FixItemsFallingThrough.Value && __instance.isInShipRoom && __instance.isInElevator && __instance.scrapPersistedThroughRounds)
             {
                 Plugin.MLS.LogDebug($"KEEPING {__instance.name} IN PLACE");
                 _itemsToKeepInPlace.Add(__instance);
-            }
-
-            // Fix any min and max values being reversed
-            if (__instance.itemProperties.minValue > __instance.itemProperties.maxValue)
-            {
-                int oldMin = __instance.itemProperties.minValue;
-                __instance.itemProperties.minValue = __instance.itemProperties.maxValue;
-                __instance.itemProperties.maxValue = oldMin;
             }
 
             // Add scan nodes to tools if requested

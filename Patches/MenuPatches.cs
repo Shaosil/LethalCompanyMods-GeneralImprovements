@@ -5,7 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine;
-using static GeneralImprovements.Plugin.Enums;
+using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements.Patches
 {
@@ -45,10 +45,10 @@ namespace GeneralImprovements.Patches
         [HarmonyPrefix]
         private static bool SkipToFinalSetting(PreInitSceneScript __instance)
         {
-            if (Plugin.AutoSelectLaunchMode.Value != eAutoLaunchOptions.NONE)
+            if (Plugin.AutoSelectLaunchMode.Value != eAutoLaunchOption.NONE)
             {
                 Plugin.MLS.LogInfo($"Automatically launching {Plugin.AutoSelectLaunchMode.Value} mode.");
-                __instance.ChooseLaunchOption(Plugin.AutoSelectLaunchMode.Value == eAutoLaunchOptions.ONLINE);
+                __instance.ChooseLaunchOption(Plugin.AutoSelectLaunchMode.Value == eAutoLaunchOption.ONLINE);
                 __instance.launchSettingsPanelsContainer.SetActive(false);
 
                 return false;

@@ -1,5 +1,4 @@
-﻿using BepInEx.Configuration;
-using GameNetcodeStuff;
+﻿using GameNetcodeStuff;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System.Collections.Generic;
@@ -77,7 +76,7 @@ namespace GeneralImprovements.Patches
             }
 
             // Create monitors if necessary and update the texts needed
-            MonitorsHelper.InitializeMonitors(Plugin.ShipMonitorAssignments.Select(a => a.Value).ToArray());
+            MonitorsHelper.InitializeMonitors(Plugin.ShipMonitorAssignments.Select(a => a.Value).ToArray(), true);
             MonitorsHelper.UpdateTotalDaysMonitors();
             MonitorsHelper.UpdateTotalQuotasMonitors();
             MonitorsHelper.UpdateDeathMonitors();
@@ -216,7 +215,7 @@ namespace GeneralImprovements.Patches
         private static void ChangeLevel(StartOfRound __instance)
         {
             // If we're flying to a hidden moon (not in the moonsCatalogueList, keep track of it. The host will also save that value in their save file.
-            if (Plugin.ShowHiddenMoonsInCatalog.Value == Plugin.Enums.eShowHiddenMoons.AfterDiscovery && !TerminalPatch.Instance.moonsCatalogueList.Contains(__instance.currentLevel))
+            if (Plugin.ShowHiddenMoonsInCatalog.Value == Enums.eShowHiddenMoons.AfterDiscovery && !TerminalPatch.Instance.moonsCatalogueList.Contains(__instance.currentLevel))
             {
                 FlownToHiddenMoons.Add(__instance.currentLevel.PlanetName);
             }
@@ -330,27 +329,27 @@ namespace GeneralImprovements.Patches
         {
             var codeList = instructions.ToList();
 
-            if (Plugin.SaveFurnitureState.Value)
+            if (Plugin.SaveShipFurniturePlaces.Value != Enums.eSaveFurniturePlacement.None)
             {
-                Label? elseBlock = null;
-                if (instructions.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+                Label? elseLabel = null;
+                if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
                 {
                     i => i.LoadsConstant(0),
                     i => i.StoresField(typeof(ShipTeleporter).GetField(nameof(ShipTeleporter.hasBeenSpawnedThisSession))),
                     i => i.LoadsConstant(0),
                     i => i.StoresField(typeof(ShipTeleporter).GetField(nameof(ShipTeleporter.hasBeenSpawnedThisSessionInverse))),
                     i => i.IsLdarg(1),
-                    i => i.Branches(out elseBlock)
-                }, out var found))
+                    i => i.Branches(out elseLabel)
+                }, out var ifBlock)
+                && codeList.TryFindInstruction(new System.Func<CodeInstruction, bool>(i => i.labels.Contains(elseLabel.Value)), out var elseBlock))
                 {
                     Plugin.MLS.LogDebug("Patching StartOfRound.ResetShipFurniture to save furniture state.");
 
-                    codeList.InsertRange(found.Last().Index + 1, new[]
+                    // NOP the entire if statement
+                    for (int i = ifBlock[4].Index; i < elseBlock.Index; i++)
                     {
-                        new CodeInstruction(OpCodes.Call, typeof(Plugin).GetMethod($"get_{nameof(Plugin.SaveFurnitureState)}")),
-                        new CodeInstruction(OpCodes.Callvirt, typeof(ConfigEntry<bool>).GetMethod("get_Value")),
-                        new CodeInstruction(OpCodes.Brtrue_S, elseBlock)
-                    });
+                        codeList[i] = new CodeInstruction(OpCodes.Nop);
+                    }
                 }
                 else
                 {
@@ -515,7 +514,7 @@ namespace GeneralImprovements.Patches
             // Load custom stats
             var anyDeaths = StartOfRound.Instance.gameStats.deaths > 0;
             DaysSinceLastDeath = ES3.Load("Stats_DaysSinceLastDeath", GameNetworkManager.Instance.currentSaveFileName, anyDeaths ? 0 : -1);
-            if (Plugin.ShowHiddenMoonsInCatalog.Value == Plugin.Enums.eShowHiddenMoons.AfterDiscovery)
+            if (Plugin.ShowHiddenMoonsInCatalog.Value == Enums.eShowHiddenMoons.AfterDiscovery)
             {
                 FlownToHiddenMoons = new HashSet<string>();
                 string foundMoons = ES3.Load("DiscoveredMoons", GameNetworkManager.Instance.currentSaveFileName, string.Empty);

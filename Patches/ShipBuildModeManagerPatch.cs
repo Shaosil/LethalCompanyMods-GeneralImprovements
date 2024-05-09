@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using static GeneralImprovements.Plugin.Enums;
+using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements.Patches
 {

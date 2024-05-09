@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using Unity.Netcode;
-using static GeneralImprovements.Plugin.Enums;
+using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements.Utilities
 {
@@ -16,14 +16,15 @@ namespace GeneralImprovements.Utilities
         }
 
         [ClientRpc]
-        public void SyncMonitorsFromHostClientRpc(bool usingBetterMonitors, string monitor1, string monitor2, string monitor3, string monitor4, string monitor5, string monitor6, string monitor7,
-            string monitor8, string monitor9, string monitor10, string monitor11, string monitor12, string monitor13, string monitor14, ClientRpcParams clientParams)
+        public void SyncMonitorsFromHostClientRpc(bool usingMoreMonitors, string monitor1, string monitor2, string monitor3, string monitor4, string monitor5, string monitor6,
+            string monitor7, string monitor8, string monitor9, string monitor10, string monitor11, string monitor12, string monitor13, string monitor14, ClientRpcParams clientParams)
         {
             if (Plugin.SyncMonitorsFromOtherHost.Value)
             {
-                if (usingBetterMonitors != Plugin.UseBetterMonitors.Value)
+                bool weHaveMoremonitors = Plugin.UseBetterMonitors.Value && Plugin.AddMoreBetterMonitors.Value;
+                if (usingMoreMonitors != weHaveMoremonitors)
                 {
-                    Plugin.MLS.LogError($"Received monitor settings from host but could not apply, since the host IS{(usingBetterMonitors ? "" : " NOT")} using better monitors but you ARE{(Plugin.UseBetterMonitors.Value ? "" : " NOT")}.");
+                    Plugin.MLS.LogError($"Received monitor settings from host but could not apply, since the host IS{(usingMoreMonitors ? "" : " NOT")} using more monitors but you ARE{(weHaveMoremonitors ? "" : " NOT")}.");
                     return;
                 }
 
@@ -45,7 +46,7 @@ namespace GeneralImprovements.Utilities
                 monitorAssignments[13] = (eMonitorNames)Enum.Parse(typeof(eMonitorNames), monitor14);
 
                 Plugin.MLS.LogInfo("Received monitor settings from host - overwriting with synced settings.");
-                MonitorsHelper.InitializeMonitors(monitorAssignments);
+                MonitorsHelper.InitializeMonitors(monitorAssignments, false);
             }
         }
 

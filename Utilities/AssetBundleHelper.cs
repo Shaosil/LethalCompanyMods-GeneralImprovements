@@ -24,7 +24,7 @@ namespace GeneralImprovements.Utilities
                     Plugin.MLS.LogError("Could not find asset bundle!");
                     return;
                 }
-                _bundle = AssetBundle.LoadFromFile(assetPath, 0x84494E4F);
+                _bundle = AssetBundle.LoadFromFile(assetPath, 0x43A580F7);
 
                 // Load assets into memory
                 Plugin.MLS.LogInfo("Loading assets...");

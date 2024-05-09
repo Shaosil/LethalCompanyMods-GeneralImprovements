@@ -12,10 +12,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
-using static GeneralImprovements.Plugin.Enums;
-using static GeneralImprovements.Utilities.MonitorsHelper;
+using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements
 {
@@ -25,66 +22,11 @@ namespace GeneralImprovements
     [BepInDependency(OtherModHelper.WeatherTweaksGUID, BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
-        public class Enums
-        {
-            public enum eAutoLaunchOptions { NONE, ONLINE, LAN }
-
-            public enum eShowHiddenMoons { Never, AfterDiscovery, Always }
-
-            public enum eMonitorNames
-            {
-                None,
-                ProfitQuota,
-                Deadline,
-                ShipScrap,
-                ScrapLeft,
-                Time,
-                Weather,
-                FancyWeather,
-                Sales,
-                Credits,
-                DoorPower,
-                TotalDays,
-                TotalQuotas,
-                TotalDeaths,
-                DaysSinceDeath,
-                InternalCam,
-                ExternalCam
-            }
-
-            // Shortcut key helpers
-            public enum eValidKeys
-            {
-                None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals,
-                A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
-                Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0,
-                LeftShift, RightShift, LeftAlt, AltGr, LeftCtrl, RightCtrl, LeftWindows, RightCommand,
-                ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace,
-                PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause,
-                NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9,
-                F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
-                MouseLeft, MouseRight, MouseMiddle, MouseBackButton, MouseForwardButton
-            };
-            public static ButtonControl GetMouseButtonMapping(eValidKeys mouseButton)
-            {
-                return mouseButton switch
-                {
-                    eValidKeys.MouseLeft => Mouse.current.leftButton,
-                    eValidKeys.MouseRight => Mouse.current.rightButton,
-                    eValidKeys.MouseMiddle => Mouse.current.middleButton,
-                    eValidKeys.MouseBackButton => Mouse.current.backButton,
-                    eValidKeys.MouseForwardButton => Mouse.current.forwardButton,
-                    _ => throw new NotImplementedException()
-                };
-            }
-
-            public enum eItemsToKeep { None, Held, NonScrap, All };
-        }
-
         public static ManualLogSource MLS { get; private set; }
 
         private const string ExtraMonitorsSection = "ExtraMonitors";
         public static ConfigEntry<bool> UseBetterMonitors { get; private set; }
+        public static ConfigEntry<bool> AddMoreBetterMonitors { get; private set; }
         public static ConfigEntry<bool> SyncMonitorsFromOtherHost { get; private set; }
         public static ConfigEntry<bool> ShowBlueMonitorBackground { get; private set; }
         public static ConfigEntry<string> MonitorBackgroundColor { get; private set; }
@@ -111,7 +53,7 @@ namespace GeneralImprovements
 
         private const string GameLaunchSection = "GameLaunch";
         public static ConfigEntry<bool> SkipStartupScreen { get; private set; }
-        public static ConfigEntry<eAutoLaunchOptions> AutoSelectLaunchMode { get; private set; }
+        public static ConfigEntry<eAutoLaunchOption> AutoSelectLaunchMode { get; private set; }
         public static ConfigEntry<bool> AlwaysShowNews { get; private set; }
         public static ConfigEntry<bool> AllowPreGameLeverPullAsClient { get; private set; }
         public static ConfigEntry<int> MenuMusicVolume { get; private set; }
@@ -135,7 +77,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> KeysHaveInfiniteUses { get; private set; }
         public static ConfigEntry<bool> DestroyKeysAfterOrbiting { get; private set; }
         public static ConfigEntry<bool> SavePlayerSuits { get; private set; }
-        public static ConfigEntry<bool> MaskedLookLikePlayers { get; private set; }
+        public static ConfigEntry<eMaskBlendLevel> MaskedEntityBlendLevel { get; private set; }
 
         private const string ScannerSection = "Scanner";
         public static ConfigEntry<bool> FixPersonalScanner { get; private set; }
@@ -151,7 +93,7 @@ namespace GeneralImprovements
         public static ConfigEntry<eValidKeys> FreeRotateKey { get; private set; }
         public static ConfigEntry<eValidKeys> CounterClockwiseKey { get; private set; }
         public static ConfigEntry<bool> ShipPlaceablesCollide { get; private set; }
-        public static ConfigEntry<bool> SaveFurnitureState { get; private set; }
+        public static ConfigEntry<eSaveFurniturePlacement> SaveShipFurniturePlaces { get; private set; }
         public static ConfigEntry<bool> ShipMapCamDueNorth { get; private set; }
         public static ConfigEntry<bool> SpeakerPlaysIntroVoice { get; private set; }
         public static ConfigEntry<bool> LightSwitchScanNode { get; private set; }
@@ -202,21 +144,23 @@ namespace GeneralImprovements
             MigrateOldConfigValues();
             MLS.LogDebug("Configuration Initialized.");
 
-            Harmony.CreateAndPatchAll(typeof(AutoParentToShipPatch));
+            var harmony = new Harmony(Metadata.GUID);
+
+            harmony.PatchAll(typeof(AutoParentToShipPatch));
             MLS.LogDebug("AutoParentToShip patched.");
 
-            Harmony.CreateAndPatchAll(typeof(DepositItemsDeskPatch));
+            harmony.PatchAll(typeof(DepositItemsDeskPatch));
             MLS.LogDebug("DepositItemsDesk patched.");
 
-            Harmony.CreateAndPatchAll(typeof(DoorLockPatch));
+            harmony.PatchAll(typeof(DoorLockPatch));
             MLS.LogDebug("DoorLock patched.");
 
-            Harmony.CreateAndPatchAll(typeof(EntranceTeleportPatch));
+            harmony.PatchAll(typeof(EntranceTeleportPatch));
             MLS.LogDebug("EntranceTeleport patched.");
 
             if (!OtherModHelper.FlashlightFixActive)
             {
-                Harmony.CreateAndPatchAll(typeof(FlashlightItemPatch));
+                harmony.PatchAll(typeof(FlashlightItemPatch));
                 MLS.LogDebug("FlashlightItem patched.");
             }
             else
@@ -224,67 +168,67 @@ namespace GeneralImprovements
                 MLS.LogWarning("Outdated version of FlashlightFix detected - please update your mods.");
             }
 
-            Harmony.CreateAndPatchAll(typeof(GameNetworkManagerPatch));
+            harmony.PatchAll(typeof(GameNetworkManagerPatch));
             MLS.LogDebug("GameNetworkManager patched.");
 
-            Harmony.CreateAndPatchAll(typeof(GrabbableObjectsPatch));
+            harmony.PatchAll(typeof(GrabbableObjectsPatch));
             MLS.LogDebug("GrabbableObjects patched.");
 
-            Harmony.CreateAndPatchAll(typeof(HangarShipDoorPatch));
+            harmony.PatchAll(typeof(HangarShipDoorPatch));
             MLS.LogDebug("HangarShipDoor patched.");
 
-            Harmony.CreateAndPatchAll(typeof(HUDManagerPatch));
+            harmony.PatchAll(typeof(HUDManagerPatch));
             MLS.LogDebug("HUDManager patched.");
 
-            Harmony.CreateAndPatchAll(typeof(ItemDropshipPatch));
+            harmony.PatchAll(typeof(ItemDropshipPatch));
             MLS.LogDebug("ItemDropship patched.");
 
-            Harmony.CreateAndPatchAll(typeof(LandminePatch));
+            harmony.PatchAll(typeof(LandminePatch));
             MLS.LogDebug("Landmine patched.");
 
-            Harmony.CreateAndPatchAll(typeof(ManualCameraRendererPatch));
+            harmony.PatchAll(typeof(ManualCameraRendererPatch));
             MLS.LogDebug("ManualCameraRenderer patched.");
 
-            Harmony.CreateAndPatchAll(typeof(MaskedPlayerEnemyPatch));
+            harmony.PatchAll(typeof(MaskedPlayerEnemyPatch));
             MLS.LogDebug("MaskedPlayerEnemy patched.");
 
-            Harmony.CreateAndPatchAll(typeof(MenuPatches));
+            harmony.PatchAll(typeof(MenuPatches));
             MLS.LogDebug("Menus patched.");
 
-            Harmony.CreateAndPatchAll(typeof(PlayerControllerBPatch));
+            harmony.PatchAll(typeof(PlayerControllerBPatch));
             MLS.LogDebug("PlayerControllerB patched.");
 
-            Harmony.CreateAndPatchAll(typeof(RoundManagerPatch));
+            harmony.PatchAll(typeof(RoundManagerPatch));
             MLS.LogDebug("RoundManager patched.");
 
-            Harmony.CreateAndPatchAll(typeof(ShipBuildModeManagerPatch));
+            harmony.PatchAll(typeof(ShipBuildModeManagerPatch));
             MLS.LogDebug("ShipBuildModeManager patched.");
 
-            Harmony.CreateAndPatchAll(typeof(ShipTeleporterPatch));
+            harmony.PatchAll(typeof(ShipTeleporterPatch));
             MLS.LogDebug("ShipTeleporter patched.");
 
-            Harmony.CreateAndPatchAll(typeof(SprayPaintItemPatch));
+            harmony.PatchAll(typeof(SprayPaintItemPatch));
             MLS.LogDebug("SprayPaintItem patched.");
 
-            Harmony.CreateAndPatchAll(typeof(StartMatchLeverPatch));
+            harmony.PatchAll(typeof(StartMatchLeverPatch));
             MLS.LogDebug("StartMatchLever patched.");
 
-            Harmony.CreateAndPatchAll(typeof(StartOfRoundPatch));
+            harmony.PatchAll(typeof(StartOfRoundPatch));
             MLS.LogDebug("StartOfRound patched.");
 
-            Harmony.CreateAndPatchAll(typeof(StormyWeatherPatch));
+            harmony.PatchAll(typeof(StormyWeatherPatch));
             MLS.LogDebug("StormyWeather patched.");
 
-            Harmony.CreateAndPatchAll(typeof(TerminalAccessibleObjectPatch));
+            harmony.PatchAll(typeof(TerminalAccessibleObjectPatch));
             MLS.LogDebug("TerminalAccessibleObject patched.");
 
-            Harmony.CreateAndPatchAll(typeof(TerminalPatch));
+            harmony.PatchAll(typeof(TerminalPatch));
             MLS.LogDebug("Terminal patched.");
 
-            Harmony.CreateAndPatchAll(typeof(TimeOfDayPatch));
+            harmony.PatchAll(typeof(TimeOfDayPatch));
             MLS.LogDebug("TimeOfDay patched.");
 
-            Harmony.CreateAndPatchAll(typeof(UnlockableSuitPatch));
+            harmony.PatchAll(typeof(UnlockableSuitPatch));
             MLS.LogDebug("UnlockableSuit patched.");
 
             GameNetworkManagerPatch.PatchNetcode();
@@ -301,13 +245,14 @@ namespace GeneralImprovements
             var validToolStrings = string.Join(", ", new[] { "All" }.Concat(validToolTypes.Select(t => t.Name)));
 
             // Extra monitors
-            UseBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(UseBetterMonitors), false, "If set to true, uses 12 fully customizable and integrated monitors instead of the 8 vanilla ones with overlays. If true, 1-6 are top, 7-12 are bottom, and 13-14 are the big ones beside the terminal. Otherwise, 1-4 are the top, and 5-8 are on the bottom.");
+            UseBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(UseBetterMonitors), false, "If set to true, upgrades the vanilla monitors with integrated and more customizable overlays.");
+            AddMoreBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(AddMoreBetterMonitors), true, "If set to true and paired with UseBetterMonitors (required), adds 4 more small and 1 large monitor to the left of the main ship monitor group.");
             SyncMonitorsFromOtherHost = Config.Bind(ExtraMonitorsSection, nameof(SyncMonitorsFromOtherHost), false, "If set to true, all monitor placements will be synced from the host when joining a game, if the host is also using this mod. Settings such as color, FPS, etc will not be synced.");
             ShowBlueMonitorBackground = Config.Bind(ExtraMonitorsSection, nameof(ShowBlueMonitorBackground), true, "If set to true and NOT using UseBetterMonitors, keeps the vanilla blue backgrounds on the extra monitors. Set to false to hide.");
             MonitorBackgroundColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorBackgroundColor), "160959", "The hex color code of what the backgrounds of the monitors should be. A recommended value close to black is 050505.");
             MonitorTextColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorTextColor), "00FF2C", "The hex color code of what the text on the monitors should be.");
             ShowBackgroundOnAllScreens = Config.Bind(ExtraMonitorsSection, nameof(ShowBackgroundOnAllScreens), false, "If set to true, will show the MonitorBackgroundColor on ALL monitors when they are on, not just used ones.");
-            ShipMonitorAssignments = new ConfigEntry<eMonitorNames>[MonitorCount];
+            ShipMonitorAssignments = new ConfigEntry<eMonitorNames>[14];
             for (int i = 0; i < ShipMonitorAssignments.Length; i++)
             {
                 eMonitorNames defaultVal = i switch { 4 => eMonitorNames.ProfitQuota, 5 => eMonitorNames.Deadline, 11 => eMonitorNames.InternalCam, 14 => eMonitorNames.ExternalCam, _ => eMonitorNames.None };
@@ -331,7 +276,7 @@ namespace GeneralImprovements
 
             // Game Launch
             SkipStartupScreen = Config.Bind(GameLaunchSection, nameof(SkipStartupScreen), true, "Skips the main menu loading screen bootup animation.");
-            AutoSelectLaunchMode = Config.Bind(GameLaunchSection, nameof(AutoSelectLaunchMode), eAutoLaunchOptions.NONE, "If set to 'ONLINE' or 'LAN', will automatically launch the correct mode, saving you from having to click the menu option when the game loads.");
+            AutoSelectLaunchMode = Config.Bind(GameLaunchSection, nameof(AutoSelectLaunchMode), eAutoLaunchOption.NONE, "If set to 'ONLINE' or 'LAN', will automatically launch the correct mode, saving you from having to click the menu option when the game loads.");
             AlwaysShowNews = Config.Bind(GameLaunchSection, nameof(AlwaysShowNews), false, "If set to true, will always display the news popup when starting the game.");
             AllowPreGameLeverPullAsClient = Config.Bind(GameLaunchSection, nameof(AllowPreGameLeverPullAsClient), true, "If set to true, you will be able to pull the ship lever to start the game as a connected player.");
             MenuMusicVolume = Config.Bind(GameLaunchSection, nameof(MenuMusicVolume), 100, new ConfigDescription("Controls the volume of the menu music, from 0-100.", new AcceptableValueRange<int>(0, 100)));
@@ -353,7 +298,7 @@ namespace GeneralImprovements
             KeysHaveInfiniteUses = Config.Bind(MechanicsSection, nameof(KeysHaveInfiniteUses), false, "If set to true, keys will not despawn when they are used.");
             DestroyKeysAfterOrbiting = Config.Bind(MechanicsSection, nameof(DestroyKeysAfterOrbiting), false, "If set to true, all keys in YOUR inventory (and IF HOSTING, the ship) will be destroyed after orbiting. Works well to nerf KeysHaveInfiniteUses. Players who do not have this enabled will keep keys currently in their inventory.");
             SavePlayerSuits = Config.Bind(MechanicsSection, nameof(SavePlayerSuits), true, "If set to true, the host will keep track of every player's last used suit, and will persist between loads and ship resets for each save file. Only works in Online mode.");
-            MaskedLookLikePlayers = Config.Bind(MechanicsSection, nameof(MaskedLookLikePlayers), false, "If set to true, masked entities will NOT be wearing masks, and spawned masks will look identical to a random real player of their choice. Works with MoreCompany cosmetics.");
+            MaskedEntityBlendLevel = Config.Bind(MechanicsSection, nameof(MaskedEntityBlendLevel), eMaskBlendLevel.None, "How much masked entities should look like real players. Each option should be somewhat self explanatory and target specific changes. Use Full for complete effect. Works with MoreCompany cosmetics.");
 
             // Scanner
             FixPersonalScanner = Config.Bind(ScannerSection, nameof(FixPersonalScanner), false, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you, and the ship/main entrance.");
@@ -369,7 +314,7 @@ namespace GeneralImprovements
             FreeRotateKey = Config.Bind(ShipSection, nameof(FreeRotateKey), eValidKeys.LeftAlt, "If SnapObjectsByDegrees > 0, configures which modifer key activates free rotation.");
             CounterClockwiseKey = Config.Bind(ShipSection, nameof(CounterClockwiseKey), eValidKeys.LeftShift, "If SnapObjectsByDegrees > 0, configures which modifier key spins it CCW.");
             ShipPlaceablesCollide = Config.Bind(ShipSection, nameof(ShipPlaceablesCollide), true, "If set to true, placeable ship objects will check for collisions with each other during placement.");
-            SaveFurnitureState = Config.Bind(ShipSection, nameof(SaveFurnitureState), true, "If set to true, all default ship furniture positions and storage states will not be reset after being fired.");
+            SaveShipFurniturePlaces = Config.Bind(ShipSection, nameof(SaveShipFurniturePlaces), eSaveFurniturePlacement.StartingFurniture, "Determines what ship furniture positions and storage states will not be reset after being fired.");
             ShipMapCamDueNorth = Config.Bind(ShipSection, nameof(ShipMapCamDueNorth), false, "If set to true, the ship's map camera will rotate so that it faces north evenly, instead of showing everything at an angle.");
             SpeakerPlaysIntroVoice = Config.Bind(ShipSection, nameof(SpeakerPlaysIntroVoice), true, "If set to true, the ship's speaker will play the introductory welcome audio on the first day.");
             LightSwitchScanNode = Config.Bind(ShipSection, nameof(LightSwitchScanNode), true, "If set to true, the light switch will have a scan node attached.");
@@ -582,6 +527,10 @@ namespace GeneralImprovements
                 // A couple things under fixes section moving to scanner section
                 case "FixPersonalScanner": FixPersonalScanner.Value = entry.Value.ToUpper() == "TRUE"; break;
                 case "ScanHeldPlayerItems": ScanHeldPlayerItems.Value = entry.Value.ToUpper() == "TRUE"; break;
+
+                // Settings that were converted from bools to enums
+                case "MaskedLookLikePlayers": MaskedEntityBlendLevel.Value = bool.TryParse(entry.Value, out _) ? eMaskBlendLevel.Full : eMaskBlendLevel.None; break;
+                case "SaveShipFurniturePlaces": SaveShipFurniturePlaces.Value = bool.TryParse(entry.Value, out _) ? eSaveFurniturePlacement.All : eSaveFurniturePlacement.None; break;
 
                 default:
                     MLS.LogDebug("No matching migration");

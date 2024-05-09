@@ -172,7 +172,7 @@ namespace GeneralImprovements.Patches
             }
 
             // Show extra moons and prices if specified
-            if (node.name == "MoonsCatalogue" && (Plugin.ShowMoonPricesInTerminal.Value || Plugin.ShowHiddenMoonsInCatalog.Value != Plugin.Enums.eShowHiddenMoons.Never))
+            if (node.name == "MoonsCatalogue" && (Plugin.ShowMoonPricesInTerminal.Value || Plugin.ShowHiddenMoonsInCatalog.Value != Enums.eShowHiddenMoons.Never))
             {
                 // Get prices by finding "route" node and matching on names. A bit risky if things change, but better than hardcoding
                 var routeNode = Instance.terminalNodes.allKeywords.FirstOrDefault(k => k.word == "route");
@@ -181,8 +181,8 @@ namespace GeneralImprovements.Patches
                     // Get all moons we can actually route to, making sure to filter out hidden moons where necessary
                     var allmoons = StartOfRound.Instance.levels.Where(l =>
                         routeNode.compatibleNouns.Any(n => l.PlanetName.ToLower().Contains(n.noun.word.ToLower())) // Find the name in routeable moons
-                        && (Instance.moonsCatalogueList.Contains(l) || Plugin.ShowHiddenMoonsInCatalog.Value == Plugin.Enums.eShowHiddenMoons.Always // And it's either shown in vanilla, or we always show hidden...
-                            || (Plugin.ShowHiddenMoonsInCatalog.Value == Plugin.Enums.eShowHiddenMoons.AfterDiscovery && StartOfRoundPatch.FlownToHiddenMoons.Contains(l.PlanetName)))) // ... or we've discovered it
+                        && (Instance.moonsCatalogueList.Contains(l) || Plugin.ShowHiddenMoonsInCatalog.Value == Enums.eShowHiddenMoons.Always // And it's either shown in vanilla, or we always show hidden...
+                            || (Plugin.ShowHiddenMoonsInCatalog.Value == Enums.eShowHiddenMoons.AfterDiscovery && StartOfRoundPatch.FlownToHiddenMoons.Contains(l.PlanetName)))) // ... or we've discovered it
                         .ToList();
 
                     // If extra moons exist that are not in our usual catalogue, add them to the display text as needed

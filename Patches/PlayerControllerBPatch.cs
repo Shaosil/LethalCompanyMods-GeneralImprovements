@@ -11,7 +11,7 @@ using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using static GeneralImprovements.Plugin.Enums;
+using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements.Patches
 {

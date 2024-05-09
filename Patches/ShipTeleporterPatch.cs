@@ -7,7 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
-using static GeneralImprovements.Plugin.Enums;
+using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements.Patches
 {

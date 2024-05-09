@@ -1,5 +1,24 @@
 # Changelog
 
+### v1.2.6 - More fixes and improvements
+* Added an option to use better monitors without adding the extra left hand group of monitors. Defaults to false (uses extra monitors by default if UseBetterMonitors = true).
+	* Will smoothly keep the same ship monitor settings for you if you were previously NOT using better monitors because of the additional monitor group.
+* Updated better monitor render optimization's "in ship" check to include spectated player if applicable.
+* Fixed the bottom two right monitors having text cut off if UseBetterMonitors = False.
+* Updated the gold bar's resting position to lay on its bottom instead of its side.
+* Updated compatibility with [OpenBodyCams](https://thunderstore.io/c/lethal-company/p/Zaggy1024/OpenBodyCams) so it should no longer overwrite the bodycam monitor material.
+	* Should also work with other mods that overwrite monitor materials, even when syncing from host.
+* Fixed the internal and external ship cams resetting to their default 1x resolution and vanilla FPS if you exit and re-enter a game.
+* Updated the MaskedLookLikePlayers setting to a MaskedEntityBlendLevel enum that allows more options for mask entity stealth.
+* Updated the save ship furniture config setting to include an option for "All", which should hopefully keep placements of ALL bought unlockables even after reset (once repurchased).
+* Fixed an issue where better monitor text would spill over or the canvas was cut off when another mod changed the camera's FoV (such as [Imperium](https://thunderstore.io/c/lethal-company/p/giosuel/Imperium/)).
+* Updated the profit quota monitors to always use 4 lines when using custom monitor settings to avoid potential word wrap issues.
+* [Misc Tech Debt]
+	* Updated the plugin initialization to use one instance of Harmony for patching instead of a separate instance for each patch.
+	* Updated the monitor code when using internal/external cams so it will now use the correct reference mesh for visibility checks.
+		* The external cam above the door controls MAY not update properly in some cases if there is no internal cam monitor. It's the nature of the vanilla cam rendering scripts.
+	* Moved some of the grabbable objects' item properties code to a better location.
+
 ### v1.2.5 - More fixes and improvements
 * Added a manual timer to the better time monitors to help with frame loss when using mods that increase the time display update cycles.
 * Added an option to save the last used suit in the current save file, which will persist between loads and being fired. Defaults to true.
@@ -171,7 +190,7 @@
 * Added new "Total Days", "Quota Number", "Scrap Left", and "DaysSinceDeath" options to the monitor displays.
 	* Note that the scrap left monitor gives the same results as the scan command in the terminal, and is an *approximate* value.
 * Fixed several cases of white backgrounds with better monitors when they are first loaded.
-* Slight potential performance improvement when paired with [OpenBodyCams.](https://thunderstore.io/c/lethal-company/p/Zaggy1024/OpenBodyCams/v/1.0.24/)
+* Slight potential performance improvement when paired with [OpenBodyCams.](https://thunderstore.io/c/lethal-company/p/Zaggy1024/OpenBodyCams)
 
 ### v1.1.3 - Bugfixing my code
 * I am now ensuring that any monitor tweaks are disabled if none of the monitor settings have been changed, to prevent any monitor bugs from affecting users who do not use them at all.

@@ -15,7 +15,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void Start(MaskedPlayerEnemy __instance)
         {
-            if (Plugin.MaskedLookLikePlayers.Value || Plugin.ScanPlayers.Value)
+            if (Plugin.MaskedEntityBlendLevel.Value != Enums.eMaskBlendLevel.None || Plugin.ScanPlayers.Value)
             {
                 // If the masked spawned from a player, use their name and appearance. Otherwise, use any random player's name and appearance.
                 var rand = new System.Random(StartOfRound.Instance.randomMapSeed + NumSpawnedThisLevel);
@@ -28,7 +28,7 @@ namespace GeneralImprovements.Patches
                     node.transform.localPosition += new Vector3(0, 2.25f, 0);
                 }
 
-                if (Plugin.MaskedLookLikePlayers.Value)
+                if (new[] { Enums.eMaskBlendLevel.JustNoMask, Enums.eMaskBlendLevel.NoMaskAndCopySuit, Enums.eMaskBlendLevel.Full }.Contains(Plugin.MaskedEntityBlendLevel.Value))
                 {
                     // Hide the mesh renderer of their masks and set the suit to the targeted player's ID
                     var masks1 = __instance.transform.Find("ScavengerModel/metarig/spine/spine.001/spine.002/spine.003/spine.004/HeadMaskComedy")?.GetComponentsInChildren<MeshRenderer>();
@@ -37,8 +37,16 @@ namespace GeneralImprovements.Patches
                     {
                         mask.enabled = false;
                     }
-                    __instance.SetSuit(playerToTarget.currentSuitID);
+                }
 
+                if (new[] { Enums.eMaskBlendLevel.JustCopySuit, Enums.eMaskBlendLevel.JustCopySuitAndCosmetics, Enums.eMaskBlendLevel.NoMaskAndCopySuit, Enums.eMaskBlendLevel.Full }.Contains(Plugin.MaskedEntityBlendLevel.Value))
+                {
+                    // Copy whatever suit the target player is wearing
+                    __instance.SetSuit(playerToTarget.currentSuitID);
+                }
+
+                if (new[] { Enums.eMaskBlendLevel.JustCopySuitAndCosmetics, Enums.eMaskBlendLevel.Full }.Contains(Plugin.MaskedEntityBlendLevel.Value))
+                {
                     // Set isMimicking and SetOutside to trigger MoreCompany cosmetics if they exist
                     __instance.mimickingPlayer = playerToTarget;
                     __instance.SetEnemyOutside(__instance.isOutside);
