@@ -370,7 +370,7 @@ namespace GeneralImprovements.Patches
                 i => i.Branches(out _),
                 i => i.IsLdloc(),
                 i => i.Is(OpCodes.Ldstr, "InteractTrigger"),
-                i => i.Calls(typeof(String).GetMethod("op_Equality")),
+                i => i.Calls(typeof(string).GetMethod("op_Equality")),
                 i => i.Branches(out _),
                 i => i.Branches(out outsideLabel),
 
@@ -404,17 +404,28 @@ namespace GeneralImprovements.Patches
                 found[15].Instruction.labels.Add(componentLabel);
                 found[0].Instruction.operand = componentLabel;
 
+                // Create a label on the FirstEmptyItemSlot call so we can still jump to that if needed
+                var firstEmptySlotLabel = generator.DefineLabel();
+                found[6].Instruction.labels.Add(firstEmptySlotLabel);
+
                 // Move the GetComponent variable to be above the FirstEmptyItemSlot if statement
                 codeList.RemoveRange(found[15].Index, 6);
                 codeList.InsertRange(found[6].Index, found.Skip(15).Take(6).Select(f => f.Instruction));
 
-                // Add an if statement to break out of this entire section if the component is not grabbable
+                // Add an if statement to break out of this entire section if the component is not grabbable and has no custom hover tip
                 codeList.InsertRange(found[6].Index + 6, new[]
                 {
+                    // If it's grabbable, skip over the next if statement
                     new CodeInstruction(OpCodes.Ldloc_2),
                     new CodeInstruction(OpCodes.Ldfld, typeof(GrabbableObject).GetField(nameof(GrabbableObject.grabbable))),
                     new CodeInstruction(OpCodes.Ldc_I4_1),
-                    new CodeInstruction(OpCodes.Bne_Un_S, outsideLabel)
+                    new CodeInstruction(OpCodes.Beq_S, firstEmptySlotLabel),
+
+                    // Otherwise if it has no custom hovertip either, skip this whole section
+                    new CodeInstruction(OpCodes.Ldloc_2),
+                    new CodeInstruction(OpCodes.Ldfld, typeof(GrabbableObject).GetField(nameof(GrabbableObject.customGrabTooltip))),
+                    new CodeInstruction(OpCodes.Call, typeof(string).GetMethod(nameof(string.IsNullOrEmpty))),
+                    new CodeInstruction(OpCodes.Brtrue_S, outsideLabel)
                 });
 
                 Plugin.MLS.LogDebug("Patching PlayerControllerB.SetHoverTipAndCurrentInteractionTrigger to remove grab notification when not needed.");

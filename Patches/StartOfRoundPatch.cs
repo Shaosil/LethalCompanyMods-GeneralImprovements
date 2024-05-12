@@ -267,6 +267,14 @@ namespace GeneralImprovements.Patches
                 {
                     var clientParams = new ClientRpcParams { Send = new ClientRpcSendParams { TargetClientIds = new[] { clientId } } };
 
+                    // Send over our monitor information in case the client wants to sync from the host
+                    Plugin.MLS.LogInfo("Server sending monitor information RPC.");
+                    NetworkHelper.Instance.SyncMonitorsFromHostClientRpc(Plugin.UseBetterMonitors.Value, Plugin.ShipMonitorAssignments[0].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[1].Value.ToString() ?? null,
+                        Plugin.ShipMonitorAssignments[2].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[3].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[4].Value.ToString() ?? null,
+                        Plugin.ShipMonitorAssignments[5].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[6].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[7].Value.ToString() ?? null,
+                        Plugin.ShipMonitorAssignments[8].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[9].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[10].Value.ToString() ?? null,
+                        Plugin.ShipMonitorAssignments[11].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[12].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[13].Value.ToString() ?? null, clientParams);
+
                     // Send over the extra info about this quota to this client
                     if (__instance?.gameStats != null)
                     {
@@ -275,14 +283,6 @@ namespace GeneralImprovements.Patches
                         Plugin.MLS.LogInfo("Server sending extra data sync RPC.");
                         NetworkHelper.Instance.SyncExtraDataOnConnectClientRpc(TimeOfDay.Instance.timesFulfilledQuota, stats.daysSpent, stats.deaths, DaysSinceLastDeath, foundMoons, clientParams);
                     }
-
-                    // Send over our monitor information in case the client wants to sync from the host
-                    Plugin.MLS.LogInfo("Server sending monitor information RPC.");
-                    NetworkHelper.Instance.SyncMonitorsFromHostClientRpc(Plugin.UseBetterMonitors.Value, Plugin.ShipMonitorAssignments[0].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[1].Value.ToString() ?? null,
-                        Plugin.ShipMonitorAssignments[2].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[3].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[4].Value.ToString() ?? null,
-                        Plugin.ShipMonitorAssignments[5].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[6].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[7].Value.ToString() ?? null,
-                        Plugin.ShipMonitorAssignments[8].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[9].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[10].Value.ToString() ?? null,
-                        Plugin.ShipMonitorAssignments[11].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[12].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[13].Value.ToString() ?? null, clientParams);
 
                     // Send over color information about existing spray cans
                     var sprayCanMatIndexes = SprayPaintItemPatch.GetAllOrderedSprayPaintItemsInShip().Select(s => SprayPaintItemPatch.GetColorIndex(s)).ToArray();

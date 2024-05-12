@@ -16,6 +16,8 @@ namespace GeneralImprovements
         public enum eMonitorNames
         {
             None,
+
+            // Text assignments
             ProfitQuota,
             Deadline,
             ShipScrap,
@@ -30,6 +32,8 @@ namespace GeneralImprovements
             TotalQuotas,
             TotalDeaths,
             DaysSinceDeath,
+
+            // Material assignments
             InternalCam,
             ExternalCam
         }

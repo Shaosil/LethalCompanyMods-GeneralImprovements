@@ -1,5 +1,9 @@
 # Changelog
 
+### v1.2.7 - Refactor and compatibility
+* Refactored how the better monitors get initialized, since the code complexity had slowly been increasing with each update. There should be no noticeable changes on users' ends.
+* Updated compatibility with [FacilityMeltdown](https://thunderstore.io/c/lethal-company/p/loaforc/FacilityMeltdown/) so the custom hover tip will be displayed on the apparatus when it isn't grabbable.
+
 ### v1.2.6 - More fixes and improvements
 * Added an option to use better monitors without adding the extra left hand group of monitors. Defaults to false (uses extra monitors by default if UseBetterMonitors = true).
 	* Will smoothly keep the same ship monitor settings for you if you were previously NOT using better monitors because of the additional monitor group.

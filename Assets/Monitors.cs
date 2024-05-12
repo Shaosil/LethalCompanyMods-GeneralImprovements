@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GeneralImprovements.API;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -9,24 +10,16 @@ namespace GeneralImprovements.Assets
 {
     internal class Monitors : MonoBehaviour
     {
-        private Dictionary<MeshRenderer, Material> _originalScreenMaterials = new Dictionary<MeshRenderer, Material>();                             // The stored materials of each monitor. Used for toggling power.
-        private Dictionary<int, Action<TextMeshProUGUI>> _initialTextAssignments = new Dictionary<int, Action<TextMeshProUGUI>>();                  // Set before Start(), the monitor index of each first TMP action to take.
-        private Dictionary<int, Func<MeshRenderer, Material>> _initialMaterialAssignments = new Dictionary<int, Func<MeshRenderer, Material>>();    // Set before Start(), the monitor index of each first material action to take.
-        private Dictionary<TextMeshProUGUI, Material> _textsToMats = new Dictionary<TextMeshProUGUI, Material>();                                   // A helper reference of TMP objects to monitor materials.
-
         private Camera _camera;
         private MeshRenderer _mapRenderer;
+        private Material _blankScreenMaterial;
 
-        // Set these before Start() is called
-        public Material HullMaterial;
-        public Material BlankScreenMat;
-        public Material StartingMapMaterial;
-
-        // Any materials that override ours will be stored here. This should be manually persisted in between monitor rebuilds.
-        public Dictionary<int, Material> MaterialOverrides = new Dictionary<int, Material>();
-
-        private void Start()
+        public void Initialize(Material hullMaterial, Material startingMapMaterial, Material blankScreenMaterial)
         {
+            // Store the blank screen material for later power toggling
+            _blankScreenMaterial = blankScreenMaterial;
+
+            // Get the transform of each monitor cluster
             var structureL = transform.Find("Monitors/TopGroupL");
             var structureM = transform.Find("Monitors/TopGroupM");
             var structureR = transform.Find("Monitors/TopGroupR");
@@ -34,49 +27,37 @@ namespace GeneralImprovements.Assets
             var bigScreenM = transform.Find("Monitors/BigMiddle");
             var bigScreenR = transform.Find("Monitors/BigRight");
 
-            // Assign the correct material to the base structures
-            structureL.GetComponent<MeshRenderer>().sharedMaterial = HullMaterial;
-            structureM.GetComponent<MeshRenderer>().sharedMaterial = HullMaterial;
-            structureR.GetComponent<MeshRenderer>().sharedMaterial = HullMaterial;
-            bigScreenL.GetComponent<MeshRenderer>().sharedMaterial = HullMaterial;
-            bigScreenM.GetComponent<MeshRenderer>().sharedMaterial = HullMaterial;
+            // Assign the starting materials to the base structures
+            structureL.GetComponent<MeshRenderer>().sharedMaterial = hullMaterial;
+            structureM.GetComponent<MeshRenderer>().sharedMaterial = hullMaterial;
+            structureR.GetComponent<MeshRenderer>().sharedMaterial = hullMaterial;
+            bigScreenL.GetComponent<MeshRenderer>().sharedMaterial = hullMaterial;
+            bigScreenM.GetComponent<MeshRenderer>().sharedMaterial = hullMaterial;
             _mapRenderer = bigScreenM.Find("MScreen").GetComponent<MeshRenderer>();
-            _mapRenderer.sharedMaterial = StartingMapMaterial;
-            bigScreenR.GetComponent<MeshRenderer>().sharedMaterial = HullMaterial;
+            _mapRenderer.sharedMaterial = startingMapMaterial;
+            bigScreenR.GetComponent<MeshRenderer>().sharedMaterial = hullMaterial;
+            transform.Find("Canvas/Background").GetComponent<Image>().color = Plugin.MonitorBackgroundColorVal;
 
-            // Store the mesh renderers of all the screens for later based on how many monitors we have
-            var allScreens = new List<Transform>();
-            if (Plugin.AddMoreBetterMonitors.Value)
-            {
-                allScreens.AddRange(new[] { structureL.Find("Screen1"), structureL.Find("Screen2") });
-            }
-            allScreens.AddRange(new[] { structureM.Find("Screen3"), structureM.Find("Screen4"), structureR.Find("Screen5"), structureR.Find("Screen6") });
-            if (Plugin.AddMoreBetterMonitors.Value)
-            {
-                allScreens.AddRange(new[] { structureL.Find("Screen7"), structureL.Find("Screen8") });
-            }
-            allScreens.AddRange(new[] { structureM.Find("Screen9"), structureM.Find("Screen10"), structureR.Find("Screen11"), structureR.Find("Screen12") });
-            if (Plugin.AddMoreBetterMonitors.Value)
-            {
-                allScreens.Add(bigScreenL.Find("LScreen"));
-            }
-            allScreens.Add(bigScreenR.Find("RScreen"));
-            foreach (var screen in allScreens)
-            {
-                var renderer = screen.GetComponent<MeshRenderer>();
-                _originalScreenMaterials[renderer] = renderer.sharedMaterial;
-            }
+            // Add the transforms of each monitor (in order) that we will be using, depending on which config settings are active
+            var allMonitors = new List<Transform>();
+            if (Plugin.AddMoreBetterMonitors.Value) allMonitors.AddRange(new[] { structureL.Find("Screen1"), structureL.Find("Screen2") });
+            allMonitors.AddRange(new[] { structureM.Find("Screen3"), structureM.Find("Screen4"), structureR.Find("Screen5"), structureR.Find("Screen6") });
+            if (Plugin.AddMoreBetterMonitors.Value) allMonitors.AddRange(new[] { structureL.Find("Screen7"), structureL.Find("Screen8") });
+            allMonitors.AddRange(new[] { structureM.Find("Screen9"), structureM.Find("Screen10"), structureR.Find("Screen11"), structureR.Find("Screen12") });
+            if (Plugin.AddMoreBetterMonitors.Value) allMonitors.Add(bigScreenL.Find("LScreen"));
+            allMonitors.Add(bigScreenR.Find("RScreen"));
 
-            // Get the text and camera objects
+            // Get the text and camera objects (they are not children of our monitor objects above)
             var allTexts = transform.Find("Canvas/Texts").GetComponentsInChildren<TextMeshProUGUI>();
             _camera = transform.GetComponentInChildren<Camera>();
             _camera.enabled = false;
 
-            // Adjust the background color
-            transform.Find("Canvas/Background").GetComponent<Image>().color = Plugin.MonitorBackgroundColorVal;
+            // Store anything that may have been overwritten so we can keep using the same materials after initialization
+            var overwrittenMaterials = MonitorsAPI.AllMonitors.Where(m => m.Value.OverwrittenMaterial != null).ToDictionary(k => k.Key, v => v.Value.OverwrittenMaterial);
 
-            // Store the texts for later and finalize the assignments
-            for (int i = 0; i < Math.Min(allTexts.Length, allScreens.Count); i++)
+            // Initialize the TMP objects and assign all information to our API dictionary
+            MonitorsAPI.AllMonitors = new Dictionary<int, MonitorsAPI.MonitorInfo>();
+            for (int i = 0; i < Math.Min(allTexts.Length, allMonitors.Count); i++)
             {
                 var screenText = allTexts[i];
                 screenText.font = StartOfRound.Instance.profitQuotaMonitorText.font;
@@ -84,71 +65,48 @@ namespace GeneralImprovements.Assets
                 screenText.color = Plugin.MonitorTextColorVal;
                 screenText.alignment = Plugin.CenterAlignMonitorText.Value ? TextAlignmentOptions.Center : TextAlignmentOptions.TopLeft;
 
-                // Store the material associated with this object so we can snapshot it as needed, then call the invocation
-                var curScreenMat = _originalScreenMaterials.ElementAt(i);
-                if (MaterialOverrides.ContainsKey(i))
+                // If there is no assignment here, either show a blank screen or clear the text in prep of the canvas render
+                var renderer = allMonitors[i].GetComponent<MeshRenderer>();
+                var curAssignment = Plugin.ShipMonitorAssignments[i].Value;
+                if (curAssignment == Enums.eMonitorNames.None)
                 {
-                    // If we know something should override it, just use that
-                    curScreenMat.Key.sharedMaterial = MaterialOverrides[i];
-                }
-                else if (_initialMaterialAssignments.ContainsKey(i))
-                {
-                    // Only overwrite original value if it doesn't contain something unexpected (if another mod put something there before we get here)
-                    if (curScreenMat.Key.sharedMaterial.name.StartsWith("GIShipMonitor"))
+                    if (Plugin.ShowBackgroundOnAllScreens.Value)
                     {
-                        var assignedMat = _initialMaterialAssignments[i](curScreenMat.Key);
-                        _originalScreenMaterials[curScreenMat.Key] = assignedMat;
-                        curScreenMat.Key.sharedMaterial = assignedMat;
-                    }
-                    else
-                    {
-                        // Store for later reference
-                        MaterialOverrides[i] = curScreenMat.Key.sharedMaterial;
-                    }
-                }
-                else if (_initialTextAssignments.ContainsKey(i) || Plugin.ShowBackgroundOnAllScreens.Value)
-                {
-                    _textsToMats[screenText] = curScreenMat.Value;
-
-                    if (_initialTextAssignments.ContainsKey(i))
-                    {
-                        // Call the action (it should handle adding this screenText object to its own list and calling the update text method)
-                        _initialTextAssignments[i](screenText);
-                    }
-                    else
-                    {
-                        // Clear the text of this monitor so the background color still shows
                         screenText.text = string.Empty;
-                        RenderCameraAfterTextChange(screenText);
+                    }
+                    else
+                    {
+                        renderer.sharedMaterial = _blankScreenMaterial;
                     }
                 }
-                else
+
+                MonitorsAPI.AllMonitors[i] = new MonitorsAPI.MonitorInfo
                 {
-                    // If there is no assignment, this is just a blank monitor
-                    curScreenMat.Key.sharedMaterial = BlankScreenMat;
-                }
+                    MeshRenderer = renderer,
+                    TextCanvas = curAssignment > Enums.eMonitorNames.None && curAssignment < Enums.eMonitorNames.InternalCam ? screenText : null,
+                    ScreenMaterialIndex = 0, // Our screen meshes are separate from the surrounding meshes and always only have one material
+                    AssignedMaterial = renderer.sharedMaterial,
+                    OverwrittenMaterial = overwrittenMaterials.GetValueOrDefault(i)
+                };
             }
         }
 
-        public void AssignTextMonitor(int index, Action<TextMeshProUGUI> textAssignment)
+        private void Start()
         {
-            // Store the assignment for later when Start() runs
-            _initialTextAssignments[index] = textAssignment;
+            // Render all text based monitors that do not have overrides
+            foreach (var monitor in MonitorsAPI.AllMonitors.Values.Where(m => m.TextCanvas != null && m.MeshRenderer.sharedMaterial == m.AssignedMaterial))
+            {
+                RefreshMonitorAfterTextChange(monitor);
+            }
         }
 
-        public void AssignMaterialMonitor(int index, Func<MeshRenderer, Material> materialAssignment)
+        public bool RefreshMonitorAfterTextChange(MonitorsAPI.MonitorInfo monitor)
         {
-            // Store the assignment for later when Start() runs
-            _initialMaterialAssignments[index] = materialAssignment;
-        }
-
-        public bool RenderCameraAfterTextChange(TextMeshProUGUI text)
-        {
-            // Only render if we have matching textures
-            if (_textsToMats.ContainsKey(text))
+            // Only render if this monitor has a text canvas associated with it and is not overwritten
+            if (monitor.TextCanvas != null && monitor.MeshRenderer.sharedMaterial == monitor.AssignedMaterial)
             {
                 // Move the camera to be in front of the text component
-                _camera.transform.parent = text.transform;
+                _camera.transform.parent = monitor.TextCanvas.transform;
                 if (Plugin.CenterAlignMonitorText.Value)
                 {
                     _camera.transform.localPosition = new Vector3(0, 0, _camera.transform.localPosition.z);
@@ -168,7 +126,7 @@ namespace GeneralImprovements.Assets
                 var tex = new Texture2D(_camera.activeTexture.width, _camera.activeTexture.height, TextureFormat.RGB24, false, true);
                 tex.ReadPixels(new Rect(0, 0, _camera.activeTexture.width, _camera.activeTexture.height), 0, 0);
                 tex.Apply();
-                _textsToMats[text].mainTexture = tex;
+                monitor.MeshRenderer.sharedMaterial.mainTexture = tex;
 
                 Graphics.SetRenderTarget(oldRenderTex);
 
@@ -181,26 +139,18 @@ namespace GeneralImprovements.Assets
         public void TogglePower(bool on)
         {
             // Set the power of all in-use monitors
-            for (int i = 0; i < _originalScreenMaterials.Count; i++)
+            foreach (var kvp in MonitorsAPI.AllMonitors)
             {
-                if (!Plugin.ShowBackgroundOnAllScreens.Value && !_initialTextAssignments.ContainsKey(i) && !_initialMaterialAssignments.ContainsKey(i))
-                {
-                    // Skip unassigned monitors
-                    continue;
-                }
+                var monitor = kvp.Value;
 
                 // If we are turning the monitor off (or refreshing) and we have a new material (probably from another mod that started after us), overwrite our stored one
-                var curScreemMat = _originalScreenMaterials.ElementAt(i);
-                if ((!on || curScreemMat.Key.sharedMaterial != BlankScreenMat) && curScreemMat.Key.sharedMaterial != curScreemMat.Value)
+                if ((!on || monitor.MeshRenderer.sharedMaterial != _blankScreenMaterial) && monitor.MeshRenderer.sharedMaterial != monitor.TargetMaterial)
                 {
-                    Plugin.MLS.LogWarning($"Found an unexpected material on ship monitor {i + 1} ({curScreemMat.Key.sharedMaterial.name}). Using it instead, since it was most likely purposefully assigned.");
-                    _originalScreenMaterials[curScreemMat.Key] = curScreemMat.Key.sharedMaterial;
-
-                    // Store for later (probably don't need this at this point but just in case)
-                    MaterialOverrides[i] = curScreemMat.Key.sharedMaterial;
+                    Plugin.MLS.LogWarning($"Found an unexpected material on ship monitor {kvp.Key + 1} ({monitor.MeshRenderer.sharedMaterial.name}). Using it instead, since it was most likely purposefully assigned.");
+                    monitor.OverwrittenMaterial = monitor.MeshRenderer.sharedMaterial;
                 }
 
-                curScreemMat.Key.sharedMaterial = on ? _originalScreenMaterials[curScreemMat.Key] : BlankScreenMat;
+                monitor.MeshRenderer.sharedMaterial = on ? monitor.TargetMaterial : _blankScreenMaterial;
             }
         }
 
@@ -210,18 +160,6 @@ namespace GeneralImprovements.Assets
             {
                 _mapRenderer.sharedMaterial = newMaterial;
             }
-        }
-
-        public Transform GetMonitorTransform(TextMeshProUGUI text)
-        {
-            Transform matchingTransform = null;
-
-            if (_textsToMats.TryGetValue(text, out var mat))
-            {
-                matchingTransform = _originalScreenMaterials.FirstOrDefault(m => m.Value == mat).Key?.transform;
-            }
-
-            return matchingTransform;
         }
     }
 }

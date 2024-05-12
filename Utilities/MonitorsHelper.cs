@@ -1,4 +1,5 @@
-﻿using GeneralImprovements.Assets;
+﻿using GeneralImprovements.API;
+using GeneralImprovements.Assets;
 using GeneralImprovements.Patches;
 using System;
 using System.Collections.Generic;
@@ -146,6 +147,7 @@ namespace GeneralImprovements.Utilities
             // Find our monitor objects
             _oldMonitorsObject = _UIContainer.parent.parent;
             _oldBigMonitors = _oldMonitorsObject.parent.GetComponentInChildren<ManualCameraRenderer>().transform.parent;
+            _profitQuotaScanNode = StartOfRound.Instance.elevatorTransform.GetComponentsInChildren<ScanNodeProperties>().FirstOrDefault(s => s.headerText == "Quota");
 
             // Increase internal and external ship cam resolution and FPS if specified
             if (includeCamSetup)
@@ -173,21 +175,18 @@ namespace GeneralImprovements.Utilities
                 CreateOldStyleMonitors(monitorAssignments);
             }
 
-            // Remove or update profit quota scan node
-            _profitQuotaScanNode = StartOfRound.Instance.elevatorTransform.GetComponentsInChildren<ScanNodeProperties>().FirstOrDefault(s => s.headerText == "Quota");
-            if (_profitQuotaScanNode != null)
+            // Initialize everything's text (some are initialized elsewhere)
+            CopyProfitQuotaAndDeadlineTexts();
+            UpdateShipScrapMonitors();
+            UpdateScrapLeftMonitors();
+            UpdateTimeMonitors();
+            UpdateWeatherMonitors();
+            UpdateDoorPowerMonitors();
+
+            // Remove scan node if it no profit quota monitor exists
+            if (_profitQuotaScanNode != null && !monitorAssignments.Any(a => a == eMonitorNames.ProfitQuota))
             {
-                // Remove scan node if it doesn't exist
-                if (!monitorAssignments.Any(a => a == eMonitorNames.ProfitQuota))
-                {
-                    Object.Destroy(_profitQuotaScanNode.gameObject);
-                }
-                else if (!Plugin.UseBetterMonitors.Value && _profitQuotaTexts.Any())
-                {
-                    // Update scan node position immediately (better monitors do it delayed)
-                    _profitQuotaScanNode.transform.parent = _profitQuotaTexts[0].transform;
-                    _profitQuotaScanNode.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-                }
+                Object.Destroy(_profitQuotaScanNode.gameObject);
             }
         }
 
@@ -259,6 +258,12 @@ namespace GeneralImprovements.Utilities
             }
             else if (_newMonitors != null)
             {
+                // Make sure any unknown overrides are up to date
+                foreach (var overwritten in MonitorsAPI.AllMonitors.Values.Where(m => m.MeshRenderer.sharedMaterial != m.TargetMaterial))
+                {
+                    overwritten.OverwrittenMaterial = overwritten.MeshRenderer.sharedMaterial;
+                }
+
                 Object.Destroy(_newMonitors.gameObject);
             }
 
@@ -403,6 +408,12 @@ namespace GeneralImprovements.Utilities
                     newText.transform.localPosition = _originalProfitQuotaLocation + positionOffset + new Vector3(0, 0, -1);
                     newText.transform.localEulerAngles = _originalProfitQuotaRotation + rotationOffset + new Vector3(1, 0, 0); // Text needs a little rotational offset for some reason
                     curTexts.Add(newText);
+
+                    if (curAssignment == eMonitorNames.ProfitQuota && _profitQuotaScanNode != null)
+                    {
+                        _profitQuotaScanNode.transform.parent = _profitQuotaTexts[0].transform;
+                        _profitQuotaScanNode.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                    }
                 }
             }
 
@@ -417,14 +428,6 @@ namespace GeneralImprovements.Utilities
                 fancyWeather.transform.localPosition += new Vector3(25, 0, -10);
                 fancyWeather.transform.localEulerAngles += new Vector3(-2, 1, 0);
             }
-
-            // Initialize everything's text (some are initialized elsewhere)
-            CopyProfitQuotaAndDeadlineTexts();
-            UpdateShipScrapMonitors();
-            UpdateScrapLeftMonitors();
-            UpdateTimeMonitors();
-            UpdateWeatherMonitors();
-            UpdateDoorPowerMonitors();
         }
 
         private static void CreateNewStyleMonitors(eMonitorNames[] monitorAssignments)
@@ -434,103 +437,71 @@ namespace GeneralImprovements.Utilities
             var newMonitorsObj = Object.Instantiate(AssetBundleHelper.MonitorsPrefab, _oldMonitorsObject.transform.parent);
             newMonitorsObj.transform.SetLocalPositionAndRotation(_oldMonitorsObject.localPosition, Quaternion.identity);
 
-            // Make sure we persist any detected overrides in between rebuilds
-            var oldOverrides = _newMonitors?.MaterialOverrides ?? new Dictionary<int, Material>();
             _newMonitors = newMonitorsObj.AddComponent<Monitors>();
-            _newMonitors.StartingMapMaterial = _oldBigMonitors.GetComponent<MeshRenderer>().sharedMaterials[1];
-            _newMonitors.HullMaterial = _oldMonitorsObject.GetComponent<MeshRenderer>().sharedMaterials[0];
-            _newMonitors.BlankScreenMat = _oldMonitorsObject.GetComponent<MeshRenderer>().sharedMaterials[1];
-            _newMonitors.MaterialOverrides = oldOverrides;
+            var oldMonitorsMeshRenderer = _oldMonitorsObject.GetComponent<MeshRenderer>();
+            var oldBigMonitorsMeshRenderer = _oldBigMonitors.GetComponent<MeshRenderer>();
+            _newMonitors.Initialize(oldMonitorsMeshRenderer.sharedMaterials[0], oldBigMonitorsMeshRenderer.sharedMaterials[1], oldMonitorsMeshRenderer.sharedMaterials[1]);
 
-            var internalCamMat = _oldMonitorsObject.GetComponent<MeshRenderer>().sharedMaterials.FirstOrDefault(m => m.name.StartsWith("ShipScreen"));
-            var externalCamMat = _oldBigMonitors.GetComponent<MeshRenderer>().sharedMaterials.FirstOrDefault(m => m.name.StartsWith("ShipScreen"));
-            bool assignedExternalCam = false;
+            var internalCamMat = oldMonitorsMeshRenderer.sharedMaterials.FirstOrDefault(m => m.name.StartsWith("ShipScreen"));
+            var externalCamMat = oldBigMonitorsMeshRenderer.sharedMaterials.FirstOrDefault(m => m.name.StartsWith("ShipScreen"));
 
             // Assign specified TMP objects to the monitor indexes specified
             for (int i = 0; i < (Plugin.AddMoreBetterMonitors.Value ? 14 : 9) && i < monitorAssignments.Length; i++)
             {
                 eMonitorNames curAssignment = monitorAssignments[i];
-                Action<TextMeshProUGUI> curTextAction = null;
-                Func<MeshRenderer, Material> curMatFunc = null;
+                Plugin.MLS.LogInfo($"Creating {curAssignment} monitor at position {i + 1}");
+                var curMonitor = MonitorsAPI.AllMonitors[i];
 
                 switch (curAssignment)
                 {
                     case eMonitorNames.ProfitQuota:
-                        curTextAction = t =>
-                    {
-                        _profitQuotaTexts.Add(t);
-                        _profitQuotaScanNode.transform.parent = _newMonitors.GetMonitorTransform(t);
-                        _profitQuotaScanNode.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                        _profitQuotaTexts.Add(curMonitor.TextCanvas);
+                        if (_profitQuotaScanNode != null)
+                        {
+                            _profitQuotaScanNode.transform.parent = curMonitor.MeshRenderer.transform;
+                            _profitQuotaScanNode.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                        }
                         CopyProfitQuotaAndDeadlineTexts();
-                    };
                         break;
-                    case eMonitorNames.Deadline: curTextAction = t => { _deadlineTexts.Add(t); CopyProfitQuotaAndDeadlineTexts(); }; break;
-                    case eMonitorNames.ShipScrap: curTextAction = t => { _shipScrapMonitorTexts.Add(t); UpdateShipScrapMonitors(); }; break;
-                    case eMonitorNames.ScrapLeft: curTextAction = t => { _scrapLeftMonitorTexts.Add(t); UpdateScrapLeftMonitors(); }; break;
-                    case eMonitorNames.Time: curTextAction = t => { _timeMonitorTexts.Add(t); UpdateTimeMonitors(true); }; break;
-                    case eMonitorNames.Weather: curTextAction = t => { _weatherMonitorTexts.Add(t); UpdateWeatherMonitors(); }; break;
+                    case eMonitorNames.Deadline: _deadlineTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.ShipScrap: _shipScrapMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.ScrapLeft: _scrapLeftMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.Time: _timeMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.Weather: _weatherMonitorTexts.Add(curMonitor.TextCanvas); break;
                     case eMonitorNames.FancyWeather:
-                        curTextAction = t =>
-                    {
                         if (Plugin.CenterAlignMonitorText.Value)
                         {
-                            t.alignment = TextAlignmentOptions.MidlineLeft;
-                            t.margin += new Vector4(20, 10, 0, 0);
+                            curMonitor.TextCanvas.alignment = TextAlignmentOptions.MidlineLeft;
+                            curMonitor.TextCanvas.margin += new Vector4(20, 10, 0, 0);
                         }
                         else
                         {
-                            t.alignment = TextAlignmentOptions.TopLeft;
-                            t.margin += new Vector4(10, 10, 0, 0);
+                            curMonitor.TextCanvas.alignment = TextAlignmentOptions.TopLeft;
+                            curMonitor.TextCanvas.margin += new Vector4(10, 10, 0, 0);
                         }
-                        _fancyWeatherMonitorTexts.Add(t);
+                        _fancyWeatherMonitorTexts.Add(curMonitor.TextCanvas);
                         UpdateWeatherMonitors();
-                    };
                         break;
-                    case eMonitorNames.Sales: curTextAction = t => { t.overflowMode = TextOverflowModes.Ellipsis; _salesMonitorTexts.Add(t); UpdateSalesMonitors(); }; break;
-                    case eMonitorNames.Credits: curTextAction = t => { _creditsMonitorTexts.Add(t); UpdateCreditsMonitors(true); }; break;
-                    case eMonitorNames.DoorPower: curTextAction = t => { _doorPowerMonitorTexts.Add(t); UpdateDoorPowerMonitors(true); }; break;
-                    case eMonitorNames.TotalDays: curTextAction = t => { _totalDaysMonitorTexts.Add(t); UpdateTotalDaysMonitors(); }; break;
-                    case eMonitorNames.TotalQuotas: curTextAction = t => { _totalQuotasMonitorTexts.Add(t); UpdateTotalQuotasMonitors(); }; break;
-                    case eMonitorNames.TotalDeaths: curTextAction = t => { _totalDeathsMonitorTexts.Add(t); UpdateDeathMonitors(); }; break;
-                    case eMonitorNames.DaysSinceDeath: curTextAction = t => { _daysSinceDeathMonitorTexts.Add(t); UpdateDeathMonitors(); }; break;
+                    case eMonitorNames.Sales: curMonitor.TextCanvas.overflowMode = TextOverflowModes.Ellipsis; _salesMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.Credits: _creditsMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.DoorPower: _doorPowerMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.TotalDays: _totalDaysMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.TotalQuotas: _totalQuotasMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.TotalDeaths: _totalDeathsMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.DaysSinceDeath: _daysSinceDeathMonitorTexts.Add(curMonitor.TextCanvas); break;
 
                     case eMonitorNames.InternalCam:
-                        curMatFunc = mesh =>
-                    {
                         // Reassign the internal camera mesh to the most recent mesh that was applied
-                        StartOfRound.Instance.elevatorTransform.Find("Cameras/ShipCamera").GetComponent<ManualCameraRenderer>().mesh = mesh;
-
-                        // Return the internal cam material for our monitor to use when it starts
-                        return internalCamMat;
-                    };
+                        curMonitor.AssignedMaterial = internalCamMat;
+                        curMonitor.MeshRenderer.sharedMaterial = internalCamMat;
+                        StartOfRound.Instance.elevatorTransform.Find("Cameras/ShipCamera").GetComponent<ManualCameraRenderer>().mesh = curMonitor.MeshRenderer;
                         break;
                     case eMonitorNames.ExternalCam:
-                        assignedExternalCam = true;
-                        curMatFunc = mesh =>
-                        {
-                            // Reassign the external camera mesh to the most recent mesh that was applied
-                            StartOfRound.Instance.elevatorTransform.Find("Cameras/FrontDoorSecurityCam/SecurityCamera").GetComponent<ManualCameraRenderer>().mesh = mesh;
-
-                            // Return the external cam material for our monitor to use when it starts
-                            return externalCamMat;
-                        }; break;
-                }
-
-                if (curTextAction != null || curMatFunc != null)
-                {
-                    Plugin.MLS.LogInfo($"Creating {curAssignment} monitor at position {i + 1}");
-                    if (curTextAction != null)
-                    {
-                        _newMonitors.AssignTextMonitor(i, curTextAction);
-                    }
-                    else
-                    {
-                        _newMonitors.AssignMaterialMonitor(i, curMatFunc);
-                    }
-                }
-                else if (curAssignment != eMonitorNames.None)
-                {
-                    Plugin.MLS.LogError($"Could not find '{curAssignment}' for monitor assignment! Please check your config is using acceptable values.");
+                        // Reassign the external camera mesh to the most recent mesh that was applied
+                        curMonitor.AssignedMaterial = externalCamMat;
+                        curMonitor.MeshRenderer.sharedMaterial = externalCamMat;
+                        StartOfRound.Instance.elevatorTransform.Find("Cameras/FrontDoorSecurityCam/SecurityCamera").GetComponent<ManualCameraRenderer>().mesh = curMonitor.MeshRenderer;
+                        break;
                 }
             }
 
@@ -546,7 +517,7 @@ namespace GeneralImprovements.Utilities
 
             // If we are not displaying the external cam anywhere but it's still over the door, use that as the mesh instead
             var doorCamMesh = StartOfRound.Instance.elevatorTransform.Find("ShipModels2b/MonitorWall/SingleScreen")?.GetComponent<MeshRenderer>();
-            if (!assignedExternalCam && doorCamMesh != null && doorCamMesh.sharedMaterials.Any(m => m.name.StartsWith("ShipScreen2")))
+            if (!MonitorsAPI.AllMonitors.Values.Any(m => m.AssignedMaterial == externalCamMat) && doorCamMesh != null && doorCamMesh.sharedMaterials.Any(m => m.name.StartsWith("ShipScreen2")))
             {
                 StartOfRound.Instance.elevatorTransform.Find("Cameras/FrontDoorSecurityCam/SecurityCamera").GetComponent<ManualCameraRenderer>().mesh = doorCamMesh;
             }
@@ -932,20 +903,20 @@ namespace GeneralImprovements.Utilities
             foreach (var t in textList)
             {
                 t.text = text;
-                if (_newMonitors != null)
+                if (_newMonitors != null && MonitorsAPI.AllMonitors.FirstOrDefault(m => m.Value.TextCanvas == t).Value is MonitorsAPI.MonitorInfo monitor)
                 {
                     // If we are orbiting, in the ship (or spectating someone in it), or set to always render, immediately update. Otherwise, add it to the refresh queue (most recent will always override any old data)
                     bool targetPlayerInShip = (StartOfRound.Instance.localPlayerController?.spectatedPlayerScript ?? StartOfRound.Instance.localPlayerController)?.isInElevator ?? false;
                     if (StartOfRound.Instance.inShipPhase || Plugin.AlwaysRenderMonitors.Value || targetPlayerInShip)
                     {
-                        if (_newMonitors.RenderCameraAfterTextChange(t))
+                        if (_newMonitors.RefreshMonitorAfterTextChange(monitor))
                         {
                             allSuccess = true;
                         }
                     }
                     else
                     {
-                        _queuedMonitorRefreshes[t] = () => _newMonitors.RenderCameraAfterTextChange(t);
+                        _queuedMonitorRefreshes[t] = () => _newMonitors.RefreshMonitorAfterTextChange(monitor);
                     }
                 }
             }
