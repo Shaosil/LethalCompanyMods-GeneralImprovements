@@ -83,7 +83,7 @@ namespace GeneralImprovements.Assets
                 MonitorsAPI.AllMonitors[i] = new MonitorsAPI.MonitorInfo
                 {
                     MeshRenderer = renderer,
-                    TextCanvas = curAssignment > Enums.eMonitorNames.None && curAssignment < Enums.eMonitorNames.InternalCam ? screenText : null,
+                    TextCanvas = (Plugin.ShowBackgroundOnAllScreens.Value || curAssignment > Enums.eMonitorNames.None) && curAssignment < Enums.eMonitorNames.InternalCam ? screenText : null,
                     ScreenMaterialIndex = 0, // Our screen meshes are separate from the surrounding meshes and always only have one material
                     AssignedMaterial = renderer.sharedMaterial,
                     OverwrittenMaterial = overwrittenMaterials.GetValueOrDefault(i)
@@ -144,7 +144,7 @@ namespace GeneralImprovements.Assets
                 var monitor = kvp.Value;
 
                 // If we are turning the monitor off (or refreshing) and we have a new material (probably from another mod that started after us), overwrite our stored one
-                if ((!on || monitor.MeshRenderer.sharedMaterial != _blankScreenMaterial) && monitor.MeshRenderer.sharedMaterial != monitor.TargetMaterial)
+                if ((!on || monitor.MeshRenderer.sharedMaterial.name != _blankScreenMaterial.name) && monitor.MeshRenderer.sharedMaterial != monitor.TargetMaterial)
                 {
                     Plugin.MLS.LogWarning($"Found an unexpected material on ship monitor {kvp.Key + 1} ({monitor.MeshRenderer.sharedMaterial.name}). Using it instead, since it was most likely purposefully assigned.");
                     monitor.OverwrittenMaterial = monitor.MeshRenderer.sharedMaterial;

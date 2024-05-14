@@ -362,7 +362,7 @@ namespace GeneralImprovements.Patches
         private static IEnumerable<CodeInstruction> SetHoverTipAndCurrentInteractTrigger_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
             var codeList = instructions.ToList();
-            Label? outsideLabel = null;
+            Label? outsideEqualityLabel = null;
 
             // Do not set grab hovertip if grabbable item is not grabbable
             if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
@@ -372,7 +372,7 @@ namespace GeneralImprovements.Patches
                 i => i.Is(OpCodes.Ldstr, "InteractTrigger"),
                 i => i.Calls(typeof(string).GetMethod("op_Equality")),
                 i => i.Branches(out _),
-                i => i.Branches(out outsideLabel),
+                i => i.Branches(out outsideEqualityLabel),
 
                 i => i.IsLdarg(0), // Index 6
                 i => i.Calls(typeof(PlayerControllerB).GetMethod("FirstEmptyItemSlot", BindingFlags.Instance | BindingFlags.NonPublic)),
@@ -392,28 +392,28 @@ namespace GeneralImprovements.Patches
                 i => i.opcode == OpCodes.Stloc_2,
 
                 i => i.Calls(typeof(GameNetworkManager).GetMethod("get_Instance"))
-            }, out var found))
+            }, out var grabbableCode))
             {
                 // Create a label on the line below our GetComponent call, and branch to that instead
                 var newLabel = generator.DefineLabel();
-                codeList[found.Last().Index].labels.Add(newLabel);
-                found[9].Instruction.operand = newLabel;
+                codeList[grabbableCode.Last().Index].labels.Add(newLabel);
+                grabbableCode[9].Instruction.operand = newLabel;
 
                 // Create a label on the GetComponent variable, and make sure it is branched to
                 var componentLabel = generator.DefineLabel();
-                found[15].Instruction.labels.Add(componentLabel);
-                found[0].Instruction.operand = componentLabel;
+                grabbableCode[15].Instruction.labels.Add(componentLabel);
+                grabbableCode[0].Instruction.operand = componentLabel;
 
                 // Create a label on the FirstEmptyItemSlot call so we can still jump to that if needed
                 var firstEmptySlotLabel = generator.DefineLabel();
-                found[6].Instruction.labels.Add(firstEmptySlotLabel);
+                grabbableCode[6].Instruction.labels.Add(firstEmptySlotLabel);
 
                 // Move the GetComponent variable to be above the FirstEmptyItemSlot if statement
-                codeList.RemoveRange(found[15].Index, 6);
-                codeList.InsertRange(found[6].Index, found.Skip(15).Take(6).Select(f => f.Instruction));
+                codeList.RemoveRange(grabbableCode[15].Index, 6);
+                codeList.InsertRange(grabbableCode[6].Index, grabbableCode.Skip(15).Take(6).Select(f => f.Instruction));
 
                 // Add an if statement to break out of this entire section if the component is not grabbable and has no custom hover tip
-                codeList.InsertRange(found[6].Index + 6, new[]
+                codeList.InsertRange(grabbableCode[6].Index + 6, new[]
                 {
                     // If it's grabbable, skip over the next if statement
                     new CodeInstruction(OpCodes.Ldloc_2),
@@ -425,7 +425,7 @@ namespace GeneralImprovements.Patches
                     new CodeInstruction(OpCodes.Ldloc_2),
                     new CodeInstruction(OpCodes.Ldfld, typeof(GrabbableObject).GetField(nameof(GrabbableObject.customGrabTooltip))),
                     new CodeInstruction(OpCodes.Call, typeof(string).GetMethod(nameof(string.IsNullOrEmpty))),
-                    new CodeInstruction(OpCodes.Brtrue_S, outsideLabel)
+                    new CodeInstruction(OpCodes.Brtrue_S, outsideEqualityLabel)
                 });
 
                 Plugin.MLS.LogDebug("Patching PlayerControllerB.SetHoverTipAndCurrentInteractionTrigger to remove grab notification when not needed.");
@@ -435,12 +435,94 @@ namespace GeneralImprovements.Patches
                 Plugin.MLS.LogWarning("Unexpected IL code - Could not patch PlayerControllerB.SetHoverTipAndCurrentInteractionTrigger to remove the grab notification!");
             }
 
+            // Check for masked entity raycast hit when doing players in order to show their billboards if needed
+            if (Plugin.MaskedEntitiesShowPlayerNames.Value)
+            {
+                Label? outsideRaycastLabel = null;
+                if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.gameplayCamera))),
+                    i => i.Calls(typeof(Component).GetMethod("get_transform")),
+                    i => i.Calls(typeof(Transform).GetMethod("get_forward")),
+                    i => i.Is(OpCodes.Newobj, typeof(Ray).GetConstructor(new[] { typeof(Vector3), typeof(Vector3) })),
+                    i => i.StoresField(typeof(PlayerControllerB).GetField("interactRay", BindingFlags.Instance | BindingFlags.NonPublic))
+                }, out var interactRayCode)
+
+                    && codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
+                    i => i.LoadsConstant(5f),
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(PlayerControllerB).GetField("playerMask", BindingFlags.Instance | BindingFlags.NonPublic)),
+                    i => i.Calls(typeof(Physics).GetMethod(nameof(Physics.Raycast), new[] { typeof(Ray), typeof(RaycastHit).MakeByRefType(), typeof(float), typeof(int) }))
+                }, out var raycastCode)
+
+                    && codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
+                    i => i.Branches(out outsideRaycastLabel),
+                    i => i.IsLdloc(),
+                    i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.ShowNameBillboard)))
+                }, out var billboardCode))
+                {
+                    // Include enemy layer in our raycast
+                    codeList[raycastCode[1].Index] = new CodeInstruction(OpCodes.Nop);
+                    codeList[raycastCode[2].Index] = new CodeInstruction(OpCodes.Ldc_I4, LayerMask.GetMask("Player", "Enemies"));
+
+                    // Move the interact ray starting position 0.5 units forward
+                    codeList.InsertRange(interactRayCode[0].Index, new[]
+                    {
+                        new CodeInstruction(OpCodes.Ldarg, 0),
+                        new CodeInstruction(OpCodes.Ldfld, typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.gameplayCamera))),
+                        new CodeInstruction(OpCodes.Callvirt, typeof(Component).GetMethod("get_transform")),
+                        new CodeInstruction(OpCodes.Callvirt, typeof(Transform).GetMethod("get_forward")),
+                        new CodeInstruction(OpCodes.Ldc_R4, 0.5f),
+                        new CodeInstruction(OpCodes.Call, typeof(Vector3).GetMethod("op_Multiply", new[] { typeof(Vector3), typeof(float) })),
+                        new CodeInstruction(OpCodes.Call, typeof(Vector3).GetMethod("op_Addition", new[] { typeof(Vector3), typeof(Vector3) }))
+                    });
+
+                    // Update the raycast call to collide with triggers so it can detect masked entities' colliders (they only have triggers)
+                    codeList.Insert(raycastCode.Last().Index + 7, new CodeInstruction(OpCodes.Ldc_I4, (int)QueryTriggerInteraction.Collide));
+                    raycastCode.Last().Instruction.operand = typeof(Physics).GetMethod(nameof(Physics.Raycast), new[] { typeof(Ray), typeof(RaycastHit).MakeByRefType(), typeof(float), typeof(int), typeof(QueryTriggerInteraction) });
+
+                    // Create a new label and emit a delegate to check if we can get a MaskedPlayerEnemy component
+                    var newIfLabel = generator.DefineLabel();
+                    var newDelegate = Transpilers.EmitDelegate<Action<GameObject>>(d =>
+                    {
+                        var mask = d?.transform.parent?.GetComponent<MaskedPlayerEnemy>();
+                        if (mask != null)
+                        {
+                            MaskedPlayerEnemyPatch.ShowNameBillboard(mask);
+                        }
+                    });
+
+                    // Branch to our new if statement from the first check, instead of outside the entire block
+                    billboardCode[0].Instruction.operand = newIfLabel;
+
+                    // Insert new block
+                    codeList.InsertRange(billboardCode.Last().Index + 9, new[]
+                    {
+                        new CodeInstruction(OpCodes.Br, outsideRaycastLabel), // To make this into an else, jump completely out after the original ShowNameBillboard
+                        new CodeInstruction(OpCodes.Ldarg_0).WithLabels(newIfLabel),
+                        new CodeInstruction(OpCodes.Ldflda, typeof(PlayerControllerB).GetField("hit", BindingFlags.Instance | BindingFlags.NonPublic)),
+                        new CodeInstruction(OpCodes.Call, typeof(RaycastHit).GetMethod("get_collider")),
+                        new CodeInstruction(OpCodes.Callvirt, typeof(Component).GetMethod("get_gameObject")),
+                        newDelegate
+                    });
+
+                    Plugin.MLS.LogDebug("Patching PlayerControllerB.SetHoverTipAndCurrentInteractionTrigger to add mask name billboards.");
+                }
+                else
+                {
+                    Plugin.MLS.LogWarning("Unexpected IL code - Could not patch PlayerControllerB.SetHoverTipAndCurrentInteractionTrigger to add mask name billboards!");
+                }
+            }
+
             return codeList;
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SetHoverTipAndCurrentInteractTrigger))]
         [HarmonyPostfix]
-        private static void SetHoverTipAndCurrentInteractTrigger(PlayerControllerB __instance)
+        private static void SetHoverTipAndCurrentInteractTrigger(PlayerControllerB __instance, Ray ___interactRay, RaycastHit ___hit)
         {
             if (Plugin.ShowUIReticle.Value && AssetBundleHelper.Reticle != null && __instance.isPlayerControlled && !__instance.inTerminalMenu)
             {

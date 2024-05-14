@@ -259,9 +259,10 @@ namespace GeneralImprovements.Utilities
             else if (_newMonitors != null)
             {
                 // Make sure any unknown overrides are up to date
-                foreach (var overwritten in MonitorsAPI.AllMonitors.Values.Where(m => m.MeshRenderer.sharedMaterial != m.TargetMaterial))
+                foreach (var overwritten in MonitorsAPI.AllMonitors.Where(m => m.Value.MeshRenderer.sharedMaterial != m.Value.TargetMaterial))
                 {
-                    overwritten.OverwrittenMaterial = overwritten.MeshRenderer.sharedMaterial;
+                    Plugin.MLS.LogInfo($"Detected overwritten material on monitor {overwritten.Key + 1} ({overwritten.Value.MeshRenderer.sharedMaterial.name}). Saving before recreating monitors.");
+                    overwritten.Value.OverwrittenMaterial = overwritten.Value.MeshRenderer.sharedMaterial;
                 }
 
                 Object.Destroy(_newMonitors.gameObject);

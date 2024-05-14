@@ -161,7 +161,7 @@ namespace GeneralImprovements.Patches
                 }
                 else
                 {
-                    curHealth = masked.mimickingPlayer != null ? 0 : masked.enemyHP; // Force deceased if mimicking a player
+                    curHealth = masked.enemyHP;
                     maxHealth = MaskedPlayerEnemyPatch.MaxHealth;
                 }
                 node.subText = ObjectHelper.GetEntityHealthDescription(curHealth, maxHealth);

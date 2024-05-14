@@ -228,8 +228,53 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        [HarmonyPatch(typeof(GameNetworkManager), nameof(SaveGameValues))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> SaveGameValues(IEnumerable<CodeInstruction> instructions)
+        {
+            if (Plugin.SaveShipFurniturePlaces.Value == Enums.eSaveFurniturePlacement.All)
+            {
+                Label? outsideBlockLabel = null;
+                if (instructions.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
+                    i => i.LoadsField(typeof(UnlockableItem).GetField(nameof(UnlockableItem.hasBeenUnlockedByPlayer))),
+                    i => i.Branches(out _),
+                    null, null, null, null, null, // Unlockables array stuff
+                    i => i.LoadsField(typeof(UnlockableItem).GetField(nameof(UnlockableItem.hasBeenMoved))),
+                    i => i.Branches(out _),
+                    null, null, null, null, null, // Unlockables array stuff
+                    i => i.LoadsField(typeof(UnlockableItem).GetField(nameof(UnlockableItem.inStorage))),
+                    i => i.Branches(out outsideBlockLabel)
+                }, out var found))
+                {
+                    // Update the 2nd check to be alreadyUnlocked
+                    found[7].Instruction.operand = typeof(UnlockableItem).GetField(nameof(UnlockableItem.alreadyUnlocked));
+
+                    // NOP out the 3rd check
+                    for (int i = 9; i < found.Length; i++)
+                    {
+                        found[i].Instruction.opcode = OpCodes.Nop;
+                        found[i].Instruction.operand = null;
+                    }
+
+                    // Update the second branch
+                    found[8].Instruction.opcode = OpCodes.Brfalse_S;
+                    found[8].Instruction.operand = outsideBlockLabel;
+
+                    Plugin.MLS.LogDebug("Patching GameNetworkManager.SaveGameValues to remove bought ship items after being fired.");
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected IL code - Could not patch GameNetworkManager.SaveGameValues to fully remove bought ship items after being fired!");
+                }
+            }
+
+            return instructions;
+        }
+
         [HarmonyPatch(typeof(GameNetworkManager), nameof(ResetSavedGameValues))]
         [HarmonyTranspiler]
+        [Harmony]
         private static IEnumerable<CodeInstruction> ResetSavedGameValues(IEnumerable<CodeInstruction> instructions)
         {
             var codeList = instructions.ToList();
@@ -254,7 +299,7 @@ namespace GeneralImprovements.Patches
                     i => i.Branches(out _)
                 }, out var forBlockEnd))
                 {
-                    Plugin.MLS.LogDebug("patching GameNetworkManager.ResetSavedGameValues to keep bought ship decor positions.");
+                    Plugin.MLS.LogDebug("Patching GameNetworkManager.ResetSavedGameValues to keep bought ship decor positions.");
 
                     // NOP out entire for loop
                     for (int i = forBlockStart[4].Index; i <= forBlockEnd.Last().Index; i++)

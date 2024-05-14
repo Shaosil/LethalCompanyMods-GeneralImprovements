@@ -1,5 +1,18 @@
 # Changelog
 
+### v1.2.8 - Fixes and masked settings
+* Fixed ShowBackgroundOnAllScreens not working with UseBetterMonitors after the refactor.
+* Fixed a bug where lightning strikes (and potentially just turning off the monitors) would sometimes softlock their power state to off until a lobby restart.
+* Updated the masked entity blend options once again to be a few separate settings instead of one confusing dropdown.
+	* Added an option to stop the masked entity's radar icon from spinning.
+	* Added an option to prevent masked entity arms from reaching out when chasing players.
+	* Added an option to display a masked entity's targeted player name above their head when not using HidePlayerNames.
+		* This option will also allow the masks to be scannable now instead of ScanPlayers, and they will continue to impersonate a target player.
+* Fixed scanned masked players always saying "Deceased" instead of their respective health when using MaskedEntitiesShowPlayerNames.
+* Fixed bought furniture being saved after players were fired when re-hosting the game if SaveShipFurniturePlaces = All.
+* Fixed moon prices not showing with hidden moons when applicable.
+* Added infinite sprint if debug tools and invincibility are enabled (mostly so I can test more easily with [LethalDevMode](https://thunderstore.io/c/lethal-company/p/megumin/LethalDevMode/)).
+
 ### v1.2.7 - Refactor and compatibility
 * Refactored how the better monitors get initialized, since the code complexity had slowly been increasing with each update. There should be no noticeable changes on users' ends.
 * Updated compatibility with [FacilityMeltdown](https://thunderstore.io/c/lethal-company/p/loaforc/FacilityMeltdown/) so the custom hover tip will be displayed on the apparatus when it isn't grabbable.

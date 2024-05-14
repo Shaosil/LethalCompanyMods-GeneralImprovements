@@ -24,6 +24,13 @@ namespace GeneralImprovements
     {
         public static ManualLogSource MLS { get; private set; }
 
+        private const string EnemiesSection = "Enemies";
+        public static ConfigEntry<bool> MaskedEntitiesWearMasks { get; private set; }
+        public static ConfigEntry<bool> MaskedEntitiesShowPlayerNames { get; private set; }
+        public static ConfigEntry<eMaskedEntityCopyLook> MaskedEntitiesCopyPlayerLooks { get; private set; }
+        public static ConfigEntry<bool> MaskedEntitiesSpinOnRadar { get; private set; }
+        public static ConfigEntry<bool> MaskedEntitiesReachTowardsPlayer { get; private set; }
+
         private const string ExtraMonitorsSection = "ExtraMonitors";
         public static ConfigEntry<bool> UseBetterMonitors { get; private set; }
         public static ConfigEntry<bool> AddMoreBetterMonitors { get; private set; }
@@ -77,7 +84,6 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> KeysHaveInfiniteUses { get; private set; }
         public static ConfigEntry<bool> DestroyKeysAfterOrbiting { get; private set; }
         public static ConfigEntry<bool> SavePlayerSuits { get; private set; }
-        public static ConfigEntry<eMaskBlendLevel> MaskedEntityBlendLevel { get; private set; }
 
         private const string ScannerSection = "Scanner";
         public static ConfigEntry<bool> FixPersonalScanner { get; private set; }
@@ -142,26 +148,26 @@ namespace GeneralImprovements
 
             BindConfigs();
             MigrateOldConfigValues();
-            MLS.LogDebug("Configuration Initialized.");
+            MLS.LogInfo("Configuration Initialized.");
 
             var harmony = new Harmony(Metadata.GUID);
 
             harmony.PatchAll(typeof(AutoParentToShipPatch));
-            MLS.LogDebug("AutoParentToShip patched.");
+            MLS.LogInfo("AutoParentToShip patched.");
 
             harmony.PatchAll(typeof(DepositItemsDeskPatch));
-            MLS.LogDebug("DepositItemsDesk patched.");
+            MLS.LogInfo("DepositItemsDesk patched.");
 
             harmony.PatchAll(typeof(DoorLockPatch));
-            MLS.LogDebug("DoorLock patched.");
+            MLS.LogInfo("DoorLock patched.");
 
             harmony.PatchAll(typeof(EntranceTeleportPatch));
-            MLS.LogDebug("EntranceTeleport patched.");
+            MLS.LogInfo("EntranceTeleport patched.");
 
             if (!OtherModHelper.FlashlightFixActive)
             {
                 harmony.PatchAll(typeof(FlashlightItemPatch));
-                MLS.LogDebug("FlashlightItem patched.");
+                MLS.LogInfo("FlashlightItem patched.");
             }
             else
             {
@@ -169,67 +175,67 @@ namespace GeneralImprovements
             }
 
             harmony.PatchAll(typeof(GameNetworkManagerPatch));
-            MLS.LogDebug("GameNetworkManager patched.");
+            MLS.LogInfo("GameNetworkManager patched.");
 
             harmony.PatchAll(typeof(GrabbableObjectsPatch));
-            MLS.LogDebug("GrabbableObjects patched.");
+            MLS.LogInfo("GrabbableObjects patched.");
 
             harmony.PatchAll(typeof(HangarShipDoorPatch));
-            MLS.LogDebug("HangarShipDoor patched.");
+            MLS.LogInfo("HangarShipDoor patched.");
 
             harmony.PatchAll(typeof(HUDManagerPatch));
-            MLS.LogDebug("HUDManager patched.");
+            MLS.LogInfo("HUDManager patched.");
 
             harmony.PatchAll(typeof(ItemDropshipPatch));
-            MLS.LogDebug("ItemDropship patched.");
+            MLS.LogInfo("ItemDropship patched.");
 
             harmony.PatchAll(typeof(LandminePatch));
-            MLS.LogDebug("Landmine patched.");
+            MLS.LogInfo("Landmine patched.");
 
             harmony.PatchAll(typeof(ManualCameraRendererPatch));
-            MLS.LogDebug("ManualCameraRenderer patched.");
+            MLS.LogInfo("ManualCameraRenderer patched.");
 
             harmony.PatchAll(typeof(MaskedPlayerEnemyPatch));
-            MLS.LogDebug("MaskedPlayerEnemy patched.");
+            MLS.LogInfo("MaskedPlayerEnemy patched.");
 
             harmony.PatchAll(typeof(MenuPatches));
-            MLS.LogDebug("Menus patched.");
+            MLS.LogInfo("Menus patched.");
 
             harmony.PatchAll(typeof(PlayerControllerBPatch));
-            MLS.LogDebug("PlayerControllerB patched.");
+            MLS.LogInfo("PlayerControllerB patched.");
 
             harmony.PatchAll(typeof(RoundManagerPatch));
-            MLS.LogDebug("RoundManager patched.");
+            MLS.LogInfo("RoundManager patched.");
 
             harmony.PatchAll(typeof(ShipBuildModeManagerPatch));
-            MLS.LogDebug("ShipBuildModeManager patched.");
+            MLS.LogInfo("ShipBuildModeManager patched.");
 
             harmony.PatchAll(typeof(ShipTeleporterPatch));
-            MLS.LogDebug("ShipTeleporter patched.");
+            MLS.LogInfo("ShipTeleporter patched.");
 
             harmony.PatchAll(typeof(SprayPaintItemPatch));
-            MLS.LogDebug("SprayPaintItem patched.");
+            MLS.LogInfo("SprayPaintItem patched.");
 
             harmony.PatchAll(typeof(StartMatchLeverPatch));
-            MLS.LogDebug("StartMatchLever patched.");
+            MLS.LogInfo("StartMatchLever patched.");
 
             harmony.PatchAll(typeof(StartOfRoundPatch));
-            MLS.LogDebug("StartOfRound patched.");
+            MLS.LogInfo("StartOfRound patched.");
 
             harmony.PatchAll(typeof(StormyWeatherPatch));
-            MLS.LogDebug("StormyWeather patched.");
+            MLS.LogInfo("StormyWeather patched.");
 
             harmony.PatchAll(typeof(TerminalAccessibleObjectPatch));
-            MLS.LogDebug("TerminalAccessibleObject patched.");
+            MLS.LogInfo("TerminalAccessibleObject patched.");
 
             harmony.PatchAll(typeof(TerminalPatch));
-            MLS.LogDebug("Terminal patched.");
+            MLS.LogInfo("Terminal patched.");
 
             harmony.PatchAll(typeof(TimeOfDayPatch));
-            MLS.LogDebug("TimeOfDay patched.");
+            MLS.LogInfo("TimeOfDay patched.");
 
             harmony.PatchAll(typeof(UnlockableSuitPatch));
-            MLS.LogDebug("UnlockableSuit patched.");
+            MLS.LogInfo("UnlockableSuit patched.");
 
             GameNetworkManagerPatch.PatchNetcode();
 
@@ -243,6 +249,13 @@ namespace GeneralImprovements
             var validToolTypes = new List<Type> { typeof(BoomboxItem), typeof(ExtensionLadderItem), typeof(FlashlightItem), typeof(JetpackItem), typeof(LockPicker), typeof(RadarBoosterItem), typeof(KnifeItem),
                                                 typeof(Shovel), typeof(SprayPaintItem), typeof(StunGrenadeItem), typeof(TetraChemicalItem), typeof(WalkieTalkie), typeof(PatcherTool) };
             var validToolStrings = string.Join(", ", new[] { "All" }.Concat(validToolTypes.Select(t => t.Name)));
+
+            // Enemies
+            MaskedEntitiesWearMasks = Config.Bind(EnemiesSection, nameof(MaskedEntitiesWearMasks), true, "If set to true, masked entities will wear their default masks.");
+            MaskedEntitiesShowPlayerNames = Config.Bind(EnemiesSection, nameof(MaskedEntitiesShowPlayerNames), false, "If set to true, masked entities will display their targeted player's name above their head, as well as be scannable if ScanPlayers = True.");
+            MaskedEntitiesCopyPlayerLooks = Config.Bind(EnemiesSection, nameof(MaskedEntitiesCopyPlayerLooks), eMaskedEntityCopyLook.None, "How much masked entities should look like a targeted player.");
+            MaskedEntitiesSpinOnRadar = Config.Bind(EnemiesSection, nameof(MaskedEntitiesSpinOnRadar), true, "If set to true, masked entities' radar dots will spin randomly, slightly giving away their identity.");
+            MaskedEntitiesReachTowardsPlayer = Config.Bind(EnemiesSection, nameof(MaskedEntitiesReachTowardsPlayer), true, "If set to true, masked entities will reach towards the player they are chasing in a zombie-like way.");
 
             // Extra monitors
             UseBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(UseBetterMonitors), false, "If set to true, upgrades the vanilla monitors with integrated and more customizable overlays.");
@@ -298,7 +311,6 @@ namespace GeneralImprovements
             KeysHaveInfiniteUses = Config.Bind(MechanicsSection, nameof(KeysHaveInfiniteUses), false, "If set to true, keys will not despawn when they are used.");
             DestroyKeysAfterOrbiting = Config.Bind(MechanicsSection, nameof(DestroyKeysAfterOrbiting), false, "If set to true, all keys in YOUR inventory (and IF HOSTING, the ship) will be destroyed after orbiting. Works well to nerf KeysHaveInfiniteUses. Players who do not have this enabled will keep keys currently in their inventory.");
             SavePlayerSuits = Config.Bind(MechanicsSection, nameof(SavePlayerSuits), true, "If set to true, the host will keep track of every player's last used suit, and will persist between loads and ship resets for each save file. Only works in Online mode.");
-            MaskedEntityBlendLevel = Config.Bind(MechanicsSection, nameof(MaskedEntityBlendLevel), eMaskBlendLevel.None, "How much masked entities should look like real players. Each option should be somewhat self explanatory and target specific changes. Use Full for complete effect. Works with MoreCompany cosmetics.");
 
             // Scanner
             FixPersonalScanner = Config.Bind(ScannerSection, nameof(FixPersonalScanner), false, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you, and the ship/main entrance.");
@@ -528,8 +540,30 @@ namespace GeneralImprovements
                 case "FixPersonalScanner": FixPersonalScanner.Value = entry.Value.ToUpper() == "TRUE"; break;
                 case "ScanHeldPlayerItems": ScanHeldPlayerItems.Value = entry.Value.ToUpper() == "TRUE"; break;
 
+                // Indecisive masked entity renaming and reorganizing
+                case "MaskedLookLikePlayers":
+                    bool maskedLookLikePlayers = bool.TryParse(entry.Value, out _);
+                    MaskedEntitiesWearMasks.Value = !maskedLookLikePlayers;
+                    MaskedEntitiesShowPlayerNames.Value = maskedLookLikePlayers;
+                    MaskedEntitiesCopyPlayerLooks.Value = maskedLookLikePlayers ? eMaskedEntityCopyLook.SuitAndCosmetics : eMaskedEntityCopyLook.None;
+                    MaskedEntitiesSpinOnRadar.Value = !maskedLookLikePlayers;
+                    MaskedEntitiesReachTowardsPlayer.Value = !maskedLookLikePlayers;
+                    break;
+                case "MaskedEntityBlendLevel":
+                    string maskBlendLevel = entry.Value.ToUpper();
+                    MaskedEntitiesWearMasks.Value = new[] { "NONE", "JUSTCOPYSUIT", "JUSTCOPYSUITANDCOSMETICS" }.Contains(maskBlendLevel);
+                    MaskedEntitiesShowPlayerNames.Value = maskBlendLevel == "FULL";
+                    switch (maskBlendLevel)
+                    {
+                        case "JUSTCOPYSUIT": case "NOMASKANDCOPYSUIT": MaskedEntitiesCopyPlayerLooks.Value = eMaskedEntityCopyLook.Suit; break;
+                        case "JUSTCOPYSUITANDCOSMETICS": case "FULL": MaskedEntitiesCopyPlayerLooks.Value = eMaskedEntityCopyLook.SuitAndCosmetics; break;
+                        default: MaskedEntitiesCopyPlayerLooks.Value = eMaskedEntityCopyLook.None; break;
+                    }
+                    MaskedEntitiesSpinOnRadar.Value = maskBlendLevel != "FULL";
+                    MaskedEntitiesReachTowardsPlayer.Value = maskBlendLevel != "FULL";
+                    break;
+
                 // Settings that were converted from bools to enums
-                case "MaskedLookLikePlayers": MaskedEntityBlendLevel.Value = bool.TryParse(entry.Value, out _) ? eMaskBlendLevel.Full : eMaskBlendLevel.None; break;
                 case "SaveShipFurniturePlaces": SaveShipFurniturePlaces.Value = bool.TryParse(entry.Value, out _) ? eSaveFurniturePlacement.All : eSaveFurniturePlacement.None; break;
 
                 default:

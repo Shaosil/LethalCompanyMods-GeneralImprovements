@@ -9,7 +9,7 @@ namespace GeneralImprovements
 
         public enum eShowHiddenMoons { Never, AfterDiscovery, Always }
 
-        public enum eMaskBlendLevel { None, JustNoMask, JustCopySuit, JustCopySuitAndCosmetics, NoMaskAndCopySuit, Full }
+        public enum eMaskedEntityCopyLook { None, Suit, SuitAndCosmetics }
 
         public enum eSaveFurniturePlacement { None, StartingFurniture, All }
 

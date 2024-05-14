@@ -553,6 +553,12 @@ namespace GeneralImprovements.Patches
                     MonitorsHelper.RefreshQueuedMonitorChanges();
                 }
             }
+
+            // If we are invulnerable, never let the sprint meter drain
+            if (!__instance.allowLocalPlayerDeath && __instance.localPlayerController != null && __instance.localPlayerController.sprintMeter < 1)
+            {
+                __instance.localPlayerController.sprintMeter = 1;
+            }
         }
     }
 }

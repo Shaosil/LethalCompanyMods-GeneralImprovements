@@ -203,7 +203,7 @@ namespace GeneralImprovements.Patches
                         if (matchingMoonNode != null)
                         {
                             string cost = !Plugin.ShowMoonPricesInTerminal.Value || matchingMoonNode.result.itemCost <= 0 ? string.Empty : $"- ${matchingMoonNode.result.itemCost}";
-                            modifiedDisplayText = Regex.Replace(modifiedDisplayText, @$"({matchingMoonNode.noun.word}).+", $"$1 {weather}{cost}", RegexOptions.IgnoreCase);
+                            modifiedDisplayText = Regex.Replace(modifiedDisplayText, @$"({matchingMoonNode.noun.word}).*", $"$1 {weather}{cost}", RegexOptions.IgnoreCase);
                         }
                         else
                         {
