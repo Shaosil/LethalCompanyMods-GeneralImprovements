@@ -131,15 +131,15 @@ namespace GeneralImprovements.Patches
         {
             var codeList = instructions.ToList();
 
-            if (Plugin.KeepItemsDuringTeleport.Value != eItemsToKeep.None)
+            if (Plugin.KeepItemsDuringInverse.Value != eItemsToKeep.None)
             {
                 if (codeList.TryFindInstruction(i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.DropAllHeldItems))), out var found))
                 {
-                    if (Plugin.KeepItemsDuringTeleport.Value == eItemsToKeep.Held || Plugin.KeepItemsDuringTeleport.Value == eItemsToKeep.NonScrap)
+                    if (Plugin.KeepItemsDuringInverse.Value == eItemsToKeep.Held || Plugin.KeepItemsDuringInverse.Value == eItemsToKeep.NonScrap)
                     {
                         var dropAllExceptHeldDelegate = Transpilers.EmitDelegate<Action<PlayerControllerB>>((player) =>
                         {
-                            PlayerControllerBPatch.DropAllItemsExceptHeld(player, Plugin.KeepItemsDuringTeleport.Value == eItemsToKeep.NonScrap);
+                            PlayerControllerBPatch.DropAllItemsExceptHeld(player, Plugin.KeepItemsDuringInverse.Value == eItemsToKeep.NonScrap);
                         });
 
                         // Replace the function call with our own
