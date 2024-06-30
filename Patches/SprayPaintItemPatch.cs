@@ -20,11 +20,10 @@ namespace GeneralImprovements.Patches
         {
             // Patch out the random color assignment lines
             var codeList = instructions.ToList();
-            var raycastCode = codeList[4];
             if (codeList.TryFindInstruction(i => i.Is(OpCodes.Initobj, typeof(RaycastHit)), out var found))
             {
                 Plugin.MLS.LogDebug("Patching out old spray can random color assignment.");
-                codeList = codeList.Take(5).Concat(new[] { codeList.Last() }).ToList();
+                codeList = codeList.Take(6).Concat(new[] { codeList.Last() }).ToList();
             }
             else
             {
@@ -54,10 +53,13 @@ namespace GeneralImprovements.Patches
 
         public static void UpdateColor(SprayPaintItem instance, int matIndex)
         {
-            SprayCanMatIndexField.SetValue(instance, matIndex);
-            instance.sprayParticle.GetComponent<ParticleSystemRenderer>().material = instance.particleMats[matIndex];
-            instance.sprayCanNeedsShakingParticle.GetComponent<ParticleSystemRenderer>().material = instance.particleMats[matIndex];
-            Plugin.MLS.LogDebug($"Updated spray paint item color to material index {matIndex}");
+            if (!instance.isWeedKillerSprayBottle)
+            {
+                SprayCanMatIndexField.SetValue(instance, matIndex);
+                instance.sprayParticle.GetComponent<ParticleSystemRenderer>().material = instance.particleMats[matIndex];
+                instance.sprayCanNeedsShakingParticle.GetComponent<ParticleSystemRenderer>().material = instance.particleMats[matIndex];
+                Plugin.MLS.LogDebug($"Updated spray paint item color to material index {matIndex}");
+            }
         }
 
         public static SprayPaintItem[] GetAllOrderedSprayPaintItemsInShip()
