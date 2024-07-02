@@ -25,7 +25,7 @@ namespace GeneralImprovements.Patches
                     __instance.gameObject.SetActive(false);
                 }
                 // Otherwise, pin the clipboard to the wall when loading in
-                else if (__instance is ClipboardItem)
+                else if (__instance is ClipboardItem clipboardItem && !clipboardItem.truckManual)
                 {
                     __instance.transform.SetLocalPositionAndRotation(new Vector3(2, 2.25f, -9.125f), Quaternion.Euler(0, -90, 90));
                 }
