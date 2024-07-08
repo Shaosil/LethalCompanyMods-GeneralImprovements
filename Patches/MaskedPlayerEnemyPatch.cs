@@ -123,10 +123,8 @@ namespace GeneralImprovements.Patches
 
         internal static void ShowNameBillboard(MaskedPlayerEnemy mask)
         {
-            Plugin.MLS.LogError("IN BILLBOARD CALL");
             if (_maskUsernames.ContainsKey(mask))
             {
-                Plugin.MLS.LogError($"SHOWING MASK BILLBOARD TEXT: {_maskUsernames[mask].Value.GetComponent<TextMeshProUGUI>().text}");
                 _maskUsernames[mask].Value.alpha = 1;
                 _maskUsernames[mask].Key.gameObject.SetActive(true);
             }

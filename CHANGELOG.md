@@ -1,5 +1,10 @@
 # Changelog
 
+### v1.3.0 - v56 Support, fixes, and cleanup
+* Added compatibility for v56+ (thanks for the PR help 1A3Dev!).
+* Removed "error" logs when targeting masked entities that I left over from debugging.
+* Fixed the KeepItemsDuringInverse not working (thanks for the PR EugeneWolf!).
+
 ### v1.2.8 - Fixes and masked settings
 * Fixed ShowBackgroundOnAllScreens not working with UseBetterMonitors after the refactor.
 * Fixed a bug where lightning strikes (and potentially just turning off the monitors) would sometimes softlock their power state to off until a lobby restart.

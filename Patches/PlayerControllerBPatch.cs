@@ -382,19 +382,22 @@ namespace GeneralImprovements.Patches
                 i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.cursorTip))),
                 i => i.Is(OpCodes.Ldstr, "Inventory full!"),
                 i => i.Calls(typeof(TMP_Text).GetMethod("set_text")),
-                i => i.Branches(out _),
+                i => i.Branches(out _), // Index 14
 
                 i => i.IsLdarg(0), // Index 15
                 i => i.LoadsField(typeof(PlayerControllerB).GetField("hit", BindingFlags.Instance | BindingFlags.NonPublic), true),
                 i => i.Calls(typeof(RaycastHit).GetMethod("get_collider")),
                 i => i.Calls(typeof(Component).GetMethod("get_gameObject")),
                 i => i.Calls(typeof(GameObject).GetMethod(nameof(GameObject.GetComponent), 1, Type.EmptyTypes).MakeGenericMethod(typeof(GrabbableObject))),
-                i => i.opcode == OpCodes.Stloc_2,
+                i => i.opcode == OpCodes.Stloc_2, // Index 20
 
-                i => i.Calls(typeof(GameNetworkManager).GetMethod("get_Instance"))
+                // 20 lines to a vehicle linecast we don't care about
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+
+                i => i.Calls(typeof(GameNetworkManager).GetMethod("get_Instance")) // Index 41
             }, out var grabbableCode))
             {
-                // Create a label on the line below our GetComponent call, and branch to that instead
+                // Create a label on the get_Instance call, and branch to that instead
                 var newLabel = generator.DefineLabel();
                 codeList[grabbableCode.Last().Index].labels.Add(newLabel);
                 grabbableCode[9].Instruction.operand = newLabel;
@@ -738,6 +741,17 @@ namespace GeneralImprovements.Patches
                 {
                     targetFlashlight.UseItemOnClient();
                 }
+            }
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(LateUpdate))]
+        [HarmonyPostfix]
+        private static void LateUpdate(PlayerControllerB __instance)
+        {
+            // If we are invulnerable, never let the sprint meter drain
+            if (StartOfRound.Instance != null && !StartOfRound.Instance.allowLocalPlayerDeath && __instance != null && __instance.sprintMeter < 1)
+            {
+                __instance.sprintMeter = 1;
             }
         }
 
