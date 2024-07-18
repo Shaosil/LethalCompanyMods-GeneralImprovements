@@ -142,9 +142,10 @@ namespace GeneralImprovements.Assets
             foreach (var kvp in MonitorsAPI.AllMonitors)
             {
                 var monitor = kvp.Value;
+                bool monitorOn = monitor.MeshRenderer.sharedMaterial != _blankScreenMaterial;
 
-                // If we are turning the monitor off (or refreshing) and we have a new material (probably from another mod that started after us), overwrite our stored one
-                if ((!on || monitor.MeshRenderer.sharedMaterial.name != _blankScreenMaterial.name) && monitor.MeshRenderer.sharedMaterial != monitor.TargetMaterial)
+                // If the monitor is currently on and we have a new material (probably from another mod that started after us), overwrite our stored one
+                if (monitorOn && monitor.MeshRenderer.sharedMaterial != monitor.TargetMaterial)
                 {
                     Plugin.MLS.LogWarning($"Found an unexpected material on ship monitor {kvp.Key + 1} ({monitor.MeshRenderer.sharedMaterial.name}). Using it instead, since it was most likely purposefully assigned.");
                     monitor.OverwrittenMaterial = monitor.MeshRenderer.sharedMaterial;

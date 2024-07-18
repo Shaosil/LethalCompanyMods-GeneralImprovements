@@ -54,7 +54,7 @@ namespace GeneralImprovements.Patches
             foreach (var item in allItems)
             {
                 // Allow all items to be grabbed before game start
-                if (!item.canBeGrabbedBeforeGameStart)
+                if (!item.canBeGrabbedBeforeGameStart && Plugin.AllowPickupOfAllItemsPreStart.Value)
                 {
                     item.canBeGrabbedBeforeGameStart = true;
                 }

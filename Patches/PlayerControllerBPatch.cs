@@ -445,15 +445,10 @@ namespace GeneralImprovements.Patches
                 if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
                 {
                     i => i.IsLdarg(0),
-                    i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.gameplayCamera))),
-                    i => i.Calls(typeof(Component).GetMethod("get_transform")),
-                    i => i.Calls(typeof(Transform).GetMethod("get_forward")),
-                    i => i.Is(OpCodes.Newobj, typeof(Ray).GetConstructor(new[] { typeof(Vector3), typeof(Vector3) })),
-                    i => i.StoresField(typeof(PlayerControllerB).GetField("interactRay", BindingFlags.Instance | BindingFlags.NonPublic))
-                }, out var interactRayCode)
+                    i => i.LoadsField(typeof(PlayerControllerB).GetField("interactRay", BindingFlags.NonPublic | BindingFlags.Instance)),
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(PlayerControllerB).GetField("hit", BindingFlags.NonPublic | BindingFlags.Instance), true),
 
-                    && codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
-                {
                     i => i.LoadsConstant(5f),
                     i => i.IsLdarg(0),
                     i => i.LoadsField(typeof(PlayerControllerB).GetField("playerMask", BindingFlags.Instance | BindingFlags.NonPublic)),
@@ -468,23 +463,36 @@ namespace GeneralImprovements.Patches
                 }, out var billboardCode))
                 {
                     // Include enemy layer in our raycast
-                    codeList[raycastCode[1].Index] = new CodeInstruction(OpCodes.Nop);
-                    codeList[raycastCode[2].Index] = new CodeInstruction(OpCodes.Ldc_I4, LayerMask.GetMask("Player", "Enemies"));
+                    codeList[raycastCode[5].Index] = new CodeInstruction(OpCodes.Nop);
+                    codeList[raycastCode[6].Index] = new CodeInstruction(OpCodes.Ldc_I4, LayerMask.GetMask("Player", "Enemies"));
 
-                    // Move the interact ray starting position 0.5 units forward
-                    codeList.InsertRange(interactRayCode[0].Index, new[]
+                    // Nop out the loading of the interact ray param
+                    codeList[raycastCode[0].Index] = new CodeInstruction(OpCodes.Nop);
+                    codeList[raycastCode[1].Index] = new CodeInstruction(OpCodes.Nop);
+
+                    // Replace the interactRay parameter with a new Ray with a starting position 0.5 units forward
+                    codeList.InsertRange(raycastCode[2].Index, new[]
                     {
-                        new CodeInstruction(OpCodes.Ldarg, 0),
+                        new CodeInstruction(OpCodes.Ldarg_0),
+                        new CodeInstruction(OpCodes.Ldfld, typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.gameplayCamera))),
+                        new CodeInstruction(OpCodes.Callvirt, typeof(Component).GetMethod("get_transform")),
+                        new CodeInstruction(OpCodes.Callvirt, typeof(Transform).GetMethod("get_position")),
+                        new CodeInstruction(OpCodes.Ldarg_0),
                         new CodeInstruction(OpCodes.Ldfld, typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.gameplayCamera))),
                         new CodeInstruction(OpCodes.Callvirt, typeof(Component).GetMethod("get_transform")),
                         new CodeInstruction(OpCodes.Callvirt, typeof(Transform).GetMethod("get_forward")),
                         new CodeInstruction(OpCodes.Ldc_R4, 0.5f),
                         new CodeInstruction(OpCodes.Call, typeof(Vector3).GetMethod("op_Multiply", new[] { typeof(Vector3), typeof(float) })),
-                        new CodeInstruction(OpCodes.Call, typeof(Vector3).GetMethod("op_Addition", new[] { typeof(Vector3), typeof(Vector3) }))
+                        new CodeInstruction(OpCodes.Call, typeof(Vector3).GetMethod("op_Addition", new[] { typeof(Vector3), typeof(Vector3) })),
+                        new CodeInstruction(OpCodes.Ldarg_0),
+                        new CodeInstruction(OpCodes.Ldfld, typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.gameplayCamera))),
+                        new CodeInstruction(OpCodes.Callvirt, typeof(Component).GetMethod("get_transform")),
+                        new CodeInstruction(OpCodes.Callvirt, typeof(Transform).GetMethod("get_forward")),
+                        new CodeInstruction(OpCodes.Newobj, typeof(Ray).GetConstructor(new Type[] { typeof(Vector3), typeof(Vector3) }))
                     });
 
                     // Update the raycast call to collide with triggers so it can detect masked entities' colliders (they only have triggers)
-                    codeList.Insert(raycastCode.Last().Index + 7, new CodeInstruction(OpCodes.Ldc_I4, (int)QueryTriggerInteraction.Collide));
+                    codeList.Insert(raycastCode.Last().Index + 16, new CodeInstruction(OpCodes.Ldc_I4, (int)QueryTriggerInteraction.Collide));
                     raycastCode.Last().Instruction.operand = typeof(Physics).GetMethod(nameof(Physics.Raycast), new[] { typeof(Ray), typeof(RaycastHit).MakeByRefType(), typeof(float), typeof(int), typeof(QueryTriggerInteraction) });
 
                     // Create a new label and emit a delegate to check if we can get a MaskedPlayerEnemy component
@@ -502,7 +510,7 @@ namespace GeneralImprovements.Patches
                     billboardCode[0].Instruction.operand = newIfLabel;
 
                     // Insert new block
-                    codeList.InsertRange(billboardCode.Last().Index + 9, new[]
+                    codeList.InsertRange(billboardCode.Last().Index + 18, new[]
                     {
                         new CodeInstruction(OpCodes.Br, outsideRaycastLabel), // To make this into an else, jump completely out after the original ShowNameBillboard
                         new CodeInstruction(OpCodes.Ldarg_0).WithLabels(newIfLabel),
@@ -715,7 +723,7 @@ namespace GeneralImprovements.Patches
         private static void Update(PlayerControllerB __instance)
         {
             // Keep max health values up to date
-            if (PlayerMaxHealthValues.GetValueOrDefault(__instance) < __instance.health)
+            if (!PlayerMaxHealthValues.ContainsKey(__instance) || PlayerMaxHealthValues[__instance] < __instance.health)
             {
                 Plugin.MLS.LogInfo($"Storing player {__instance.playerUsername}'s max health as {__instance.health}");
                 PlayerMaxHealthValues[__instance] = __instance.health;

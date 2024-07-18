@@ -20,6 +20,7 @@ namespace GeneralImprovements
     [BepInDependency(OtherModHelper.TwoRadarCamsGUID, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(OtherModHelper.MimicsGUID, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(OtherModHelper.WeatherTweaksGUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(OtherModHelper.CodeRebirthGUID, BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
         public static ManualLogSource MLS { get; private set; }
@@ -72,6 +73,7 @@ namespace GeneralImprovements
         public static ConfigEntry<float> ScrollDelay { get; private set; }
 
         private const string MechanicsSection = "Mechanics";
+        public static ConfigEntry<bool> AllowPickupOfAllItemsPreStart { get; private set; }
         public static ConfigEntry<int> StartingMoneyPerPlayer { get; private set; }
         public static int StartingMoneyPerPlayerVal => Math.Clamp(StartingMoneyPerPlayer.Value, -1, 10000);
         public static ConfigEntry<int> MinimumStartingMoney { get; private set; }
@@ -88,7 +90,6 @@ namespace GeneralImprovements
         private const string ScannerSection = "Scanner";
         public static ConfigEntry<bool> FixPersonalScanner { get; private set; }
         public static ConfigEntry<bool> ScanPlayers { get; private set; }
-        public static ConfigEntry<bool> ScanHeldPlayerItems { get; private set; }
         public static ConfigEntry<bool> ShowDropshipOnScanner { get; private set; }
         public static ConfigEntry<bool> ShowDoorsOnScanner { get; private set; }
 
@@ -151,6 +152,9 @@ namespace GeneralImprovements
             MLS.LogInfo("Configuration Initialized.");
 
             var harmony = new Harmony(Metadata.GUID);
+
+            harmony.PatchAll(typeof(ILManipulatorPatch));
+            MLS.LogInfo("ILManipulator patched (fixes rare cases where transpilers do not emit the expected IL code.");
 
             harmony.PatchAll(typeof(AutoParentToShipPatch));
             MLS.LogInfo("AutoParentToShip patched.");
@@ -239,6 +243,9 @@ namespace GeneralImprovements
 
             GameNetworkManagerPatch.PatchNetcode();
 
+            // Custom patches for other things
+            OtherModHelper.PatchCodeRebirthIfNeeded(harmony);
+
             MLS.LogInfo($"{Metadata.PLUGIN_NAME} v{Metadata.VERSION} fully loaded.");
         }
 
@@ -301,6 +308,7 @@ namespace GeneralImprovements
             ScrollDelay = Config.Bind(InventorySection, nameof(ScrollDelay), 0.1f, new ConfigDescription("The minimum time you must wait to scroll to another item in your inventory. Vanilla: 0.3.", new AcceptableValueRange<float>(0.05f, 0.3f)));
 
             // Mechanics
+            AllowPickupOfAllItemsPreStart = Config.Bind(MechanicsSection, nameof(AllowPickupOfAllItemsPreStart), true, "Allows you to pick up all grabbable items before the game is started.");
             StartingMoneyPerPlayer = Config.Bind(MechanicsSection, nameof(StartingMoneyPerPlayer), -1, "[Host Only] How much starting money the group gets per player. Set to -1 to disable. Adjusts money as players join and leave, until the game starts. Internally capped at 10k.");
             MinimumStartingMoney = Config.Bind(MechanicsSection, nameof(MinimumStartingMoney), 30, "[Host Only] When paired with StartingMoneyPerPlayer, will ensure a group always starts with at least this much money. Must be at least the value of StartingMoneyPerPlayer. Internally capped at 10k.");
             AllowQuotaRollover = Config.Bind(MechanicsSection, nameof(AllowQuotaRollover), false, "[Host Required] If set to true, will keep the surplus money remaining after selling things to the company, and roll it over to the next quota. If clients do not set this, they will see visual desyncs.");
@@ -315,7 +323,6 @@ namespace GeneralImprovements
             // Scanner
             FixPersonalScanner = Config.Bind(ScannerSection, nameof(FixPersonalScanner), false, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you, and the ship/main entrance.");
             ScanPlayers = Config.Bind(ScannerSection, nameof(ScanPlayers), false, "If set to true, players (and sneaky masked entities) will be scannable.");
-            ScanHeldPlayerItems = Config.Bind(ScannerSection, nameof(ScanHeldPlayerItems), false, "If this and FixPersonalScanner are set to true, the scanner will also ping items in other players' hands.");
             ShowDropshipOnScanner = Config.Bind(ScannerSection, nameof(ShowDropshipOnScanner), false, "If set to true, the item drop ship will be scannable.");
             ShowDoorsOnScanner = Config.Bind(ScannerSection, nameof(ShowDoorsOnScanner), false, "If set to true, all fire entrances and facility exits will be scannable. Compatible with mimics mod (they show up as an exit as well).");
 
@@ -536,9 +543,8 @@ namespace GeneralImprovements
                 case "ShipInternalCamMonitorNum": convertMonitor(eMonitorNames.InternalCam); break;
                 case "ShipExternalCamMonitorNum": convertMonitor(eMonitorNames.ExternalCam); break;
 
-                // A couple things under fixes section moving to scanner section
+                // Things under fixes section moving to scanner section
                 case "FixPersonalScanner": FixPersonalScanner.Value = entry.Value.ToUpper() == "TRUE"; break;
-                case "ScanHeldPlayerItems": ScanHeldPlayerItems.Value = entry.Value.ToUpper() == "TRUE"; break;
 
                 // Indecisive masked entity renaming and reorganizing
                 case "MaskedLookLikePlayers":

@@ -4,6 +4,7 @@ using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 
@@ -101,10 +102,14 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(KeyItem), "ItemActivate")]
         [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> PatchKeyActivate(IEnumerable<CodeInstruction> instructions)
+        private static IEnumerable<CodeInstruction> PatchKeyActivate(IEnumerable<CodeInstruction> instructions, MethodBase method)
         {
-            var codeList = instructions.ToList();
+            return ApplyGenericKeyActivateTranspiler(instructions.ToList(), method);
+        }
 
+        public static IEnumerable<CodeInstruction> ApplyGenericKeyActivateTranspiler(List<CodeInstruction> codeList, MethodBase method)
+        {
+            // Make sure we only transpile if needed
             if (Plugin.UnlockDoorsFromInventory.Value || Plugin.KeysHaveInfiniteUses.Value)
             {
                 // Call DestroyItemInSlot instead of DespawnHeldObject
@@ -117,7 +122,7 @@ namespace GeneralImprovements.Patches
                 {
                     if (Plugin.KeysHaveInfiniteUses.Value)
                     {
-                        Plugin.MLS.LogDebug("Patching key activate to no longer call DespawnHeldObject.");
+                        Plugin.MLS.LogDebug($"Patching key activate (in {method.DeclaringType.Name}.{method.Name}) to no longer call DespawnHeldObject.");
 
                         // Simply remove the call (3 lines)
                         for (int i = 0; i < found.Length; i++)
@@ -127,7 +132,7 @@ namespace GeneralImprovements.Patches
                     }
                     else
                     {
-                        Plugin.MLS.LogDebug("Patching key activate to call DestroyItemInSlot instead of DespawnHeldObject.");
+                        Plugin.MLS.LogDebug($"Patching key activate (in {method.DeclaringType.Name}.{method.Name}) to call DestroyItemInSlot instead of DespawnHeldObject.");
 
                         // Remove the previous line that loads playerHeldBy onto the stack
                         found[1].Instruction.opcode = OpCodes.Nop;

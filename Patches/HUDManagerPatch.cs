@@ -56,6 +56,53 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        [HarmonyPatch(typeof(HUDManager), "PingScan_performed")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> PingScan_performedTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+        {
+            var codeList = instructions.ToList();
+
+            if (Plugin.FixPersonalScanner.Value)
+            {
+                if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+                {
+                    i => i.IsLdarg(0),
+                    i => i.opcode == OpCodes.Ldc_R4,
+                    i => i.StoresField(typeof(HUDManager).GetField("playerPingingScan", BindingFlags.Instance | BindingFlags.NonPublic))
+                }, out var pingCode))
+                {
+                    Plugin.MLS.LogDebug("Patching HUDManager.PingScan_performed to assign nodes on demand.");
+
+                    // Define and assign a label to jump to if we don't need to call AssignNewNodes
+                    var nextLabel = generator.DefineLabel();
+                    codeList[pingCode.Last().Index + 1].labels.Add(nextLabel);
+
+                    codeList.InsertRange(pingCode.Last().Index + 1, new CodeInstruction[]
+                    {
+                        // If updateScanInterval was recently called (< 0.25s ago), skip past the manual call
+                        new CodeInstruction(OpCodes.Ldarg_0),
+                        new CodeInstruction(OpCodes.Ldfld, typeof(HUDManager).GetField("updateScanInterval", BindingFlags.Instance | BindingFlags.NonPublic)),
+                        new CodeInstruction(OpCodes.Ldc_R4, 0.25f),
+                        new CodeInstruction(OpCodes.Blt, nextLabel),
+
+                        // Load required parameter onto the stack
+                        new CodeInstruction(OpCodes.Ldarg_0),
+                        new CodeInstruction(OpCodes.Call, typeof(GameNetworkManager).GetMethod("get_Instance")),
+                        new CodeInstruction(OpCodes.Ldfld, typeof(GameNetworkManager).GetField(nameof(GameNetworkManager.localPlayerController))),
+                        
+                        // Call AssignNewNodes on demand
+                        new CodeInstruction(OpCodes.Call, typeof(HUDManager).GetMethod("AssignNewNodes", BindingFlags.Instance | BindingFlags.NonPublic))
+                    });
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected IL Code - Could not patch HUDManager.PingScan_performed to assign nodes on demand!");
+                }
+            }
+
+            return codeList;
+        }
+
         [HarmonyPatch(typeof(HUDManager), nameof(AssignNewNodes))]
         [HarmonyPrefix]
         private static bool AssignNewNodes(HUDManager __instance, PlayerControllerB playerScript, ref int ___scannedScrapNum, List<ScanNodeProperties> ___nodesOnScreen)
@@ -68,21 +115,20 @@ namespace GeneralImprovements.Patches
             ___nodesOnScreen.Clear();
             ___scannedScrapNum = 0;
 
-            // Get all the in-range scannables in the player's camera viewbox and sort them by distance away from the player
+            // Get the planes of the active camera view
             var camPlanes = GeometryUtility.CalculateFrustumPlanes(playerScript.gameplayCamera);
-            var allScannables = Object.FindObjectsOfType<ScanNodeProperties>()
-                .Select(s => new KeyValuePair<float, ScanNodeProperties>(Vector3.Distance(s.transform.position, playerScript.transform.position), s))
-                .Where(s => ((s.Value.GetComponent<Collider>()?.enabled ?? false) // Active and enabled...
-                        || (Plugin.ScanHeldPlayerItems.Value && s.Value.GetComponentInParent<GrabbableObject>() is GrabbableObject g
-                            && !g.isPocketed && g.playerHeldBy != null && g.playerHeldBy != playerScript)) // ... or held by someone else
-                        && s.Key >= s.Value.minRange && s.Key <= s.Value.maxRange // In range
-                        && GeometryUtility.TestPlanesAABB(camPlanes, new Bounds(s.Value.transform.position, Vector3.one))) // In camera view
-                .OrderBy(s => s.Key);
+
+            // Cast a giant sphere 100f around ourself to get scan nodes we collided with, ordered by distance
+            var nearbyScanNodes = Physics.OverlapSphere(playerScript.gameplayCamera.transform.position, 100f, 0x400000)
+                .Select(n => new KeyValuePair<float, ScanNodeProperties>(Vector3.Distance(n.transform.position, playerScript.transform.position), n.transform.GetComponent<ScanNodeProperties>()))
+                .Where(s => s.Key >= s.Value.minRange && s.Key <= s.Value.maxRange                                      // In range
+                    && GeometryUtility.TestPlanesAABB(camPlanes, new Bounds(s.Value.transform.position, Vector3.one)))  // In camera view
+                .OrderBy(n => n.Key);
 
             // Now attempt to scan each of them, stopping when we fill the number of UI elements
-            foreach (var scannable in allScannables)
+            foreach (var scannable in nearbyScanNodes.Select(s => s.Value))
             {
-                AttemptScanNodeMethod.Invoke(__instance, new object[] { scannable.Value, 0, playerScript });
+                AttemptScanNodeMethod.Invoke(__instance, new object[] { scannable, 0, playerScript });
                 if (___nodesOnScreen.Count >= __instance.scanElements.Length)
                 {
                     break;
@@ -93,55 +139,134 @@ namespace GeneralImprovements.Patches
             return false;
         }
 
-        [HarmonyPatch(typeof(HUDManager), nameof(MeetsScanNodeRequirements))]
-        [HarmonyPrefix]
-        private static bool MeetsScanNodeRequirements(ScanNodeProperties node, PlayerControllerB playerScript, ref bool __result)
+        [HarmonyPatch(typeof(HUDManager), "MeetsScanNodeRequirements")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> MeetsScanNodeRequirementsTranspiler(IEnumerable<CodeInstruction> instructions)
         {
-            if (node == null)
-            {
-                __result = false;
-            }
-            else
-            {
-                float dist = Vector3.Distance(playerScript.transform.position, node.transform.position);
-                bool inRange = dist <= node.maxRange && dist >= node.minRange;
-                bool collidesWithRoom = false;
+            var codeList = instructions.ToList();
 
-                // If we are in range, include both scan node and room layers when doing the line cast
-                if (inRange)
+            if (Plugin.FixPersonalScanner.Value)
+            {
+                if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
                 {
-                    var mask = LayerMask.GetMask("ScanNode", "Room");
-                    Physics.Linecast(playerScript.gameplayCamera.transform.position, node.transform.position, out var hitInfo, mask, QueryTriggerInteraction.Ignore);
-                    collidesWithRoom = hitInfo.transform?.gameObject.layer == LayerMask.NameToLayer("Room");
-                }
+                    i => i.LoadsConstant(0x100),
+                    i => i.LoadsConstant(1),
+                    i => i.Calls(typeof(Physics).GetMethod(nameof(Physics.Linecast), new System.Type[] { typeof(Vector3), typeof(Vector3), typeof(int), typeof(QueryTriggerInteraction) }))
+                }, out var scanCode))
+                {
+                    Plugin.MLS.LogDebug("Patching HUDManager.MeetsScanNodeRequiredments to include scan nodes in the linecast check.");
 
-                __result = inRange && (!node.requiresLineOfSight || !collidesWithRoom);
+                    // Change the layer mask to be scan node (22) and room (8)
+                    codeList[scanCode[0].Index].operand = 0x400100;
+
+                    // Change the simple linecast bool call to only return true if the collision is with a room
+                    codeList[scanCode.Last().Index] = Transpilers.EmitDelegate<System.Func<Vector3, Vector3, int, QueryTriggerInteraction, bool>>((start, end, mask, interaction) =>
+                    {
+                        return Physics.Linecast(start, end, out var hitInfo, mask, interaction) && hitInfo.transform?.gameObject.layer == 8;
+                    });
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected IL Code - Could not transpile HUDManager.MeetsScanNodeRequiredments!");
+                }
             }
 
-            // Do not call the original method
-            return false;
+            return codeList;
         }
 
-        [HarmonyPatch(typeof(HUDManager), nameof(UpdateScanNodes))]
-        [HarmonyPostfix]
-        private static void UpdateScanNodes(RectTransform[] ___scanElements, Dictionary<RectTransform, ScanNodeProperties> ___scanNodes)
+        [HarmonyPatch(typeof(HUDManager), "UpdateScanNodes")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> UpdateScanNodesTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
-            // Disable subtext if desired and it has no text or scrap value
-            if (Plugin.HideEmptySubtextOfScanNodes.Value && ___scanElements != null)
-            {
-                foreach (var scanElement in ___scanElements.Where(s => s.gameObject.activeSelf))
-                {
-                    var subText = scanElement.GetComponentsInChildren<TextMeshProUGUI>().FirstOrDefault(t => t.name.ToUpper() == "SUBTEXT");
-                    var subTextBox = subText?.transform.parent.Find("SubTextBox");
+            var codeList = instructions.ToList();
 
-                    if (subTextBox != null && subText != null && ___scanNodes.ContainsKey(scanElement) && ___scanNodes[scanElement] != null)
-                    {
-                        bool shouldHide = string.IsNullOrWhiteSpace(subText.text) || subText.text.ToUpper().Contains("VALUE: $0");
-                        subTextBox.gameObject.SetActive(!shouldHide);
-                        subText.enabled = !shouldHide;
-                    }
+            // Increase scan interval if FixPersonalScanner is active since it is more performance heavy
+            if (Plugin.FixPersonalScanner.Value)
+            {
+                if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+                {
+                    i => i.IsLdarg(0),
+                    i => i.LoadsConstant(0.25f),
+                    i => i.StoresField(typeof(HUDManager).GetField("updateScanInterval", BindingFlags.Instance | BindingFlags.NonPublic))
+                }, out var scanIntervalCode))
+                {
+                    Plugin.MLS.LogDebug("Patching HUDManager.UpdateScanNodes to increase scan interval.");
+
+                    scanIntervalCode[1].Instruction.operand = 1f;
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected IL Code - Could not patch HUDManager.UpdateScanNodes to increase scan interval!");
                 }
             }
+
+            // Disable subtext if desired and it has no text or scrap value
+            if (Plugin.HideEmptySubtextOfScanNodes.Value)
+            {
+                var scanElementTextField = typeof(HUDManager).GetField("scanElementText", BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+                {
+                        // Store text components from children
+                        i => i.StoresField(scanElementTextField),
+
+                        // scanElementText.Length < 1
+                        i => i.IsLdarg(0), // Index 1
+                        i => i.LoadsField(scanElementTextField),
+                        i => i.opcode == OpCodes.Ldlen,
+                        i => i.opcode == OpCodes.Conv_I4,
+                        i => i.LoadsConstant(1),
+                        i => i.Branches(out _),
+
+                        // Set header text [0]
+                        i => i.IsLdarg(0), // Index 7
+                        i => i.LoadsField(scanElementTextField),
+                        i => i.LoadsConstant(0),
+                        i => i.opcode == OpCodes.Ldelem_Ref,
+                        i => i.IsLdloc(),
+                        i => i.LoadsField(typeof(ScanNodeProperties).GetField(nameof(ScanNodeProperties.headerText))),
+                        i => i.Calls(typeof(TMP_Text).GetMethod("set_text")),
+
+                        // Set sub text [1]
+                        i => i.IsLdarg(0), // Index 14
+                        i => i.LoadsField(scanElementTextField),
+                        i => i.LoadsConstant(1),
+                        i => i.opcode == OpCodes.Ldelem_Ref,
+                        i => i.IsLdloc(),
+                        i => i.LoadsField(typeof(ScanNodeProperties).GetField(nameof(ScanNodeProperties.subText))),
+                        i => i.Calls(typeof(TMP_Text).GetMethod("set_text")),
+
+                        // The first line of the rest of the code
+                        i => i.IsLdloc(),
+                }, out var scanCode))
+                {
+                    Plugin.MLS.LogDebug("Patching HudManager.UpdateScanNodes to hide subtext when needed.");
+
+                    // Insert if/else for hiding/showing the subtext stuff
+                    codeList.InsertRange(scanCode.Last().Index, new CodeInstruction[]
+                    {
+                        // Load the text and scan node onto the stack for the following delegate
+                        new CodeInstruction(OpCodes.Ldarg_0),
+                        new CodeInstruction(OpCodes.Ldfld, scanElementTextField),
+                        new CodeInstruction(OpCodes.Ldc_I4_1),
+                        new CodeInstruction(OpCodes.Ldelem_Ref), // scanElementText[1]
+                        new CodeInstruction(OpCodes.Ldloc_2), // scanNodeProperties out var
+
+                        Transpilers.EmitDelegate<System.Action<TextMeshProUGUI, ScanNodeProperties>>((text, scanNodeProperties) =>
+                        {
+                            bool shouldHide = scanNodeProperties.subText == "Value: $0" || string.IsNullOrWhiteSpace(scanNodeProperties.subText);
+                            if (shouldHide) text.text = string.Empty;
+                            text.transform.parent.Find("SubTextBox").gameObject.SetActive(!shouldHide);
+                        }),
+                    });
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected IL Code - Could not patch HudManager.UpdateScanNodes to hide subtext!");
+                }
+            }
+
+            return codeList;
         }
 
         [HarmonyPatch(typeof(HUDManager), nameof(AssignNodeToUIElement))]

@@ -1,28 +1,12 @@
 ﻿using GameNetcodeStuff;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
-using System.Reflection;
 using UnityEngine;
 
 namespace GeneralImprovements.Patches
 {
     internal static class EntranceTeleportPatch
     {
-        private static FieldInfo _exitPoint;
-        private static FieldInfo ExitPoint
-        {
-            get
-            {
-                // Lazy load and cache reflection info
-                if (_exitPoint == null)
-                {
-                    _exitPoint = typeof(EntranceTeleport).GetField("exitPoint", BindingFlags.Instance | BindingFlags.NonPublic);
-                }
-
-                return _exitPoint;
-            }
-        }
-
         [HarmonyPatch(typeof(EntranceTeleport), nameof(Awake))]
         [HarmonyPostfix]
         private static void Awake(EntranceTeleport __instance)
@@ -63,7 +47,7 @@ namespace GeneralImprovements.Patches
 
         private static void FlipPlayer(EntranceTeleport instance, PlayerControllerB player)
         {
-            var targetAngles = ((Transform)ExitPoint.GetValue(instance)).eulerAngles;
+            var targetAngles = instance.exitPoint.eulerAngles;
             player.transform.rotation = Quaternion.Euler(targetAngles.x, targetAngles.y + 180, targetAngles.z);
         }
     }

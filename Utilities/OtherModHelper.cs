@@ -1,6 +1,8 @@
 ﻿using BepInEx;
 using BepInEx.Bootstrap;
 using GameNetcodeStuff;
+using GeneralImprovements.Patches;
+using HarmonyLib;
 using System;
 using System.Collections;
 using System.Linq;
@@ -15,6 +17,7 @@ namespace GeneralImprovements.Utilities
         public const string MimicsGUID = "x753.Mimics";
         public const string TwoRadarCamsGUID = "Zaggy1024.TwoRadarMaps";
         public const string WeatherTweaksGUID = "WeatherTweaks";
+        public const string CodeRebirthGUID = "CodeRebirth";
 
         public static bool AdvancedCompanyActive { get; private set; }
         public static bool ReservedItemSlotCoreActive { get; private set; }
@@ -22,9 +25,9 @@ namespace GeneralImprovements.Utilities
         public static bool MimicsActive { get; private set; }
         public static bool TwoRadarCamsActive { get; private set; }
         public static bool WeatherTweaksActive { get; private set; }
+        public static bool CodeRebirthActive { get; private set; }
 
         public static ManualCameraRenderer TwoRadarCamsMapRenderer { get; set; }
-
 
         // Reflection information for ReservedItemSlotCore
         private static Type _reservedPlayerPatcherType;
@@ -60,6 +63,7 @@ namespace GeneralImprovements.Utilities
             MimicsActive = Chainloader.PluginInfos.ContainsKey(MimicsGUID);
             TwoRadarCamsActive = Chainloader.PluginInfos.ContainsKey(TwoRadarCamsGUID);
             WeatherTweaksActive = Chainloader.PluginInfos.ContainsKey(WeatherTweaksGUID);
+            CodeRebirthActive = Chainloader.PluginInfos.ContainsKey(CodeRebirthGUID);
 
             // Print which were found to be active
             if (AdvancedCompanyActive) Plugin.MLS.LogDebug("Advanced Company Detected");
@@ -67,6 +71,7 @@ namespace GeneralImprovements.Utilities
             if (MimicsActive) Plugin.MLS.LogDebug("Mimics Detected");
             if (TwoRadarCamsActive) Plugin.MLS.LogDebug("Two Radar Cams Detected");
             if (WeatherTweaksActive) Plugin.MLS.LogDebug("Weather Tweaks Detected");
+            if (CodeRebirthActive) Plugin.MLS.LogDebug("CodeRebirth Detected");
 
             _initialized = true;
         }
@@ -87,6 +92,25 @@ namespace GeneralImprovements.Utilities
 
             var playerData = ((IDictionary)PlayerData.GetValue(null))[player];
             return (bool)IsReservedSlot.Invoke(playerData, new object[] { slot });
+        }
+
+        internal static void PatchCodeRebirthIfNeeded(HarmonyLib.Harmony harmony)
+        {
+            // If we detect the specific postfix for key item and we have some key configs, transpile that method
+            if (CodeRebirthActive && (Plugin.UnlockDoorsFromInventory.Value || Plugin.KeysHaveInfiniteUses.Value))
+            {
+                var keyPatch = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.FullName.StartsWith("CodeRebirth"))
+                    ?.GetTypes().FirstOrDefault(t => t.Name == "KeyItemPatch");
+                if (keyPatch != null)
+                {
+                    var targetPostfix = keyPatch.GetMethod("CustomPickableObjects", BindingFlags.Public | BindingFlags.Static);
+                    if (targetPostfix != null)
+                    {
+                        var transpiler = typeof(CodeRebirthPatch).GetMethod(nameof(CodeRebirthPatch.CustomPickableObjectsTranspiler), BindingFlags.NonPublic | BindingFlags.Static);
+                        harmony.Patch(targetPostfix, transpiler: new HarmonyMethod(transpiler));
+                    }
+                }
+            }
         }
     }
 }

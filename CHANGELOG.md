@@ -1,5 +1,15 @@
 # Changelog
 
+### v1.3.1 - Performance improvements, bug fixes, and more general improvements
+* Improved performance when FixPersonalScanner = true.
+	* In doing so, I also removed the ScanHeldPlayerItems config option since some of the optimizations would have required that to be recoded.
+* Added an option to configure the existing improvement that allows item pickup before game start (defaults to true).
+* Improved compatibility with [CodeRebirth](https://thunderstore.io/c/lethal-company/p/XuXiaolan/CodeRebirth/) item crates when using UnlockcDoorsFromInventory or KeysHaveInfiniteUses.
+* Fixed a bug with FixInternalFireExits not working after v55.
+* Fixed the "Grab" hovertip showing too far away from grabbable items if MaskedEntitiesShowPlayerNames was set to true.
+* Fixed the bug where if lightning strikes the ship while the monitors are off (while using SyncExtraMonitorsPower), they won't turn back on until lobby restart (for realsies this time).
+* Patched Harmony's transpiler method to fix rare cases where certain methods result in unexpected behavior when transpiled (thanks for pointing me in the right direction DiFFoZ).
+
 ### v1.3.0 - v56 Support, fixes, and cleanup
 * Added compatibility for v56+ (thanks for the PR help 1A3Dev!).
 * Removed "error" logs when targeting masked entities that I left over from debugging.
