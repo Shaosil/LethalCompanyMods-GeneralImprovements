@@ -13,7 +13,6 @@ namespace GeneralImprovements.Patches
 {
     internal static class ShipTeleporterPatch
     {
-        private static PlayerControllerB _lastPlayerTeleported;
         private static Dictionary<ShipTeleporter, InteractTrigger> _buttonGlasses = new Dictionary<ShipTeleporter, InteractTrigger>();
 
         [HarmonyPatch(typeof(ShipTeleporter), "Awake")]

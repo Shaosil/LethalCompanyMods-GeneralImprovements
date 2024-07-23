@@ -1,5 +1,12 @@
 # Changelog
 
+### v1.3.2 - More fixes and improvements
+* Added an option to configure the ship' clipboard starting on the wall instead of the table (defaults to start on the wall).
+* Added an option to adjust the chat's fade duration and opacity.
+	* Modifying these options will not work if [HideChat](https://thunderstore.io/c/lethal-company/p/Monkeytype/HideChat/) is also installed (that mod will simply overwrite GI's behavior).
+* Fixed a bug with FixPersonalScanner where an error would be spammed in the log in certain situations.
+* Sorted all config sub-entries alphabetically to make future option finding easier (hopefully).
+
 ### v1.3.1 - Performance improvements, bug fixes, and more general improvements
 * Improved performance when FixPersonalScanner = true.
 	* In doing so, I also removed the ScanHeldPlayerItems config option since some of the optimizations would have required that to be recoded.

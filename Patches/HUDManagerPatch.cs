@@ -107,7 +107,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPrefix]
         private static bool AssignNewNodes(HUDManager __instance, PlayerControllerB playerScript, ref int ___scannedScrapNum, List<ScanNodeProperties> ___nodesOnScreen)
         {
-            if (!Plugin.FixPersonalScanner.Value)
+            if (!Plugin.FixPersonalScanner.Value || playerScript?.gameplayCamera == null)
             {
                 return true;
             }
@@ -121,7 +121,7 @@ namespace GeneralImprovements.Patches
             // Cast a giant sphere 100f around ourself to get scan nodes we collided with, ordered by distance
             var nearbyScanNodes = Physics.OverlapSphere(playerScript.gameplayCamera.transform.position, 100f, 0x400000)
                 .Select(n => new KeyValuePair<float, ScanNodeProperties>(Vector3.Distance(n.transform.position, playerScript.transform.position), n.transform.GetComponent<ScanNodeProperties>()))
-                .Where(s => s.Key >= s.Value.minRange && s.Key <= s.Value.maxRange                                      // In range
+                .Where(s => s.Value != null && s.Key >= s.Value.minRange && s.Key <= s.Value.maxRange                   // In range
                     && GeometryUtility.TestPlanesAABB(camPlanes, new Bounds(s.Value.transform.position, Vector3.one)))  // In camera view
                 .OrderBy(n => n.Key);
 
@@ -319,6 +319,83 @@ namespace GeneralImprovements.Patches
         private static void SetClock()
         {
             MonitorsHelper.UpdateTimeMonitors();
+        }
+
+        private static bool ModifyChatAndHasPingCode(IEnumerable<CodeInstruction> instructions, MethodBase method, out TranspilerHelper.FoundInstruction[] pingCode)
+        {
+            pingCode = new TranspilerHelper.FoundInstruction[] { };
+
+            if (Plugin.ChatFadeDelay.Value != (float)Plugin.ChatFadeDelay.DefaultValue || Plugin.ChatOpacity.Value != (float)Plugin.ChatOpacity.DefaultValue)
+            {
+                if (instructions.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+                {
+                    i => i.IsLdarg(0),
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(HUDManager).GetField(nameof(HUDManager.Chat))),
+                    i => i.opcode == OpCodes.Ldc_R4,
+                    i => i.opcode == OpCodes.Ldc_R4,
+                    i => i.opcode == OpCodes.Ldc_R4,
+                    i => i.Calls(typeof(HUDManager).GetMethod(nameof(HUDManager.PingHUDElement)))
+                }, out pingCode))
+                {
+                    return true;
+                }
+                else
+                {
+                    Plugin.MLS.LogError($"Unexpected IL Code - Could not patch HUDManager.{method.Name}!");
+                }
+            }
+
+            return false;
+        }
+
+        [HarmonyPatch(typeof(HUDManager), "AddChatMessage")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> AddChatMessage_Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase method)
+        {
+            var codeList = instructions.ToList();
+
+            if (ModifyChatAndHasPingCode(instructions, method, out var pingCode))
+            {
+                // Overwrite the delay and ending opacity
+                Plugin.MLS.LogDebug("Patching HUDManager.AddChatMessage to use modified delay and opacity.");
+                codeList[pingCode.Last().Index - 3].operand = Plugin.ChatFadeDelay.Value;
+                codeList[pingCode.Last().Index - 1].operand = Plugin.ChatOpacity.Value;
+            }
+
+            return codeList;
+        }
+
+        [HarmonyPatch(typeof(HUDManager), "SubmitChat_performed")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> SubmitChat_performed_Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase method)
+        {
+            var codeList = instructions.ToList();
+
+            if (ModifyChatAndHasPingCode(instructions, method, out var pingCode))
+            {
+                // If we found the code, just rip out the entire call since further methods will call it again
+                Plugin.MLS.LogDebug("Patching HUDManager.SubmitChat_performed to remove HUD ping call.");
+                codeList.RemoveRange(pingCode[0].Index, pingCode.Length);
+            }
+
+            return codeList;
+        }
+
+        [HarmonyPatch(typeof(HUDManager), "OpenMenu_performed")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> OpenMenu_performed_Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase method)
+        {
+            var codeList = instructions.ToList();
+
+            if (ModifyChatAndHasPingCode(instructions, method, out var pingCode))
+            {
+                // Overwrite the ending opacity
+                Plugin.MLS.LogDebug("Patching HUDManager.OpenMenu_performed to use modified opacity.");
+                codeList[pingCode.Last().Index - 1].operand = Plugin.ChatOpacity.Value;
+            }
+
+            return codeList;
         }
 
         [HarmonyPatch(typeof(HUDManager), nameof(SetClockVisible))]
