@@ -6,6 +6,7 @@
         <PackageDir>..\PACKAGED\$(MSBuildProjectName)</PackageDir>
         <GamePath>F:\Steam Games\steamapps\common\Lethal Company\BepInEx\plugins\ShaosilGaming-GeneralImprovements\</GamePath>
         <NetcodePatcherNoOverwrite>true</NetcodePatcherNoOverwrite>
+        <PublicizerRuntimeStrategies>Unsafe</PublicizerRuntimeStrategies>
     </PropertyGroup>
 
     <ItemGroup>
@@ -16,6 +17,19 @@
 
     <ItemGroup>
         <PackageReference Include="BepInEx.Core" Version="5.4.21" />
+        <PackageReference Include="Krafs.Publicizer" Version="2.2.1">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Publicize Include="BepInEx:BepInEx.Configuration.ConfigFile.OrphanedEntries" />
+        <Publicize Include="Assembly-CSharp:HUDManager.AttemptScanNode" />
+        <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.timeSinceSwitchingSlots" />
+        <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.UpdatePlayerPositionClientRpc" />
+        <Publicize Include="Assembly-CSharp:SprayPaintItem.sprayCanMatsIndex" />
+        <Publicize Include="Assembly-CSharp:TerminalAccessibleObject.mapRadarText" />
     </ItemGroup>
 
     <ItemGroup>

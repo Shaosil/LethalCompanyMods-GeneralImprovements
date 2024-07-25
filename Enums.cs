@@ -13,29 +13,32 @@ namespace GeneralImprovements
 
         public enum eSaveFurniturePlacement { None, StartingFurniture, All }
 
+        public enum eShipCamRotation { None, North, East, South, West }
+
         public enum eMonitorNames
         {
             None,
 
             // Text assignments
-            ProfitQuota,
-            Deadline,
-            ShipScrap,
-            ScrapLeft,
-            Time,
-            Weather,
-            FancyWeather,
-            Sales,
             Credits,
-            DoorPower,
-            TotalDays,
-            TotalQuotas,
-            TotalDeaths,
+            DangerLevel,
             DaysSinceDeath,
+            Deadline,
+            DoorPower,
+            FancyWeather,
+            ProfitQuota,
+            Sales,
+            ScrapLeft,
+            ShipScrap,
+            Time,
+            TotalDays,
+            TotalDeaths,
+            TotalQuotas,
+            Weather,
 
             // Material assignments
-            InternalCam,
-            ExternalCam
+            ExternalCam,
+            InternalCam
         }
 
         // Shortcut key helpers

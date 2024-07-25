@@ -25,35 +25,22 @@ namespace GeneralImprovements.Utilities
         private static TextMeshProUGUI _originalDeadlineText;
         private static float _originalFontSize;
 
-        private static List<Image> _profitQuotaBGs = new List<Image>();
         private static List<TextMeshProUGUI> _profitQuotaTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _deadlineBGs = new List<Image>();
         private static List<TextMeshProUGUI> _deadlineTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _shipScrapMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _shipScrapMonitorTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _scrapLeftMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _scrapLeftMonitorTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _timeMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _timeMonitorTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _weatherMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _weatherMonitorTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _fancyWeatherMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _fancyWeatherMonitorTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _salesMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _salesMonitorTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _creditsMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _creditsMonitorTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _doorPowerMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _doorPowerMonitorTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _totalDaysMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _totalDaysMonitorTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _totalQuotasMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _totalQuotasMonitorTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _totalDeathsMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _totalDeathsMonitorTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _daysSinceDeathMonitorBGs = new List<Image>();
         private static List<TextMeshProUGUI> _daysSinceDeathMonitorTexts = new List<TextMeshProUGUI>();
-        private static List<Image> _extraBackgrounds = new List<Image>();
+        private static List<TextMeshProUGUI> _dangerLevelMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<Image> _monitorBackgrounds = new List<Image>();
 
         private static bool _usingAnyMonitorTweaks = false;
         private static int _lastUpdatedCredits = -1;
@@ -182,6 +169,7 @@ namespace GeneralImprovements.Utilities
             UpdateTimeMonitors();
             UpdateWeatherMonitors();
             UpdateDoorPowerMonitors();
+            UpdateDangerLevelMonitors(0, 0);
 
             // Remove scan node if it no profit quota monitor exists
             if (_profitQuotaScanNode != null && !monitorAssignments.Any(a => a == eMonitorNames.ProfitQuota))
@@ -212,49 +200,22 @@ namespace GeneralImprovements.Utilities
             // Clears lists and removes game objects (for old style monitors). May be used if syncing from hosts, since we will need to delete and recreate monitors
             if (!Plugin.UseBetterMonitors.Value)
             {
-                _profitQuotaBGs.ForEach(g => Object.Destroy(g));
                 _profitQuotaTexts.ForEach(g => Object.Destroy(g));
-
-                _deadlineBGs.ForEach(g => Object.Destroy(g));
                 _deadlineTexts.ForEach(g => Object.Destroy(g));
-
-                _shipScrapMonitorBGs.ForEach(g => Object.Destroy(g));
                 _shipScrapMonitorTexts.ForEach(g => Object.Destroy(g));
-
-                _scrapLeftMonitorBGs.ForEach(g => Object.Destroy(g));
                 _scrapLeftMonitorTexts.ForEach(g => Object.Destroy(g));
-
-                _timeMonitorBGs.ForEach(g => Object.Destroy(g));
                 _timeMonitorTexts.ForEach(g => Object.Destroy(g));
-
-                _weatherMonitorBGs.ForEach(g => Object.Destroy(g));
                 _weatherMonitorTexts.ForEach(g => Object.Destroy(g));
-
-                _fancyWeatherMonitorBGs.ForEach(g => Object.Destroy(g));
                 _fancyWeatherMonitorTexts.ForEach(g => Object.Destroy(g));
-
-                _salesMonitorBGs.ForEach(g => Object.Destroy(g));
                 _salesMonitorTexts.ForEach(g => Object.Destroy(g));
-
-                _creditsMonitorBGs.ForEach(g => Object.Destroy(g));
                 _creditsMonitorTexts.ForEach(g => Object.Destroy(g));
-
-                _doorPowerMonitorBGs.ForEach(g => Object.Destroy(g));
                 _doorPowerMonitorTexts.ForEach(g => Object.Destroy(g));
-
-                _totalDaysMonitorBGs.ForEach(g => Object.Destroy(g));
                 _totalDaysMonitorTexts.ForEach(g => Object.Destroy(g));
-
-                _totalQuotasMonitorBGs.ForEach(g => Object.Destroy(g));
                 _totalQuotasMonitorTexts.ForEach(g => Object.Destroy(g));
-
-                _totalDeathsMonitorBGs.ForEach(g => Object.Destroy(g));
                 _totalDeathsMonitorTexts.ForEach(g => Object.Destroy(g));
-
-                _daysSinceDeathMonitorBGs.ForEach(g => Object.Destroy(g));
                 _daysSinceDeathMonitorTexts.ForEach(g => Object.Destroy(g));
-
-                _extraBackgrounds.ForEach(g => Object.Destroy(g));
+                _dangerLevelMonitorTexts.ForEach(g => Object.Destroy(g));
+                _monitorBackgrounds.ForEach(g => Object.Destroy(g));
             }
             else if (_newMonitors != null)
             {
@@ -268,49 +229,22 @@ namespace GeneralImprovements.Utilities
                 Object.Destroy(_newMonitors.gameObject);
             }
 
-            _profitQuotaBGs = new List<Image>();
             _profitQuotaTexts = new List<TextMeshProUGUI>();
-
-            _deadlineBGs = new List<Image>();
             _deadlineTexts = new List<TextMeshProUGUI>();
-
-            _shipScrapMonitorBGs = new List<Image>();
             _shipScrapMonitorTexts = new List<TextMeshProUGUI>();
-
-            _scrapLeftMonitorBGs = new List<Image>();
             _scrapLeftMonitorTexts = new List<TextMeshProUGUI>();
-
-            _timeMonitorBGs = new List<Image>();
             _timeMonitorTexts = new List<TextMeshProUGUI>();
-
-            _weatherMonitorBGs = new List<Image>();
             _weatherMonitorTexts = new List<TextMeshProUGUI>();
-
-            _fancyWeatherMonitorBGs = new List<Image>();
             _fancyWeatherMonitorTexts = new List<TextMeshProUGUI>();
-
-            _salesMonitorBGs = new List<Image>();
             _salesMonitorTexts = new List<TextMeshProUGUI>();
-
-            _creditsMonitorBGs = new List<Image>();
             _creditsMonitorTexts = new List<TextMeshProUGUI>();
-
-            _doorPowerMonitorBGs = new List<Image>();
             _doorPowerMonitorTexts = new List<TextMeshProUGUI>();
-
-            _totalDaysMonitorBGs = new List<Image>();
             _totalDaysMonitorTexts = new List<TextMeshProUGUI>();
-
-            _totalQuotasMonitorBGs = new List<Image>();
             _totalQuotasMonitorTexts = new List<TextMeshProUGUI>();
-
-            _totalDeathsMonitorBGs = new List<Image>();
             _totalDeathsMonitorTexts = new List<TextMeshProUGUI>();
-
-            _daysSinceDeathMonitorBGs = new List<Image>();
             _daysSinceDeathMonitorTexts = new List<TextMeshProUGUI>();
-
-            _extraBackgrounds = new List<Image>();
+            _dangerLevelMonitorTexts = new List<TextMeshProUGUI>();
+            _monitorBackgrounds = new List<Image>();
         }
 
         private static void CreateOldStyleMonitors(eMonitorNames[] monitorAssignments)
@@ -352,33 +286,28 @@ namespace GeneralImprovements.Utilities
             for (int i = 0; i < offsets.Count; i++)
             {
                 eMonitorNames curAssignment = monitorAssignments[i];
-                List<Image> curBGs = null;
                 List<TextMeshProUGUI> curTexts = null;
 
                 switch (curAssignment)
                 {
-                    case eMonitorNames.ProfitQuota: curBGs = _profitQuotaBGs; curTexts = _profitQuotaTexts; break;
-                    case eMonitorNames.Deadline: curBGs = _deadlineBGs; curTexts = _deadlineTexts; break;
-                    case eMonitorNames.ShipScrap: curBGs = _shipScrapMonitorBGs; curTexts = _shipScrapMonitorTexts; break;
-                    case eMonitorNames.ScrapLeft: curBGs = _scrapLeftMonitorBGs; curTexts = _scrapLeftMonitorTexts; break;
-                    case eMonitorNames.Time: curBGs = _timeMonitorBGs; curTexts = _timeMonitorTexts; break;
-                    case eMonitorNames.Weather: curBGs = _weatherMonitorBGs; curTexts = _weatherMonitorTexts; break;
-                    case eMonitorNames.FancyWeather: curBGs = _fancyWeatherMonitorBGs; curTexts = _fancyWeatherMonitorTexts; break;
-                    case eMonitorNames.Sales: curBGs = _salesMonitorBGs; curTexts = _salesMonitorTexts; break;
-                    case eMonitorNames.Credits: curBGs = _creditsMonitorBGs; curTexts = _creditsMonitorTexts; break;
-                    case eMonitorNames.DoorPower: curBGs = _doorPowerMonitorBGs; curTexts = _doorPowerMonitorTexts; break;
-                    case eMonitorNames.TotalDays: curBGs = _totalDaysMonitorBGs; curTexts = _totalDaysMonitorTexts; break;
-                    case eMonitorNames.TotalQuotas: curBGs = _totalQuotasMonitorBGs; curTexts = _totalQuotasMonitorTexts; break;
-                    case eMonitorNames.TotalDeaths: curBGs = _totalDeathsMonitorBGs; curTexts = _totalDeathsMonitorTexts; break;
-                    case eMonitorNames.DaysSinceDeath: curBGs = _daysSinceDeathMonitorBGs; curTexts = _daysSinceDeathMonitorTexts; break;
+                    case eMonitorNames.ProfitQuota: curTexts = _profitQuotaTexts; break;
+                    case eMonitorNames.Deadline: curTexts = _deadlineTexts; break;
+                    case eMonitorNames.ShipScrap: curTexts = _shipScrapMonitorTexts; break;
+                    case eMonitorNames.ScrapLeft: curTexts = _scrapLeftMonitorTexts; break;
+                    case eMonitorNames.Time: curTexts = _timeMonitorTexts; break;
+                    case eMonitorNames.Weather: curTexts = _weatherMonitorTexts; break;
+                    case eMonitorNames.FancyWeather: curTexts = _fancyWeatherMonitorTexts; break;
+                    case eMonitorNames.Sales: curTexts = _salesMonitorTexts; break;
+                    case eMonitorNames.Credits: curTexts = _creditsMonitorTexts; break;
+                    case eMonitorNames.DoorPower: curTexts = _doorPowerMonitorTexts; break;
+                    case eMonitorNames.TotalDays: curTexts = _totalDaysMonitorTexts; break;
+                    case eMonitorNames.TotalQuotas: curTexts = _totalQuotasMonitorTexts; break;
+                    case eMonitorNames.TotalDeaths: curTexts = _totalDeathsMonitorTexts; break;
+                    case eMonitorNames.DaysSinceDeath: curTexts = _daysSinceDeathMonitorTexts; break;
+                    case eMonitorNames.DangerLevel: curTexts = _dangerLevelMonitorTexts; break;
                 }
 
-                if ((curBGs == null || curTexts == null) && Plugin.ShowBlueMonitorBackground.Value && Plugin.ShowBackgroundOnAllScreens.Value)
-                {
-                    // Prepare to create a blank background
-                    curBGs = _extraBackgrounds;
-                }
-                else if (curTexts == null && curAssignment != eMonitorNames.None)
+                if (curTexts == null && curAssignment != eMonitorNames.None)
                 {
                     Plugin.MLS.LogError($"Could not find '{curAssignment}' for monitor assignment! Please check your config is using acceptable values.");
                 }
@@ -386,8 +315,8 @@ namespace GeneralImprovements.Utilities
                 var positionOffset = offsets[i].Key;
                 var rotationOffset = offsets[i].Value;
 
-                // Only create a background if we have one assigned and we want to show the blue backgrounds
-                if (curBGs != null && Plugin.ShowBlueMonitorBackground.Value)
+                // Create a background if we have a text assignment, OR we want to show the blue backgrounds
+                if (curTexts != null || (Plugin.ShowBlueMonitorBackground.Value && Plugin.ShowBackgroundOnAllScreens.Value))
                 {
                     var newBG = Object.Instantiate(_originalProfitQuotaBG, _originalProfitQuotaBG.transform.parent);
                     newBG.enabled = true;
@@ -395,7 +324,7 @@ namespace GeneralImprovements.Utilities
 
                     newBG.transform.localPosition = _originalProfitQuotaLocation + positionOffset;
                     newBG.transform.localEulerAngles = _originalProfitQuotaRotation + rotationOffset;
-                    curBGs.Add(newBG);
+                    _monitorBackgrounds.Add(newBG);
                 }
 
                 // Text will be null if this is a blank background
@@ -490,6 +419,7 @@ namespace GeneralImprovements.Utilities
                     case eMonitorNames.TotalQuotas: _totalQuotasMonitorTexts.Add(curMonitor.TextCanvas); break;
                     case eMonitorNames.TotalDeaths: _totalDeathsMonitorTexts.Add(curMonitor.TextCanvas); break;
                     case eMonitorNames.DaysSinceDeath: _daysSinceDeathMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.DangerLevel: _dangerLevelMonitorTexts.Add(curMonitor.TextCanvas); break;
 
                     case eMonitorNames.InternalCam:
                         // Reassign the internal camera mesh to the most recent mesh that was applied
@@ -893,6 +823,21 @@ namespace GeneralImprovements.Utilities
                 if (updatedText)
                 {
                     Plugin.MLS.LogInfo("Updated days since death display.");
+                }
+            }
+        }
+
+        public static void UpdateDangerLevelMonitors(float totalMaxPower, float totalCurrentPower)
+        {
+            if (_dangerLevelMonitorTexts.Count > 0)
+            {
+                var dangerLevels = new[] { "SAFE", "WARNING", "HAZARDOUS", "DANGEROUS", "LETHAL" };
+                var colorHexes = new[] { "00ff00", "c8ff00", "ffc400", "ff6a00", "ff0000" };
+                int curDanger = totalMaxPower <= 0 ? 0 : (int)Mathf.Ceil(Mathf.Clamp(totalCurrentPower / totalMaxPower, 0, 1) * 4);
+
+                if (UpdateGenericTextList(_dangerLevelMonitorTexts, $"DANGER LEVEL:\n<color=#{colorHexes[curDanger]}>{dangerLevels[curDanger]}</color>"))
+                {
+                    Plugin.MLS.LogInfo("Updated danger level display.");
                 }
             }
         }

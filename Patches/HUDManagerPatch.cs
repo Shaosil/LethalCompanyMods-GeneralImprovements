@@ -12,10 +12,6 @@ namespace GeneralImprovements.Patches
 {
     internal static class HUDManagerPatch
     {
-        // Lazy load and cache reflection info
-        private static MethodInfo _attemptScanNodeMethod;
-        private static MethodInfo AttemptScanNodeMethod => _attemptScanNodeMethod ?? (_attemptScanNodeMethod = typeof(HUDManager).GetMethod("AttemptScanNode", BindingFlags.NonPublic | BindingFlags.Instance));
-
         private static TextMeshProUGUI _hpText;
         public static GrabbableObject CurrentLightningTarget;
         private static List<SpriteRenderer> _lightningOverlays;
@@ -128,7 +124,7 @@ namespace GeneralImprovements.Patches
             // Now attempt to scan each of them, stopping when we fill the number of UI elements
             foreach (var scannable in nearbyScanNodes.Select(s => s.Value))
             {
-                AttemptScanNodeMethod.Invoke(__instance, new object[] { scannable, 0, playerScript });
+                __instance.AttemptScanNode(scannable, 0, playerScript);
                 if (___nodesOnScreen.Count >= __instance.scanElements.Length)
                 {
                     break;

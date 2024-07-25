@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using static GeneralImprovements.Enums;
@@ -102,7 +101,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> LightSwitchScanNode { get; private set; }
         public static ConfigEntry<bool> MoveShipClipboardToWall { get; private set; }
         public static ConfigEntry<eSaveFurniturePlacement> SaveShipFurniturePlaces { get; private set; }
-        public static ConfigEntry<bool> ShipMapCamDueNorth { get; private set; }
+        public static ConfigEntry<eShipCamRotation> ShipMapCamRotation { get; private set; }
         public static ConfigEntry<bool> ShipPlaceablesCollide { get; private set; }
         public static ConfigEntry<int> SnapObjectsByDegrees { get; private set; }
         public static ConfigEntry<bool> SpeakerPlaysIntroVoice { get; private set; }
@@ -338,7 +337,7 @@ namespace GeneralImprovements
             LightSwitchScanNode = Config.Bind(ShipSection, nameof(LightSwitchScanNode), true, "If set to true, the light switch will have a scan node attached.");
             MoveShipClipboardToWall = Config.Bind(ShipSection, nameof(MoveShipClipboardToWall), true, "If set to true, the ship's clipboard will not start on the table but instead on the wall in front of the player.");
             SaveShipFurniturePlaces = Config.Bind(ShipSection, nameof(SaveShipFurniturePlaces), eSaveFurniturePlacement.StartingFurniture, "Determines what ship furniture positions and storage states will not be reset after being fired.");
-            ShipMapCamDueNorth = Config.Bind(ShipSection, nameof(ShipMapCamDueNorth), false, "If set to true, the ship's map camera will rotate so that it faces north evenly, instead of showing everything at an angle.");
+            ShipMapCamRotation = Config.Bind(ShipSection, nameof(ShipMapCamRotation), eShipCamRotation.None, "If specified, makes the ship cam face a specific direction instead of a 45 degree SW angle.");
             ShipPlaceablesCollide = Config.Bind(ShipSection, nameof(ShipPlaceablesCollide), true, "If set to true, placeable ship objects will check for collisions with each other during placement.");
             SnapObjectsByDegrees = Config.Bind(ShipSection, nameof(SnapObjectsByDegrees), 45, new ConfigDescription("Build mode will switch to snap turning (press instead of hold) by this many degrees at a time. Setting it to 0 uses vanilla behavior.", new AcceptableValueList<int>(validSnapRotations)));
             SpeakerPlaysIntroVoice = Config.Bind(ShipSection, nameof(SpeakerPlaysIntroVoice), true, "If set to true, the ship's speaker will play the introductory welcome audio on the first day.");
@@ -496,10 +495,9 @@ namespace GeneralImprovements
                 // Manually clear the private orphans
                 if (foundOrphans)
                 {
-                    var orphans = (Dictionary<ConfigDefinition, string>)Config.GetType().GetProperty("OrphanedEntries", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(Config);
-                    if (orphans != null)
+                    if (Config?.OrphanedEntries != null)
                     {
-                        orphans.Clear();
+                        Config.OrphanedEntries.Clear();
                         Config.Save();
                     }
                     else
@@ -576,6 +574,7 @@ namespace GeneralImprovements
 
                 // Settings that were converted from bools to enums
                 case "SaveShipFurniturePlaces": SaveShipFurniturePlaces.Value = bool.TryParse(entry.Value, out _) ? eSaveFurniturePlacement.All : eSaveFurniturePlacement.None; break;
+                case "ShipMapCamDueNorth": ShipMapCamRotation.Value = bool.TryParse(entry.Value, out _) ? eShipCamRotation.North : eShipCamRotation.None; break;
 
                 default:
                     MLS.LogDebug("No matching migration");

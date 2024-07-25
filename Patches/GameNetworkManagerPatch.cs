@@ -218,7 +218,7 @@ namespace GeneralImprovements.Patches
             }
 
             // Save spray can colors
-            var sprayCanItems = SprayPaintItemPatch.GetAllOrderedSprayPaintItemsInShip().Select(s => SprayPaintItemPatch.GetColorIndex(s)).ToArray();
+            var sprayCanItems = SprayPaintItemPatch.GetAllOrderedSprayPaintItemsInShip().Select(s => s.sprayCanMatsIndex).ToArray();
             ES3.Save("sprayPaintItemColors", sprayCanItems, __instance.currentSaveFileName);
 
             // Save suit data

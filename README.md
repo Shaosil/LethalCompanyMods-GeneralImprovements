@@ -16,7 +16,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Changes the "Beam up" hover tip for inverse teleporters to say "Beam out" for clarity.
 * Moves the ship clipboard manual to start pinned to the wall. This makes it easier to find, and moves it out of the way of the teleport button.
 * Introduces a degrees config option that snap rotates placeable ship objects in build mode, along with configurable modifier keybinds.
-* Adds an option to make the ship's map camera rotated so that it faces straight up, instead of at an angle.
+* Adds an option to make the ship's map camera rotated so that it can face any cardinal direction, instead of at a southwest angle.
 * The ESC key will now cancel out of ship build mode instead of bringing up the menu (similar to the terminal).
 * Adds a config setting to hide the clipboard and sticky note.
 * Changes the inverse teleporter cooldown to be the same as the regular (10 seconds). Both cooldowns may be customized in the config.
@@ -60,6 +60,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds an option to be able to scan other players. This works nicely with masks as well, as they will take the name of a random connected player.
 * Adds an option to allow the masked entities to blend in more, which means they will not wear masks, and will don the suit (and MoreCompany cosmetics if necessary) of a random real player.
 * Adds an option to control the menu music volume.
+* Adds configurable settings for the chat fade delay and opacity level.
 
 ### MINOR BUGFIXES:
 * Stops all non-scrap objects from showing value (when scanned and sold) when they do not actually have any.

@@ -20,20 +20,6 @@ namespace GeneralImprovements.Patches
         public static Dictionary<PlayerControllerB, int> PlayerMaxHealthValues = new Dictionary<PlayerControllerB, int>();
 
         private static Func<bool> _flashlightTogglePressed;
-        private static FieldInfo _timeSinceSwitchingSlotsField = null;
-        private static FieldInfo TimeSinceSwitchingSlotsField
-        {
-            get
-            {
-                // Lazy load and cache the reflection info
-                if (_timeSinceSwitchingSlotsField == null)
-                {
-                    _timeSinceSwitchingSlotsField = typeof(PlayerControllerB).GetField("timeSinceSwitchingSlots", BindingFlags.Instance | BindingFlags.NonPublic);
-                }
-
-                return _timeSinceSwitchingSlotsField;
-            }
-        }
         private static float _originalCursorScale = 0;
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(Awake))]
@@ -336,9 +322,9 @@ namespace GeneralImprovements.Patches
         {
             // If the code has just reset the timer to 0 (or very close to it), push it forward to decrease the time needed for the next check
             float desiredDelay = Math.Clamp(Plugin.ScrollDelay.Value, 0.05f, 0.3f);
-            if ((float)TimeSinceSwitchingSlotsField.GetValue(__instance) < 0.1f)
+            if (__instance.timeSinceSwitchingSlots < 0.1f)
             {
-                TimeSinceSwitchingSlotsField.SetValue(__instance, 0.3f - desiredDelay);
+                __instance.timeSinceSwitchingSlots = 0.3f - desiredDelay;
             }
         }
 

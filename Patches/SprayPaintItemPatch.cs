@@ -2,7 +2,6 @@
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 
@@ -11,8 +10,6 @@ namespace GeneralImprovements.Patches
     internal static class SprayPaintItemPatch
     {
         private static int _numSprayCansGenerated = 0;
-        private static FieldInfo _sprayCanMatIndexField;
-        public static FieldInfo SprayCanMatIndexField => _sprayCanMatIndexField ?? (_sprayCanMatIndexField = typeof(SprayPaintItem).GetField("sprayCanMatsIndex", BindingFlags.Instance | BindingFlags.NonPublic));
 
         [HarmonyPatch(typeof(SprayPaintItem), nameof(Start))]
         [HarmonyTranspiler]
@@ -46,16 +43,11 @@ namespace GeneralImprovements.Patches
             _numSprayCansGenerated++;
         }
 
-        public static int GetColorIndex(SprayPaintItem instance)
-        {
-            return (int)SprayCanMatIndexField.GetValue(instance);
-        }
-
         public static void UpdateColor(SprayPaintItem instance, int matIndex)
         {
             if (!instance.isWeedKillerSprayBottle)
             {
-                SprayCanMatIndexField.SetValue(instance, matIndex);
+                instance.sprayCanMatsIndex = matIndex;
                 instance.sprayParticle.GetComponent<ParticleSystemRenderer>().material = instance.particleMats[matIndex];
                 instance.sprayCanNeedsShakingParticle.GetComponent<ParticleSystemRenderer>().material = instance.particleMats[matIndex];
                 Plugin.MLS.LogDebug($"Updated spray paint item color to material index {matIndex}");

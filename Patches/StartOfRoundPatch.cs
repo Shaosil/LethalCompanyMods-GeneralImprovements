@@ -3,7 +3,6 @@ using GeneralImprovements.Utilities;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Emit;
 using Unity.Netcode;
 using UnityEngine;
@@ -13,21 +12,6 @@ namespace GeneralImprovements.Patches
     internal static class StartOfRoundPatch
     {
         private static bool _playerInElevatorLastFrame = true;
-
-        private static MethodInfo _updatePlayerPositionClientRpcMethod;
-        private static MethodInfo UpdatePlayerPositionClientRpcMethod
-        {
-            get
-            {
-                // Lazy load and cache reflection info
-                if (_updatePlayerPositionClientRpcMethod == null)
-                {
-                    _updatePlayerPositionClientRpcMethod = typeof(PlayerControllerB).GetMethod("UpdatePlayerPositionClientRpc", BindingFlags.Instance | BindingFlags.NonPublic);
-                }
-
-                return _updatePlayerPositionClientRpcMethod;
-            }
-        }
 
         public static int DaysSinceLastDeath = -1;
         public static Dictionary<ulong, int> SteamIDsToSuits = new Dictionary<ulong, int>();
@@ -68,11 +52,12 @@ namespace GeneralImprovements.Patches
             }
 
             // Rotate ship camera if specified
-            if (Plugin.ShipMapCamDueNorth.Value)
+            if (Plugin.ShipMapCamRotation.Value != Enums.eShipCamRotation.None)
             {
-                Plugin.MLS.LogInfo("Rotating ship map camera to face north");
+                Plugin.MLS.LogInfo($"Rotating ship map camera to face {Plugin.ShipMapCamRotation.Value}.");
                 Vector3 curAngles = __instance.mapScreen.mapCamera.transform.eulerAngles;
-                __instance.mapScreen.mapCamera.transform.rotation = Quaternion.Euler(curAngles.x, 90, curAngles.z);
+                float rotationAngle = 90 * (int)Plugin.ShipMapCamRotation.Value;
+                __instance.mapScreen.mapCamera.transform.rotation = Quaternion.Euler(curAngles.x, rotationAngle, curAngles.z);
             }
 
             // Create monitors if necessary and update the texts needed
@@ -253,8 +238,8 @@ namespace GeneralImprovements.Patches
                 // Send positional, rotational, and emotional (heh) data to all when new people connect
                 foreach (var connectedPlayer in __instance.allPlayerScripts.Where(p => p.isPlayerControlled))
                 {
-                    UpdatePlayerPositionClientRpcMethod.Invoke(connectedPlayer, new object[] { connectedPlayer.thisPlayerBody.localPosition, connectedPlayer.isInElevator,
-                        connectedPlayer.isInHangarShipRoom, connectedPlayer.isExhausted, connectedPlayer.thisController.isGrounded });
+                    connectedPlayer.UpdatePlayerPositionClientRpc(connectedPlayer.thisPlayerBody.localPosition, connectedPlayer.isInElevator,
+                        connectedPlayer.isInHangarShipRoom, connectedPlayer.isExhausted, connectedPlayer.thisController.isGrounded);
 
                     if (connectedPlayer.performingEmote)
                     {
@@ -285,7 +270,7 @@ namespace GeneralImprovements.Patches
                     }
 
                     // Send over color information about existing spray cans
-                    var sprayCanMatIndexes = SprayPaintItemPatch.GetAllOrderedSprayPaintItemsInShip().Select(s => SprayPaintItemPatch.GetColorIndex(s)).ToArray();
+                    var sprayCanMatIndexes = SprayPaintItemPatch.GetAllOrderedSprayPaintItemsInShip().Select(s => s.sprayCanMatsIndex).ToArray();
                     if (sprayCanMatIndexes.Any())
                     {
                         Plugin.MLS.LogInfo($"Server sending {sprayCanMatIndexes.Length} spray can colors RPC.");
