@@ -1,5 +1,8 @@
 # Changelog
 
+### v1.3.4 - External cam hotfix
+* Fixing a bug I introduced in v1.3.3 where the external cam monitor would no longer function when using better monitors.
+
 ### v1.3.3 - Reflection Removal and a couple new features
 * Removed the usage of System.Reflection methods from everything after transpilers run during startup. This may result in a slight performance boost in some areas.
 * Updated the config option for rotating the ship map cam to support all 4 directions instead of just north or nothing.

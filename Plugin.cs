@@ -281,7 +281,7 @@ namespace GeneralImprovements
             ShipMonitorAssignments = new ConfigEntry<eMonitorNames>[14];
             for (int i = 0; i < ShipMonitorAssignments.Length; i++)
             {
-                eMonitorNames defaultVal = i switch { 4 => eMonitorNames.ProfitQuota, 5 => eMonitorNames.Deadline, 11 => eMonitorNames.InternalCam, 14 => eMonitorNames.ExternalCam, _ => eMonitorNames.None };
+                eMonitorNames defaultVal = i switch { 4 => eMonitorNames.ProfitQuota, 5 => eMonitorNames.Deadline, 10 => eMonitorNames.InternalCam, 13 => eMonitorNames.ExternalCam, _ => eMonitorNames.None };
                 ShipMonitorAssignments[i] = Config.Bind(ExtraMonitorsSection, $"ShipMonitor{i + 1}", defaultVal, $"What to display on the ship monitor at position {i + 1}, if anything.");
             }
             SyncExtraMonitorsPower = Config.Bind(ExtraMonitorsSection, nameof(SyncExtraMonitorsPower), true, "If set to true, The smaller monitors above the map screen will turn off and on when the map screen power is toggled.");

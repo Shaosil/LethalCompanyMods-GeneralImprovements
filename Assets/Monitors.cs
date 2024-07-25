@@ -83,7 +83,7 @@ namespace GeneralImprovements.Assets
                 MonitorsAPI.AllMonitors[i] = new MonitorsAPI.MonitorInfo
                 {
                     MeshRenderer = renderer,
-                    TextCanvas = (Plugin.ShowBackgroundOnAllScreens.Value || curAssignment > Enums.eMonitorNames.None) && curAssignment < Enums.eMonitorNames.InternalCam ? screenText : null,
+                    TextCanvas = (Plugin.ShowBackgroundOnAllScreens.Value || curAssignment > Enums.eMonitorNames.None) && curAssignment < Enums.eMonitorNames.ExternalCam ? screenText : null,
                     ScreenMaterialIndex = 0, // Our screen meshes are separate from the surrounding meshes and always only have one material
                     AssignedMaterial = renderer.sharedMaterial,
                     OverwrittenMaterial = overwrittenMaterials.GetValueOrDefault(i)
