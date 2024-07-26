@@ -39,13 +39,13 @@ namespace GeneralImprovements
         public static Color MonitorBackgroundColorVal { get; private set; }
         public static ConfigEntry<string> MonitorTextColor { get; private set; }
         public static Color MonitorTextColorVal { get; private set; }
-        public static ConfigEntry<bool> ShowBackgroundOnAllScreens { get; private set; }
-        public static ConfigEntry<bool> ShowBlueMonitorBackground { get; private set; }
         public static ConfigEntry<int> ShipExternalCamFPS { get; private set; }
         public static ConfigEntry<int> ShipExternalCamSizeMultiplier { get; private set; }
         public static ConfigEntry<int> ShipInternalCamFPS { get; private set; }
         public static ConfigEntry<int> ShipInternalCamSizeMultiplier { get; private set; }
         public static ConfigEntry<eMonitorNames>[] ShipMonitorAssignments { get; private set; }
+        public static ConfigEntry<bool> ShowBackgroundOnAllScreens { get; private set; }
+        public static ConfigEntry<bool> ShowBlueMonitorBackground { get; private set; }
         public static ConfigEntry<bool> SyncExtraMonitorsPower { get; private set; }
         public static ConfigEntry<bool> SyncMonitorsFromOtherHost { get; private set; }
         public static ConfigEntry<bool> UseBetterMonitors { get; private set; }
@@ -272,8 +272,6 @@ namespace GeneralImprovements
             CenterAlignMonitorText = Config.Bind(ExtraMonitorsSection, nameof(CenterAlignMonitorText), true, "If set to true, all small monitors in the ship will have their text center aligned, instead of left.");
             MonitorBackgroundColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorBackgroundColor), "160959", "The hex color code of what the backgrounds of the monitors should be. A recommended value close to black is 050505.");
             MonitorTextColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorTextColor), "00FF2C", "The hex color code of what the text on the monitors should be.");
-            ShowBackgroundOnAllScreens = Config.Bind(ExtraMonitorsSection, nameof(ShowBackgroundOnAllScreens), false, "If set to true, will show the MonitorBackgroundColor on ALL monitors when they are on, not just used ones.");
-            ShowBlueMonitorBackground = Config.Bind(ExtraMonitorsSection, nameof(ShowBlueMonitorBackground), true, "If set to true and NOT using UseBetterMonitors, keeps the vanilla blue backgrounds on the extra monitors. Set to false to hide.");
             ShipExternalCamFPS = Config.Bind(ExtraMonitorsSection, nameof(ShipExternalCamFPS), 0, new ConfigDescription($"Limits the FPS of the external ship cam for performance. 0 = Unrestricted.", new AcceptableValueRange<int>(0, 30)));
             ShipExternalCamSizeMultiplier = Config.Bind(ExtraMonitorsSection, nameof(ShipExternalCamSizeMultiplier), 1, new ConfigDescription($"How many times to double the external ship cam's resolution.", new AcceptableValueRange<int>(1, 5)));
             ShipInternalCamFPS = Config.Bind(ExtraMonitorsSection, nameof(ShipInternalCamFPS), 0, new ConfigDescription($"Limits the FPS of the internal ship cam for performance. 0 = Unrestricted.", new AcceptableValueRange<int>(0, 30)));
@@ -284,6 +282,8 @@ namespace GeneralImprovements
                 eMonitorNames defaultVal = i switch { 4 => eMonitorNames.ProfitQuota, 5 => eMonitorNames.Deadline, 10 => eMonitorNames.InternalCam, 13 => eMonitorNames.ExternalCam, _ => eMonitorNames.None };
                 ShipMonitorAssignments[i] = Config.Bind(ExtraMonitorsSection, $"ShipMonitor{i + 1}", defaultVal, $"What to display on the ship monitor at position {i + 1}, if anything.");
             }
+            ShowBackgroundOnAllScreens = Config.Bind(ExtraMonitorsSection, nameof(ShowBackgroundOnAllScreens), false, "If set to true, will show the MonitorBackgroundColor on ALL monitors when they are on, not just used ones.");
+            ShowBlueMonitorBackground = Config.Bind(ExtraMonitorsSection, nameof(ShowBlueMonitorBackground), true, "If set to true and NOT using UseBetterMonitors, keeps the vanilla blue backgrounds on the extra monitors. Set to false to hide.");
             SyncExtraMonitorsPower = Config.Bind(ExtraMonitorsSection, nameof(SyncExtraMonitorsPower), true, "If set to true, The smaller monitors above the map screen will turn off and on when the map screen power is toggled.");
             SyncMonitorsFromOtherHost = Config.Bind(ExtraMonitorsSection, nameof(SyncMonitorsFromOtherHost), false, "If set to true, all monitor placements will be synced from the host when joining a game, if the host is also using this mod. Settings such as color, FPS, etc will not be synced.");
             UseBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(UseBetterMonitors), false, "If set to true, upgrades the vanilla monitors with integrated and more customizable overlays.");
@@ -294,12 +294,12 @@ namespace GeneralImprovements
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
             FixItemsFallingThrough = Config.Bind(FixesSection, nameof(FixItemsFallingThrough), true, "Fixes items falling through furniture on the ship when loading the game.");
             FixItemsLoadingSameRotation = Config.Bind(FixesSection, nameof(FixItemsLoadingSameRotation), true, "Fixes items all facing the same way when loading a save file. Now they will store their rotations as well.");
-            SellCounterItemLimit = Config.Bind(FixesSection, nameof(SellCounterItemLimit), 24, new ConfigDescription("Sets the max amount of items the company selling counter will hold at one time. Vanilla = 12.", new AcceptableValueRange<int>(12, 100)));
+            SellCounterItemLimit = Config.Bind(FixesSection, nameof(SellCounterItemLimit), 24, new ConfigDescription("Sets the max amount of items the company selling counter will hold at one time. Vanilla = 12.", new AcceptableValueRange<int>(12, 999)));
 
             // Game Launch
             AllowPreGameLeverPullAsClient = Config.Bind(GameLaunchSection, nameof(AllowPreGameLeverPullAsClient), true, "If set to true, you will be able to pull the ship lever to start the game as a connected player.");
             AlwaysShowNews = Config.Bind(GameLaunchSection, nameof(AlwaysShowNews), false, "If set to true, will always display the news popup when starting the game.");
-            AutoSelectLaunchMode = Config.Bind(GameLaunchSection, nameof(AutoSelectLaunchMode), eAutoLaunchOption.NONE, "If set to 'ONLINE' or 'LAN', will automatically launch the correct mode, saving you from having to click the menu option when the game loads.");
+            AutoSelectLaunchMode = Config.Bind(GameLaunchSection, nameof(AutoSelectLaunchMode), eAutoLaunchOption.NONE, "If set to 'ONLINE' or 'LAN', will automatically launch the correct mode, saving you from having to click the menu option when the game loads. **WARNING** THIS MAY PREVENT CERTAIN OTHER MODS FROM BEING ABLE TO PROPERLY INITIALIZE.");
             MenuMusicVolume = Config.Bind(GameLaunchSection, nameof(MenuMusicVolume), 100, new ConfigDescription("Controls the volume of the menu music, from 0-100.", new AcceptableValueRange<int>(0, 100)));
             SkipStartupScreen = Config.Bind(GameLaunchSection, nameof(SkipStartupScreen), true, "Skips the main menu loading screen bootup animation.");
 

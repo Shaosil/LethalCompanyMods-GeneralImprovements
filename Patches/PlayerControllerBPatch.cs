@@ -66,6 +66,8 @@ namespace GeneralImprovements.Patches
                     node.transform.localPosition += new Vector3(0, 2.25f, 0);
                 }
             }
+
+            MonitorsHelper.UpdatePlayerHealthMonitors();
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SendNewPlayerValuesServerRpc))]
@@ -122,6 +124,14 @@ namespace GeneralImprovements.Patches
             return ((instance.IsOwner && instance.isPlayerControlled && (!instance.IsServer || instance.isHostPlayerObject)) || instance.isTestingPlayer)
                 && !instance.quickMenuManager.isMenuOpen && !instance.isPlayerDead
                 && (!instance.isGrabbingObjectAnimation && !instance.inTerminalMenu && !instance.isTypingChat && (!instance.inSpecialInteractAnimation || instance.inShockingMinigame));
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.DamagePlayer))]
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.DamagePlayerClientRpc))]
+        [HarmonyPostfix]
+        private static void AfterDamage()
+        {
+            MonitorsHelper.UpdatePlayerHealthMonitors();
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(ItemTertiaryUse_performed))]

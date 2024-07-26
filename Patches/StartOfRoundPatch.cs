@@ -235,16 +235,22 @@ namespace GeneralImprovements.Patches
                 // Add to the terminal credits before this function gets called so it is relayed to the connecting client
                 TerminalPatch.AdjustGroupCredits(true);
 
-                // Send positional, rotational, and emotional (heh) data to all when new people connect
+                // Send positional, rotational, emotional (heh), light, and monitor power data to all when new people connect
                 foreach (var connectedPlayer in __instance.allPlayerScripts.Where(p => p.isPlayerControlled))
                 {
                     connectedPlayer.UpdatePlayerPositionClientRpc(connectedPlayer.thisPlayerBody.localPosition, connectedPlayer.isInElevator,
                         connectedPlayer.isInHangarShipRoom, connectedPlayer.isExhausted, connectedPlayer.thisController.isGrounded);
 
+                    connectedPlayer.UpdatePlayerRotationClientRpc((short)connectedPlayer.cameraUp, (short)connectedPlayer.thisPlayerBody.localEulerAngles.y);
+
                     if (connectedPlayer.performingEmote)
                     {
                         connectedPlayer.StartPerformingEmoteClientRpc();
                     }
+
+                    __instance.shipRoomLights.SetShipLightsClientRpc(__instance.shipRoomLights.areLightsOn);
+
+                    __instance.mapScreen.SwitchScreenOnClientRpc(__instance.mapScreen.isScreenOn);
                 }
 
                 // Send any custom network signals to the client if they also use this mod
@@ -292,6 +298,8 @@ namespace GeneralImprovements.Patches
                     __instance.fullyLoadedPlayers.Add(player.actualClientId);
                 }
             }
+
+            MonitorsHelper.UpdatePlayerHealthMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(OnPlayerDC))]
@@ -299,6 +307,7 @@ namespace GeneralImprovements.Patches
         private static void OnPlayerDC()
         {
             TerminalPatch.AdjustGroupCredits(false);
+            MonitorsHelper.UpdatePlayerHealthMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(SyncShipUnlockablesClientRpc))]
@@ -404,6 +413,7 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateScrapLeftMonitors();
             MonitorsHelper.UpdateTotalDaysMonitors();
             MonitorsHelper.UpdateTotalQuotasMonitors();
+            MonitorsHelper.UpdatePlayerHealthMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(LoadShipGrabbableItems))]

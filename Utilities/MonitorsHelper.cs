@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
@@ -40,6 +41,8 @@ namespace GeneralImprovements.Utilities
         private static List<TextMeshProUGUI> _totalDeathsMonitorTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _daysSinceDeathMonitorTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _dangerLevelMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<TextMeshProUGUI> _playerHealthMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<TextMeshProUGUI> _playerExactHealthMonitorTexts = new List<TextMeshProUGUI>();
         private static List<Image> _monitorBackgrounds = new List<Image>();
 
         private static bool _usingAnyMonitorTweaks = false;
@@ -69,6 +72,13 @@ namespace GeneralImprovements.Utilities
         private static List<string> _curSalesAnimations = new List<string>();
         private static float _salesAnimTimer = 0;
         private static float _salesAnimCycle = 2f; // In seconds
+
+        // Player health animation
+        private static int _curPlayerHealthAnimIndex = 0;
+        private static List<string> _curPlayerHealthAnimations = new List<string>();
+        private static List<string> _curPlayerExactHealthAnimations = new List<string>();
+        private static float _playerHealthAnimTimer = 0;
+        private static float _playerHealthAnimCycle = 3f; // In seconds
 
         private static float _curCreditsUpdateCounter = 0;
 
@@ -215,6 +225,8 @@ namespace GeneralImprovements.Utilities
                 _totalDeathsMonitorTexts.ForEach(g => Object.Destroy(g));
                 _daysSinceDeathMonitorTexts.ForEach(g => Object.Destroy(g));
                 _dangerLevelMonitorTexts.ForEach(g => Object.Destroy(g));
+                _playerHealthMonitorTexts.ForEach(g => Object.Destroy(g));
+                _playerExactHealthMonitorTexts.ForEach(g => Object.Destroy(g));
                 _monitorBackgrounds.ForEach(g => Object.Destroy(g));
             }
             else if (_newMonitors != null)
@@ -244,6 +256,8 @@ namespace GeneralImprovements.Utilities
             _totalDeathsMonitorTexts = new List<TextMeshProUGUI>();
             _daysSinceDeathMonitorTexts = new List<TextMeshProUGUI>();
             _dangerLevelMonitorTexts = new List<TextMeshProUGUI>();
+            _playerHealthMonitorTexts = new List<TextMeshProUGUI>();
+            _playerExactHealthMonitorTexts = new List<TextMeshProUGUI>();
             _monitorBackgrounds = new List<Image>();
         }
 
@@ -290,21 +304,23 @@ namespace GeneralImprovements.Utilities
 
                 switch (curAssignment)
                 {
-                    case eMonitorNames.ProfitQuota: curTexts = _profitQuotaTexts; break;
-                    case eMonitorNames.Deadline: curTexts = _deadlineTexts; break;
-                    case eMonitorNames.ShipScrap: curTexts = _shipScrapMonitorTexts; break;
-                    case eMonitorNames.ScrapLeft: curTexts = _scrapLeftMonitorTexts; break;
-                    case eMonitorNames.Time: curTexts = _timeMonitorTexts; break;
-                    case eMonitorNames.Weather: curTexts = _weatherMonitorTexts; break;
-                    case eMonitorNames.FancyWeather: curTexts = _fancyWeatherMonitorTexts; break;
-                    case eMonitorNames.Sales: curTexts = _salesMonitorTexts; break;
                     case eMonitorNames.Credits: curTexts = _creditsMonitorTexts; break;
-                    case eMonitorNames.DoorPower: curTexts = _doorPowerMonitorTexts; break;
-                    case eMonitorNames.TotalDays: curTexts = _totalDaysMonitorTexts; break;
-                    case eMonitorNames.TotalQuotas: curTexts = _totalQuotasMonitorTexts; break;
-                    case eMonitorNames.TotalDeaths: curTexts = _totalDeathsMonitorTexts; break;
-                    case eMonitorNames.DaysSinceDeath: curTexts = _daysSinceDeathMonitorTexts; break;
                     case eMonitorNames.DangerLevel: curTexts = _dangerLevelMonitorTexts; break;
+                    case eMonitorNames.DaysSinceDeath: curTexts = _daysSinceDeathMonitorTexts; break;
+                    case eMonitorNames.Deadline: curTexts = _deadlineTexts; break;
+                    case eMonitorNames.DoorPower: curTexts = _doorPowerMonitorTexts; break;
+                    case eMonitorNames.FancyWeather: curTexts = _fancyWeatherMonitorTexts; break;
+                    case eMonitorNames.PlayerHealth: curTexts = _playerHealthMonitorTexts; break;
+                    case eMonitorNames.PlayerHealthExact: curTexts = _playerExactHealthMonitorTexts; break;
+                    case eMonitorNames.ProfitQuota: curTexts = _profitQuotaTexts; break;
+                    case eMonitorNames.Sales: curTexts = _salesMonitorTexts; break;
+                    case eMonitorNames.ScrapLeft: curTexts = _scrapLeftMonitorTexts; break;
+                    case eMonitorNames.ShipScrap: curTexts = _shipScrapMonitorTexts; break;
+                    case eMonitorNames.Time: curTexts = _timeMonitorTexts; break;
+                    case eMonitorNames.TotalDays: curTexts = _totalDaysMonitorTexts; break;
+                    case eMonitorNames.TotalDeaths: curTexts = _totalDeathsMonitorTexts; break;
+                    case eMonitorNames.TotalQuotas: curTexts = _totalQuotasMonitorTexts; break;
+                    case eMonitorNames.Weather: curTexts = _weatherMonitorTexts; break;
                 }
 
                 if (curTexts == null && curAssignment != eMonitorNames.None)
@@ -315,8 +331,8 @@ namespace GeneralImprovements.Utilities
                 var positionOffset = offsets[i].Key;
                 var rotationOffset = offsets[i].Value;
 
-                // Create a background if we have a text assignment, OR we want to show the blue backgrounds
-                if (curTexts != null || (Plugin.ShowBlueMonitorBackground.Value && Plugin.ShowBackgroundOnAllScreens.Value))
+                // Create a background if desired, and we either have a text assignment or want to show the blue backgrounds everywhere
+                if (Plugin.ShowBlueMonitorBackground.Value && (curTexts != null || Plugin.ShowBackgroundOnAllScreens.Value))
                 {
                     var newBG = Object.Instantiate(_originalProfitQuotaBG, _originalProfitQuotaBG.transform.parent);
                     newBG.enabled = true;
@@ -384,20 +400,11 @@ namespace GeneralImprovements.Utilities
 
                 switch (curAssignment)
                 {
-                    case eMonitorNames.ProfitQuota:
-                        _profitQuotaTexts.Add(curMonitor.TextCanvas);
-                        if (_profitQuotaScanNode != null)
-                        {
-                            _profitQuotaScanNode.transform.parent = curMonitor.MeshRenderer.transform;
-                            _profitQuotaScanNode.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-                        }
-                        CopyProfitQuotaAndDeadlineTexts();
-                        break;
+                    case eMonitorNames.Credits: _creditsMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.DangerLevel: _dangerLevelMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.DaysSinceDeath: _daysSinceDeathMonitorTexts.Add(curMonitor.TextCanvas); break;
                     case eMonitorNames.Deadline: _deadlineTexts.Add(curMonitor.TextCanvas); break;
-                    case eMonitorNames.ShipScrap: _shipScrapMonitorTexts.Add(curMonitor.TextCanvas); break;
-                    case eMonitorNames.ScrapLeft: _scrapLeftMonitorTexts.Add(curMonitor.TextCanvas); break;
-                    case eMonitorNames.Time: _timeMonitorTexts.Add(curMonitor.TextCanvas); break;
-                    case eMonitorNames.Weather: _weatherMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.DoorPower: _doorPowerMonitorTexts.Add(curMonitor.TextCanvas); break;
                     case eMonitorNames.FancyWeather:
                         if (Plugin.CenterAlignMonitorText.Value)
                         {
@@ -412,26 +419,42 @@ namespace GeneralImprovements.Utilities
                         _fancyWeatherMonitorTexts.Add(curMonitor.TextCanvas);
                         UpdateWeatherMonitors();
                         break;
-                    case eMonitorNames.Sales: curMonitor.TextCanvas.overflowMode = TextOverflowModes.Ellipsis; _salesMonitorTexts.Add(curMonitor.TextCanvas); break;
-                    case eMonitorNames.Credits: _creditsMonitorTexts.Add(curMonitor.TextCanvas); break;
-                    case eMonitorNames.DoorPower: _doorPowerMonitorTexts.Add(curMonitor.TextCanvas); break;
-                    case eMonitorNames.TotalDays: _totalDaysMonitorTexts.Add(curMonitor.TextCanvas); break;
-                    case eMonitorNames.TotalQuotas: _totalQuotasMonitorTexts.Add(curMonitor.TextCanvas); break;
-                    case eMonitorNames.TotalDeaths: _totalDeathsMonitorTexts.Add(curMonitor.TextCanvas); break;
-                    case eMonitorNames.DaysSinceDeath: _daysSinceDeathMonitorTexts.Add(curMonitor.TextCanvas); break;
-                    case eMonitorNames.DangerLevel: _dangerLevelMonitorTexts.Add(curMonitor.TextCanvas); break;
-
-                    case eMonitorNames.InternalCam:
-                        // Reassign the internal camera mesh to the most recent mesh that was applied
-                        curMonitor.AssignedMaterial = internalCamMat;
-                        curMonitor.MeshRenderer.sharedMaterial = internalCamMat;
-                        StartOfRound.Instance.elevatorTransform.Find("Cameras/ShipCamera").GetComponent<ManualCameraRenderer>().mesh = curMonitor.MeshRenderer;
+                    case eMonitorNames.PlayerHealth:
+                    case eMonitorNames.PlayerHealthExact:
+                        curMonitor.TextCanvas.fontSize = 20f;
+                        curMonitor.TextCanvas.alignment = TextAlignmentOptions.MidlineLeft;
+                        if (curAssignment == eMonitorNames.PlayerHealth) _playerHealthMonitorTexts.Add(curMonitor.TextCanvas);
+                        else _playerExactHealthMonitorTexts.Add(curMonitor.TextCanvas);
                         break;
+                    case eMonitorNames.ProfitQuota:
+                        _profitQuotaTexts.Add(curMonitor.TextCanvas);
+                        if (_profitQuotaScanNode != null)
+                        {
+                            _profitQuotaScanNode.transform.parent = curMonitor.MeshRenderer.transform;
+                            _profitQuotaScanNode.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                        }
+                        CopyProfitQuotaAndDeadlineTexts();
+                        break;
+                    case eMonitorNames.Sales: curMonitor.TextCanvas.overflowMode = TextOverflowModes.Ellipsis; _salesMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.ScrapLeft: _scrapLeftMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.ShipScrap: _shipScrapMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.Time: _timeMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.TotalDays: _totalDaysMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.TotalDeaths: _totalDeathsMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.TotalQuotas: _totalQuotasMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.Weather: _weatherMonitorTexts.Add(curMonitor.TextCanvas); break;
+
                     case eMonitorNames.ExternalCam:
                         // Reassign the external camera mesh to the most recent mesh that was applied
                         curMonitor.AssignedMaterial = externalCamMat;
                         curMonitor.MeshRenderer.sharedMaterial = externalCamMat;
                         StartOfRound.Instance.elevatorTransform.Find("Cameras/FrontDoorSecurityCam/SecurityCamera").GetComponent<ManualCameraRenderer>().mesh = curMonitor.MeshRenderer;
+                        break;
+                    case eMonitorNames.InternalCam:
+                        // Reassign the internal camera mesh to the most recent mesh that was applied
+                        curMonitor.AssignedMaterial = internalCamMat;
+                        curMonitor.MeshRenderer.sharedMaterial = internalCamMat;
+                        StartOfRound.Instance.elevatorTransform.Find("Cameras/ShipCamera").GetComponent<ManualCameraRenderer>().mesh = curMonitor.MeshRenderer;
                         break;
                 }
             }
@@ -483,8 +506,22 @@ namespace GeneralImprovements.Utilities
         {
             if (_profitQuotaTexts.Count > 0 || _deadlineTexts.Count > 0)
             {
+                // Apply color to deadline text if possible
+                string deadlineText = StartOfRound.Instance.deadlineMonitorText?.text;
+                if (!string.IsNullOrWhiteSpace(deadlineText))
+                {
+                    // Just read the days remaining from the text to be sure the applied color makes sense
+                    var match = Regex.Match(deadlineText, "(\\d+) DAYS?", RegexOptions.IgnoreCase);
+                    if (match.Success)
+                    {
+                        int days = int.Parse(match.Groups[1].Value);
+                        string color = days >= 3 ? "00ff00" : days == 2 ? "ffff00" : days == 1 ? "ff8800" : "ff0000";
+                        deadlineText = deadlineText.Replace(match.Groups[0].Value, $"<color=#{color}>{match.Groups[0].Value}</color>");
+                    }
+                }
+
                 if (UpdateGenericTextList(_profitQuotaTexts, StartOfRound.Instance.profitQuotaMonitorText?.text)
-                    & UpdateGenericTextList(_deadlineTexts, StartOfRound.Instance.deadlineMonitorText?.text))
+                    & UpdateGenericTextList(_deadlineTexts, deadlineText))
                 {
                     Plugin.MLS.LogInfo("Updated profit quota and deadline monitors");
                 }
@@ -503,7 +540,7 @@ namespace GeneralImprovements.Utilities
                 && !(o is RagdollGrabbableObject) && (!(o is StunGrenadeItem grenade) || !grenade.hasExploded || !grenade.DestroyGrenade)).ToList();
             int shipLoot = allScrap.Sum(o => o.scrapValue);
 
-            if (UpdateGenericTextList(_shipScrapMonitorTexts, $"SCRAP IN SHIP:\n${shipLoot}"))
+            if (UpdateGenericTextList(_shipScrapMonitorTexts, $"SCRAP IN SHIP:\n<color=#80ffff>${shipLoot}</color>"))
             {
                 Plugin.MLS.LogInfo($"Set ship scrap total to ${shipLoot} ({allScrap.Count} items).");
             }
@@ -517,7 +554,7 @@ namespace GeneralImprovements.Utilities
                 bool updatedText = false;
                 if (outsideScrap.Key > 0)
                 {
-                    updatedText = UpdateGenericTextList(_scrapLeftMonitorTexts, $"SCRAP LEFT:\n{outsideScrap.Key} ITEMS\n${outsideScrap.Value}");
+                    updatedText = UpdateGenericTextList(_scrapLeftMonitorTexts, $"SCRAP LEFT:\n{outsideScrap.Key} ITEMS\n<color=#80ffff>${outsideScrap.Value}</color>");
                 }
                 else
                 {
@@ -663,7 +700,7 @@ namespace GeneralImprovements.Utilities
                 }
             }
 
-            // Sales monitor
+            // Sales monitors
             if (_salesMonitorTexts.Count > 0 && _curSalesAnimations.Count >= 2)
             {
                 _salesAnimTimer += Time.deltaTime;
@@ -673,6 +710,19 @@ namespace GeneralImprovements.Utilities
                     _curSalesAnimIndex = (1 + _curSalesAnimIndex) % _curSalesAnimations.Count;
                     string firstLine = _salesMonitorTexts.First().text.Split('\n')[0];
                     UpdateGenericTextList(_salesMonitorTexts, $"{firstLine}\n{_curSalesAnimations[_curSalesAnimIndex]}");
+                }
+            }
+
+            // Player health monitors (only check _curPlayerHealthAnimations count because it will always have the same as the exact one)
+            if ((_playerHealthMonitorTexts.Count > 0 || _playerExactHealthMonitorTexts.Count > 0) && _curPlayerHealthAnimations.Count >= 2)
+            {
+                _playerHealthAnimTimer += Time.deltaTime;
+                if (_playerHealthAnimTimer >= _playerHealthAnimCycle)
+                {
+                    _playerHealthAnimTimer = 0;
+                    _curPlayerHealthAnimIndex = (1 + _curPlayerHealthAnimIndex) % _curPlayerHealthAnimations.Count;
+                    if (_playerHealthMonitorTexts.Count > 0) UpdateGenericTextList(_playerHealthMonitorTexts, _curPlayerHealthAnimations[_curPlayerHealthAnimIndex]);
+                    if (_playerExactHealthMonitorTexts.Count > 0) UpdateGenericTextList(_playerExactHealthMonitorTexts, _curPlayerExactHealthAnimations[_curPlayerHealthAnimIndex]);
                 }
             }
 
@@ -699,7 +749,7 @@ namespace GeneralImprovements.Utilities
                         if (instance.itemSalesPercentages[i] < 100 && instance.buyableItemsList.Length > i)
                         {
                             string item = instance.buyableItemsList[i]?.itemName ?? "???";
-                            _curSalesAnimations.Add($"{100 - instance.itemSalesPercentages[i]}% OFF {item}");
+                            _curSalesAnimations.Add($"<color=#00ff00>{100 - instance.itemSalesPercentages[i]}% OFF {item}</color>");
                         }
                     }
                 }
@@ -735,7 +785,7 @@ namespace GeneralImprovements.Utilities
                 {
                     _lastUpdatedCredits = groupCredits;
 
-                    if (UpdateGenericTextList(_creditsMonitorTexts, $"CREDITS:\n${_lastUpdatedCredits}"))
+                    if (UpdateGenericTextList(_creditsMonitorTexts, $"CREDITS:\n<color=#ffff00>${_lastUpdatedCredits}</color>"))
                     {
                         Plugin.MLS.LogInfo("Updated credits display.");
                     }
@@ -788,7 +838,8 @@ namespace GeneralImprovements.Utilities
         {
             if (_totalDeathsMonitorTexts.Count > 0 && StartOfRound.Instance?.gameStats != null)
             {
-                if (UpdateGenericTextList(_totalDeathsMonitorTexts, $"DEATHS:\n{StartOfRound.Instance.gameStats.deaths}"))
+                int totalDeaths = StartOfRound.Instance.gameStats.deaths;
+                if (UpdateGenericTextList(_totalDeathsMonitorTexts, $"TOTAL DEATHS:\n<color=#{(totalDeaths <= 0 ? "00ff00" : "ff0000")}>{totalDeaths}</color>"))
                 {
                     Plugin.MLS.LogInfo("Updated total deaths display.");
                 }
@@ -817,7 +868,7 @@ namespace GeneralImprovements.Utilities
                 }
                 else
                 {
-                    updatedText = UpdateGenericTextList(_daysSinceDeathMonitorTexts, "ZERO DEATHS (YET)");
+                    updatedText = UpdateGenericTextList(_daysSinceDeathMonitorTexts, "<color=#00ff00>ZERO DEATHS (YET)</color>");
                 }
 
                 if (updatedText)
@@ -833,11 +884,69 @@ namespace GeneralImprovements.Utilities
             {
                 var dangerLevels = new[] { "SAFE", "WARNING", "HAZARDOUS", "DANGEROUS", "LETHAL" };
                 var colorHexes = new[] { "00ff00", "c8ff00", "ffc400", "ff6a00", "ff0000" };
-                int curDanger = totalMaxPower <= 0 ? 0 : (int)Mathf.Ceil(Mathf.Clamp(totalCurrentPower / totalMaxPower, 0, 1) * 4);
+                int curDanger = totalCurrentPower <= 0 || totalMaxPower <= 0 ? 0 : (int)Mathf.Ceil(Mathf.Clamp(totalCurrentPower / totalMaxPower, 0, 1) * 4);
 
                 if (UpdateGenericTextList(_dangerLevelMonitorTexts, $"DANGER LEVEL:\n<color=#{colorHexes[curDanger]}>{dangerLevels[curDanger]}</color>"))
                 {
                     Plugin.MLS.LogInfo("Updated danger level display.");
+                }
+            }
+        }
+
+        public static void UpdatePlayerHealthMonitors()
+        {
+            if (_playerHealthMonitorTexts.Count > 0 || _playerExactHealthMonitorTexts.Count > 0)
+            {
+                // Set up animation stuff
+                int playerPerPage = 5;
+                var activePlayers = StartOfRound.Instance.allPlayerScripts.Where(p => p.isPlayerControlled || p.isPlayerDead).ToList();
+
+                // Break early if there are no players
+                if (activePlayers.Count <= 0) return;
+
+                int numAnimationsNeeded = Mathf.CeilToInt(activePlayers.Count / (float)playerPerPage);
+                if (numAnimationsNeeded != _curPlayerHealthAnimations.Count)
+                {
+                    _curPlayerHealthAnimIndex = 0;
+                    _curPlayerHealthAnimations = new List<string>();
+                    _curPlayerExactHealthAnimations = new List<string>();
+                }
+
+                // Create strings for both exact and non exact
+                for (int a = 0; a < numAnimationsNeeded; a++)
+                {
+                    if (_curPlayerHealthAnimations.Count <= a)
+                    {
+                        _curPlayerHealthAnimations.Add(string.Empty);
+                        _curPlayerExactHealthAnimations.Add(string.Empty);
+                    }
+
+                    var curScreenPlayersSb = new StringBuilder();
+                    var curScreenPlayersExactSb = new StringBuilder();
+
+                    // Process a page at a time
+                    for (int p = 0; p < playerPerPage && (a * playerPerPage) + p < activePlayers.Count; p++)
+                    {
+                        var curPlayer = activePlayers[(a * playerPerPage) + p];
+                        string displayName = new string(curPlayer.playerUsername.Take(22).Concat(new char[] { ':' }).ToArray()).PadRight(22);
+                        int healthLevel = curPlayer.health >= 100 ? 3 : curPlayer.health >= 50 ? 2 : 1;
+                        string healthColor = healthLevel == 3 ? "00ff00" : healthLevel == 2 ? "ffff00" : "ff0000";
+
+                        curScreenPlayersSb.AppendLine($"   {displayName} <color=#{healthColor}>{new string('=', healthLevel).PadRight(3)}</color>");
+                        curScreenPlayersExactSb.AppendLine($"   {displayName} <color=#{healthColor}>{curPlayer.health,3}</color>");
+                    }
+
+                    string header = $"{new string(' ', 10)}PLAYER HEALTH:\n\n";
+                    string footer = numAnimationsNeeded > 1 ? $"\n\n{new string(' ', 12)}PAGE {a + 1} OF {numAnimationsNeeded}" : string.Empty;
+                    _curPlayerHealthAnimations[a] = $"{header}{curScreenPlayersSb}{footer}";
+                    _curPlayerExactHealthAnimations[a] = $"{header}{curScreenPlayersExactSb}{footer}";
+                }
+
+                // Update the text of the current animation cycle
+                if ((_playerHealthMonitorTexts.Count > 0) && UpdateGenericTextList(_playerHealthMonitorTexts, _curPlayerHealthAnimations[_curPlayerHealthAnimIndex])
+                    | (_playerExactHealthMonitorTexts.Count > 0 && UpdateGenericTextList(_playerExactHealthMonitorTexts, _curPlayerExactHealthAnimations[_curPlayerHealthAnimIndex])))
+                {
+                    Plugin.MLS.LogInfo("Updated player health display.");
                 }
             }
         }

@@ -26,6 +26,8 @@ namespace GeneralImprovements
             Deadline,
             DoorPower,
             FancyWeather,
+            PlayerHealth,
+            PlayerHealthExact,
             ProfitQuota,
             Sales,
             ScrapLeft,

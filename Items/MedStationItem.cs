@@ -58,6 +58,7 @@ namespace GeneralImprovements.Items
             player.criticallyInjured = false;
             player.bleedingHeavily = false;
             player.playerBodyAnimator.SetBool("Limp", false);
+            MonitorsHelper.UpdatePlayerHealthMonitors();
         }
     }
 }

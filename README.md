@@ -72,7 +72,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * The map seed is now properly randomized as soon as you start a new save file, which means sales, weather, etc will be properly randomized.
 * Fixes ship scrap not being marked as 'in the ship' for clients when joining. This fixes several things client side, including terminal scans, extra scrap collection pings, and more.
 * [Host Only] Whoopie cushions and flasks will no longer be hit by lightning. If the host/server player has this enabled, it will apply to all clients.
-* [Host Only] When a new client connects to your lobby, they should see the correct position, rotation, and current emote of each player.
+* [Host Only] When a new client connects to your lobby, they should see the correct position, rotation, and current emote animation of each player, as well as correct states of the ship lights and monitor power.
 * When loading a file, items in the ship will no longer fall through shelves, tables, etc. May be disabled.
 * Adds an option to fix the personal scanners sensitivity, making it function more reliably, for example being able to ping the ship on Rend.
 * Fixes the ship scan node showing up outside of the ship while flying in to a moon.

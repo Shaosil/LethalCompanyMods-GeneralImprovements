@@ -35,20 +35,20 @@ namespace GeneralImprovements.Patches
             {
                 // Make sure all child objects have a mask of PlaceableShipObject
                 var roomMask = LayerMask.NameToLayer("Room");
-                ReplaceRoomMaskWithDefault(__instance.transform, roomMask);
+                ReplaceRoomMaskWithInteractableObjectRecursive(__instance.transform, roomMask);
             }
         }
 
-        private static void ReplaceRoomMaskWithDefault(Transform curTransform, int roomMask)
+        private static void ReplaceRoomMaskWithInteractableObjectRecursive(Transform curTransform, int roomMask)
         {
             if (curTransform.gameObject.layer == roomMask)
             {
-                curTransform.gameObject.layer = 0; // Default layer
+                curTransform.gameObject.layer = 9; // InteractableObject layer
             }
 
             for (int i = 0; i < curTransform.childCount; i++)
             {
-                ReplaceRoomMaskWithDefault(curTransform.GetChild(i), roomMask);
+                ReplaceRoomMaskWithInteractableObjectRecursive(curTransform.GetChild(i), roomMask);
             }
         }
     }

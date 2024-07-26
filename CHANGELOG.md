@@ -1,5 +1,22 @@
 # Changelog
 
+### v1.3.5 - More fixes and improvements
+* Fixed an alignment bug with the ship cupboard when placing items when ShipPlaceablesCollide was set to false.
+* Fixed dropped items not colliding with ship placeables if ShipPlaceablesCollide was set to false.
+* Fixed a bug where the blue monitor backgrounds still showed up when both UseBetterMonitors and ShowBlueMonitorBackground were set to false.
+* Fixed players rotation not being immediately synced when clients join a lobby.
+* Fixed the ship light and monitor power status not being synced when a client joins.
+* Hopefully fixed the danger level monitor showing LETHAL after taking off from a moon.
+* Updated SellCounterItemLimit to support up to a value of 999 instead of 100.
+* Added PlayerHealth and PlayerHealthExact monitor options.
+	* PlayerHealth will only show green, yellow, and red icons per player without revealing whether they are dead or not.
+	* PlayerHealthExact will show the exact amount of health each player has, meaning you can deduce their living status.
+	* The monitors update when the usual player damage and revived functions are called. If other mods change health outside of those areas, the monitors may sometimes be out of sync.
+	* I had to resize the font of whatever monitors use these options, so I recommend displaying them on a large monitor unless you have an HD mod.
+		* This also means I had to upscale the better monitors resolution a bit so you could make out the text. Don't forget to replace the assets file if you manually update.
+* Added a bit of color to some of my monitors' texts.
+* Added a warning to the AutoSelectLaunchMode setting description to inform people that it may prevent certain other mods from initializing properly.
+
 ### v1.3.4 - External cam hotfix
 * Fixing a bug I introduced in v1.3.3 where the external cam monitor would no longer function when using better monitors.
 

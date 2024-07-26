@@ -26,8 +26,11 @@
     <ItemGroup>
         <Publicize Include="BepInEx:BepInEx.Configuration.ConfigFile.OrphanedEntries" />
         <Publicize Include="Assembly-CSharp:HUDManager.AttemptScanNode" />
+        <Publicize Include="Assembly-CSharp:ManualCameraRenderer.isScreenOn" />
+        <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.cameraUp" />
         <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.timeSinceSwitchingSlots" />
         <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.UpdatePlayerPositionClientRpc" />
+        <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.UpdatePlayerRotationClientRpc" />
         <Publicize Include="Assembly-CSharp:SprayPaintItem.sprayCanMatsIndex" />
         <Publicize Include="Assembly-CSharp:TerminalAccessibleObject.mapRadarText" />
     </ItemGroup>

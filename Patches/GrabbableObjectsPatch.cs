@@ -107,6 +107,34 @@ namespace GeneralImprovements.Patches
             return ApplyGenericKeyActivateTranspiler(instructions.ToList(), method);
         }
 
+        [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.GetItemFloorPosition))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> GetItemFloorPosition_Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+
+            if (!Plugin.ShipPlaceablesCollide.Value)
+            {
+                // If ship placeables no longer collide, their layers will have changed, so include InteractableObject layers in item drop raycasts for floor target collisions
+                if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
+                    i => i.LoadsConstant(0x10000901),
+                    i => i.LoadsConstant(1),
+                    i => i.Calls(typeof(Physics).GetMethod(nameof(Physics.Raycast), new Type[] { typeof(Vector3), typeof(Vector3), typeof(RaycastHit).MakeByRefType(), typeof(float), typeof(int), typeof(QueryTriggerInteraction) }))
+                }, out var raycastCode))
+                {
+                    Plugin.MLS.LogDebug("Patching GrabbableObject.GetItemFloorPosition to include the InteractableObject layer.");
+                    raycastCode[0].Instruction.operand = 0x10000B01;
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected IL Code - Could not patch GrabbableObject.GetItemFloorPosition to include the InteractableObject layer!");
+                }
+            }
+
+            return codeList;
+        }
+
         public static IEnumerable<CodeInstruction> ApplyGenericKeyActivateTranspiler(List<CodeInstruction> codeList, MethodBase method)
         {
             // Make sure we only transpile if needed
