@@ -1,5 +1,10 @@
 # Changelog
 
+### v1.3.6 - Hotfix
+* Fixed the sell counter not accepting items if SellCounterItemLimit was greater than 127.
+* Fixed the new PlayerHealth and PlayerHealthExact monitors not working propertly if UseBetterMonitors was set to false.
+* Fixed the new PlayerHealth and PlayerHealthExact monitors not syncing player names until later.
+
 ### v1.3.5 - More fixes and improvements
 * Fixed an alignment bug with the ship cupboard when placing items when ShipPlaceablesCollide was set to false.
 * Fixed dropped items not colliding with ship placeables if ShipPlaceablesCollide was set to false.

@@ -23,6 +23,7 @@ namespace GeneralImprovements.Patches
             }, out var foundInstructions))
             {
                 Plugin.MLS.LogDebug($"Updating sell counter item limit to {Plugin.SellCounterItemLimit.Value}.");
+                foundInstructions[2].Instruction.opcode = OpCodes.Ldc_I4;
                 foundInstructions[2].Instruction.operand = Plugin.SellCounterItemLimit.Value;
             }
             else

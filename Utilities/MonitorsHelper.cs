@@ -374,6 +374,11 @@ namespace GeneralImprovements.Utilities
                 fancyWeather.transform.localPosition += new Vector3(25, 0, -10);
                 fancyWeather.transform.localEulerAngles += new Vector3(-2, 1, 0);
             }
+            foreach (var healthMonitor in _playerHealthMonitorTexts.Concat(_playerExactHealthMonitorTexts))
+            {
+                healthMonitor.fontSize = 30f;
+                healthMonitor.alignment = TextAlignmentOptions.MidlineLeft;
+            }
         }
 
         private static void CreateNewStyleMonitors(eMonitorNames[] monitorAssignments)

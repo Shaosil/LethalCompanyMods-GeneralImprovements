@@ -98,6 +98,8 @@ namespace GeneralImprovements.Patches
                     }
                 }
             }
+
+            MonitorsHelper.UpdatePlayerHealthMonitors();
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(ActivateItem_performed))]

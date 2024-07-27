@@ -299,7 +299,10 @@ namespace GeneralImprovements.Patches
                 }
             }
 
-            MonitorsHelper.UpdatePlayerHealthMonitors();
+            if (GameNetworkManager.Instance.disableSteam)
+            {
+                MonitorsHelper.UpdatePlayerHealthMonitors();
+            }
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(OnPlayerDC))]
