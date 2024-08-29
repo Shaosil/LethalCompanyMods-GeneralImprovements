@@ -1,7 +1,7 @@
 ﻿using GeneralImprovements;
 using System.Text;
 
-var entries = Plugin.GetConfigSectionsAndItems(@"F:\Steam Games\steamapps\common\Lethal Company\BepInEx\config\ShaosilGaming.GeneralImprovements.cfg");
+var entries = Plugin.GetConfigSectionsAndItems(@"C:\Program Files (x86)\Steam\steamapps\common\Lethal Company\BepInEx\config\ShaosilGaming.GeneralImprovements.cfg");
 Console.WriteLine($"Loaded {entries.Count} sections and {entries.Sum(e => e.Value.Count)} total entries.");
 Console.WriteLine();
 
