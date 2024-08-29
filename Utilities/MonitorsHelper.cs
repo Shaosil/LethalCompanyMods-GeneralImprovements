@@ -764,11 +764,11 @@ namespace GeneralImprovements.Utilities
                 }
 
                 bool updatedText = false;
-                if (numSales <= 0 && _curSalesAnimations.Count > 0)
+                if (numSales <= 0)
                 {
                     updatedText = UpdateGenericTextList(_salesMonitorTexts, "NO SALES TODAY");
                 }
-                else
+                else if (_curSalesAnimations.Count > 0)
                 {
                     updatedText = UpdateGenericTextList(_salesMonitorTexts, $"{numSales} SALE{(numSales == 1 ? string.Empty : "S")}:\n{_curSalesAnimations[0]}");
                 }

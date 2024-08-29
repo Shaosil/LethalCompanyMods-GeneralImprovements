@@ -1,5 +1,8 @@
 # Changelog
 
+### v1.3.8 - Hotfix
+* Fixed the sales monitor breaking in v1.3.7
+
 ### v1.3.7 - More fixes and improvements
 * Added a config option to disable the automatic collection of dead player bodies when teleporting them to the ship, and attempted to fix the collection being spammed with certain mod conflicts.
 * Terminal command history now supports a minimum of 2 characters to store instead of 3, meaning it will save door/mechanism commands as well.
