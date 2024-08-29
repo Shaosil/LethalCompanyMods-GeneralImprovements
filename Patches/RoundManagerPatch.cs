@@ -48,6 +48,9 @@ namespace GeneralImprovements.Patches
                 }
             }
 
+            // Refresh the current audio presets
+            AudioReverbTriggerPatch.CurrentAudioReverbPresets = Object.FindAnyObjectByType<AudioReverbPresets>();
+
             MonitorsHelper.UpdateScrapLeftMonitors();
         }
 
@@ -68,19 +71,6 @@ namespace GeneralImprovements.Patches
                 CurShipNode.transform.parent = TerminalPatch.Instance.transform;
                 _gotShipNode = false;
             }
-        }
-
-        [HarmonyPatch(typeof(RoundManager), "RefreshEnemiesList")]
-        [HarmonyPatch(typeof(EnemyAI), "SubtractFromPowerLevel")]
-        [HarmonyPatch(typeof(RoundManager), "AdvanceHourAndSpawnNewBatchOfEnemies")]
-        [HarmonyPatch(typeof(RoundManager), "DespawnEnemyGameObject")]
-        [HarmonyPatch(typeof(RoundManager), "UnloadSceneObjectsEarly")]
-        [HarmonyPostfix]
-        private static void RoundLevelPowerChanged(RoundManager __instance)
-        {
-            float totalMaxPower = __instance.currentMaxInsidePower + __instance.currentMaxOutsidePower;
-            float totalCurrentPower = __instance.currentEnemyPower + __instance.currentOutsideEnemyPower;
-            MonitorsHelper.UpdateDangerLevelMonitors(totalMaxPower, totalCurrentPower);
         }
     }
 }

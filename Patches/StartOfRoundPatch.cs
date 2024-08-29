@@ -410,6 +410,7 @@ namespace GeneralImprovements.Patches
             // Reset any necessary after-orbit variables
             DepositItemsDeskPatch.NumItemsSoldToday = 0;
             MaskedPlayerEnemyPatch.NumSpawnedThisLevel = 0;
+            EnemyAIPatch.CurTotalPowerLevel = 0;
 
             // Reset some monitors
             MonitorsHelper.UpdateShipScrapMonitors();
@@ -417,6 +418,7 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateTotalDaysMonitors();
             MonitorsHelper.UpdateTotalQuotasMonitors();
             MonitorsHelper.UpdatePlayerHealthMonitors();
+            MonitorsHelper.UpdateDangerLevelMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(LoadShipGrabbableItems))]

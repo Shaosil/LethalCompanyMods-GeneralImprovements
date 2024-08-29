@@ -1,5 +1,18 @@
 # Changelog
 
+### v1.3.7 - More fixes and improvements
+* Added a config option to disable the automatic collection of dead player bodies when teleporting them to the ship, and attempted to fix the collection being spammed with certain mod conflicts.
+* Terminal command history now supports a minimum of 2 characters to store instead of 3, meaning it will save door/mechanism commands as well.
+* Fixed the PlayerHealthExact monitor not working if there were no PlayerHealth monitors.
+* Fixed word wrapping and overflow with long player names in player health monitors.
+* Fixed the chat opacity config settings not being applied when using the ship terminal.
+* Fixed masked entities having a scan node created when MaskedEntitiesShowPlayerNames was true but ScanPlayers was false. Both need to be set to true for them to be "scannable" as players.
+* Fixed the danger level monitors being constantly inaccurate.
+* Fixed a big vanilla performance problem related to audio reverb triggers continually searching for a gameobject, resulting in a 5-10x performance boost in certain cases.
+	* This is fully compatible with [ReverbTriggerFix](https://thunderstore.io/c/lethal-company/p/JacobG5/ReverbTriggerFix/) as they technically optimize different things.
+* Potentially fixed a rare edge case in which the sales monitor would throw an exception when trying to update.
+* Potentially fixed a rare exception with storing terminal command history when submitting a command.
+
 ### v1.3.6 - Hotfix
 * Fixed the sell counter not accepting items if SellCounterItemLimit was greater than 127.
 * Fixed the new PlayerHealth and PlayerHealthExact monitors not working propertly if UseBetterMonitors was set to false.

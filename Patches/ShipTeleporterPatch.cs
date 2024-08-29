@@ -51,32 +51,35 @@ namespace GeneralImprovements.Patches
         {
             var codeList = instructions.ToList();
 
-            // Find the code that teleports dead bodies
-            if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+            if (Plugin.AutomaticallyCollectTeleportedCorpses.Value)
             {
+                // Find the code that teleports dead bodies
+                if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
                 i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.deadBody))),
                 i => i.Calls(typeof(Component).GetMethod("get_transform")),
                 i => i.Calls(typeof(StartOfRound).GetMethod("get_Instance")),
                 i => i.LoadsField(typeof(StartOfRound).GetField(nameof(StartOfRound.elevatorTransform))),
                 i => i.LoadsConstant(1),
                 i => i.Calls(typeof(Transform).GetMethod(nameof(Transform.SetParent), new[] { typeof(Transform), typeof(bool) }))
-            }, out var deadBody))
-            {
-                var collectBodyDelegate = Transpilers.EmitDelegate<Action>(() =>
+                }, out var deadBody))
                 {
-                    var deadBodyObj = StartOfRound.Instance?.mapScreen?.targetedPlayer?.deadBody?.grabBodyObject;
-                    if (deadBodyObj != null)
+                    var collectBodyDelegate = Transpilers.EmitDelegate<Action>(() =>
                     {
-                        StartOfRound.Instance.mapScreen.targetedPlayer.SetItemInElevator(true, true, deadBodyObj);
-                    }
-                });
+                        var deadBodyObj = StartOfRound.Instance?.mapScreen?.targetedPlayer?.deadBody?.grabBodyObject;
+                        if (deadBodyObj != null && !deadBodyObj.isInShipRoom)
+                        {
+                            StartOfRound.Instance.mapScreen.targetedPlayer.SetItemInElevator(true, true, deadBodyObj);
+                        }
+                    });
 
-                codeList.Insert(deadBody.Last().Index + 1, collectBodyDelegate);
-                Plugin.MLS.LogDebug("Patched beamUpPlayer to drop dead bodies properly.");
-            }
-            else
-            {
-                Plugin.MLS.LogError("Unexpected code - Could not transpile ShipTeleporter.beamUpPlayer to fix dead body collection!");
+                    codeList.Insert(deadBody.Last().Index + 1, collectBodyDelegate);
+                    Plugin.MLS.LogDebug("Patched beamUpPlayer to drop dead bodies properly.");
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected code - Could not transpile ShipTeleporter.beamUpPlayer to fix dead body collection!");
+                }
             }
 
             // Find the code that drops held items otherwise (if needed)

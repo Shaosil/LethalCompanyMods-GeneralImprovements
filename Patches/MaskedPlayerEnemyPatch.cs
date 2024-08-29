@@ -30,9 +30,12 @@ namespace GeneralImprovements.Patches
 
                 if (Plugin.MaskedEntitiesShowPlayerNames.Value)
                 {
-                    // Create scan node
-                    var node = ObjectHelper.CreateScanNodeOnObject(__instance.gameObject, 0, 1, 10, playerToTarget.playerUsername);
-                    node.transform.localPosition += new Vector3(0, 2.25f, 0);
+                    if (Plugin.ScanPlayers.Value)
+                    {
+                        // Create scan node
+                        var node = ObjectHelper.CreateScanNodeOnObject(__instance.gameObject, 0, 1, 10, playerToTarget.playerUsername);
+                        node.transform.localPosition += new Vector3(0, 2.25f, 0);
+                    }
 
                     // Set username billboard text and add it to our tracked items
                     if (!Plugin.HidePlayerNames.Value)

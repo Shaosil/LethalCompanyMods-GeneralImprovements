@@ -4,6 +4,7 @@ using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -87,12 +88,29 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        [HarmonyPatch(typeof(Terminal), nameof(BeginUsingTerminal))]
+        [HarmonyPatch(typeof(Terminal), nameof(QuitTerminal))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> Terminal_ChatPings_Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase method)
+        {
+            var codeList = instructions.ToList();
+
+            if (HUDManagerPatch.ModifyChatAndHasPingCode(instructions, method, out var pingCode))
+            {
+                // If we found the code, just rip out the entire call
+                Plugin.MLS.LogDebug($"Patching Terminal.{method.Name} to remove HUD ping call.");
+                codeList.RemoveRange(pingCode[0].Index, pingCode.Length);
+            }
+
+            return codeList;
+        }
+
         [HarmonyPatch(typeof(Terminal), nameof(OnSubmit))]
         [HarmonyPrefix]
         [HarmonyBefore("AdvancedCompany")]
         private static void OnSubmit(Terminal __instance)
         {
-            if (_historyCount <= 0 || __instance.textAdded < 3)
+            if (_historyCount <= 0 || __instance.textAdded < 2 || __instance.screenText.text.Length < __instance.textAdded)
             {
                 return;
             }

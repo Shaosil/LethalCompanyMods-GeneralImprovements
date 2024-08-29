@@ -80,6 +80,7 @@ namespace GeneralImprovements.Utilities
         private static float _playerHealthAnimTimer = 0;
         private static float _playerHealthAnimCycle = 3f; // In seconds
 
+        // Monitors on simple timers
         private static float _curCreditsUpdateCounter = 0;
 
         private static Transform _oldMonitorsObject;
@@ -179,7 +180,7 @@ namespace GeneralImprovements.Utilities
             UpdateTimeMonitors();
             UpdateWeatherMonitors();
             UpdateDoorPowerMonitors();
-            UpdateDangerLevelMonitors(0, 0);
+            UpdateDangerLevelMonitors();
 
             // Remove scan node if it no profit quota monitor exists
             if (_profitQuotaScanNode != null && !monitorAssignments.Any(a => a == eMonitorNames.ProfitQuota))
@@ -377,6 +378,7 @@ namespace GeneralImprovements.Utilities
             foreach (var healthMonitor in _playerHealthMonitorTexts.Concat(_playerExactHealthMonitorTexts))
             {
                 healthMonitor.fontSize = 30f;
+                healthMonitor.enableWordWrapping = false;
                 healthMonitor.alignment = TextAlignmentOptions.MidlineLeft;
             }
         }
@@ -427,7 +429,9 @@ namespace GeneralImprovements.Utilities
                     case eMonitorNames.PlayerHealth:
                     case eMonitorNames.PlayerHealthExact:
                         curMonitor.TextCanvas.fontSize = 20f;
+                        curMonitor.TextCanvas.enableWordWrapping = false;
                         curMonitor.TextCanvas.alignment = TextAlignmentOptions.MidlineLeft;
+                        curMonitor.TextCanvas.margin = new Vector4(20, 5, 20, 5);
                         if (curAssignment == eMonitorNames.PlayerHealth) _playerHealthMonitorTexts.Add(curMonitor.TextCanvas);
                         else _playerExactHealthMonitorTexts.Add(curMonitor.TextCanvas);
                         break;
@@ -760,7 +764,7 @@ namespace GeneralImprovements.Utilities
                 }
 
                 bool updatedText = false;
-                if (numSales <= 0)
+                if (numSales <= 0 && _curSalesAnimations.Count > 0)
                 {
                     updatedText = UpdateGenericTextList(_salesMonitorTexts, "NO SALES TODAY");
                 }
@@ -776,17 +780,17 @@ namespace GeneralImprovements.Utilities
             }
         }
 
-        public static void UpdateCreditsMonitors(bool force = false)
+        public static void UpdateCreditsMonitors()
         {
             // This is getting called every frame, so limit the check to a few times per second
-            _curCreditsUpdateCounter += Time.deltaTime;
-            if (force || _curCreditsUpdateCounter >= 0.25f)
+            _curCreditsUpdateCounter -= Time.deltaTime;
+            if (_curCreditsUpdateCounter <= 0)
             {
-                _curCreditsUpdateCounter = 0;
+                _curCreditsUpdateCounter = 0.25f;
 
                 // Only update if there is a change
                 var groupCredits = TerminalPatch.Instance?.groupCredits ?? -1;
-                if (_creditsMonitorTexts.Count > 0 && (force || groupCredits != _lastUpdatedCredits))
+                if (_creditsMonitorTexts.Count > 0 && groupCredits != _lastUpdatedCredits)
                 {
                     _lastUpdatedCredits = groupCredits;
 
@@ -883,17 +887,18 @@ namespace GeneralImprovements.Utilities
             }
         }
 
-        public static void UpdateDangerLevelMonitors(float totalMaxPower, float totalCurrentPower)
+        public static void UpdateDangerLevelMonitors()
         {
-            if (_dangerLevelMonitorTexts.Count > 0)
+            if (_dangerLevelMonitorTexts.Count > 0 && RoundManager.Instance != null)
             {
+                float totalMaxPower = RoundManager.Instance.currentMaxInsidePower + RoundManager.Instance.currentMaxOutsidePower;
                 var dangerLevels = new[] { "SAFE", "WARNING", "HAZARDOUS", "DANGEROUS", "LETHAL" };
                 var colorHexes = new[] { "00ff00", "c8ff00", "ffc400", "ff6a00", "ff0000" };
-                int curDanger = totalCurrentPower <= 0 || totalMaxPower <= 0 ? 0 : (int)Mathf.Ceil(Mathf.Clamp(totalCurrentPower / totalMaxPower, 0, 1) * 4);
+                int curDanger = EnemyAIPatch.CurTotalPowerLevel <= 0 || totalMaxPower <= 0 ? 0 : (int)Mathf.Ceil(Mathf.Clamp(EnemyAIPatch.CurTotalPowerLevel / totalMaxPower, 0, 1) * 4);
 
                 if (UpdateGenericTextList(_dangerLevelMonitorTexts, $"DANGER LEVEL:\n<color=#{colorHexes[curDanger]}>{dangerLevels[curDanger]}</color>"))
                 {
-                    Plugin.MLS.LogInfo("Updated danger level display.");
+                    Plugin.MLS.LogDebug("Updated danger level display.");
                 }
             }
         }
@@ -933,12 +938,13 @@ namespace GeneralImprovements.Utilities
                     for (int p = 0; p < playerPerPage && (a * playerPerPage) + p < activePlayers.Count; p++)
                     {
                         var curPlayer = activePlayers[(a * playerPerPage) + p];
-                        string displayName = new string(curPlayer.playerUsername.Take(22).Concat(new char[] { ':' }).ToArray()).PadRight(22);
+
+                        string displayName = new string(curPlayer.playerUsername.Take(12).Concat(new char[] { ':' }).ToArray()).PadRight(20);
                         int healthLevel = curPlayer.health >= 100 ? 3 : curPlayer.health >= 50 ? 2 : 1;
                         string healthColor = healthLevel == 3 ? "00ff00" : healthLevel == 2 ? "ffff00" : "ff0000";
 
-                        curScreenPlayersSb.AppendLine($"   {displayName} <color=#{healthColor}>{new string('=', healthLevel).PadRight(3)}</color>");
-                        curScreenPlayersExactSb.AppendLine($"   {displayName} <color=#{healthColor}>{curPlayer.health,3}</color>");
+                        curScreenPlayersSb.AppendLine($" {displayName} <color=#{healthColor}>{new string('=', healthLevel).PadRight(3)}</color> ");
+                        curScreenPlayersExactSb.AppendLine($" {displayName} <color=#{healthColor}>{curPlayer.health,3}</color> ");
                     }
 
                     string header = $"{new string(' ', 10)}PLAYER HEALTH:\n\n";
@@ -948,7 +954,7 @@ namespace GeneralImprovements.Utilities
                 }
 
                 // Update the text of the current animation cycle
-                if ((_playerHealthMonitorTexts.Count > 0) && UpdateGenericTextList(_playerHealthMonitorTexts, _curPlayerHealthAnimations[_curPlayerHealthAnimIndex])
+                if ((_playerHealthMonitorTexts.Count > 0 && UpdateGenericTextList(_playerHealthMonitorTexts, _curPlayerHealthAnimations[_curPlayerHealthAnimIndex]))
                     | (_playerExactHealthMonitorTexts.Count > 0 && UpdateGenericTextList(_playerExactHealthMonitorTexts, _curPlayerExactHealthAnimations[_curPlayerHealthAnimIndex])))
                 {
                     Plugin.MLS.LogInfo("Updated player health display.");

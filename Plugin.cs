@@ -52,6 +52,7 @@ namespace GeneralImprovements
 
         private const string FixesSection = "Fixes";
         public static ConfigEntry<bool> AllowLookDownMore { get; private set; }
+        public static ConfigEntry<bool> AutomaticallyCollectTeleportedCorpses { get; private set; }
         public static ConfigEntry<int> DropShipItemLimit { get; private set; }
         public static ConfigEntry<bool> FixInternalFireExits { get; private set; }
         public static ConfigEntry<bool> FixItemsFallingThrough { get; private set; }
@@ -158,6 +159,9 @@ namespace GeneralImprovements
             harmony.PatchAll(typeof(ILManipulatorPatch));
             MLS.LogInfo("ILManipulator patched (fixes rare cases where transpilers do not emit the expected IL code.");
 
+            harmony.PatchAll(typeof(AudioReverbTriggerPatch));
+            MLS.LogInfo("AudioReverbTrigger patched.");
+
             harmony.PatchAll(typeof(AutoParentToShipPatch));
             MLS.LogInfo("AutoParentToShip patched.");
 
@@ -166,6 +170,9 @@ namespace GeneralImprovements
 
             harmony.PatchAll(typeof(DoorLockPatch));
             MLS.LogInfo("DoorLock patched.");
+
+            harmony.PatchAll(typeof(EnemyAIPatch));
+            MLS.LogInfo("EnemyAI patched.");
 
             harmony.PatchAll(typeof(EntranceTeleportPatch));
             MLS.LogInfo("EntranceTeleport patched.");
@@ -290,6 +297,7 @@ namespace GeneralImprovements
 
             // Fixes
             AllowLookDownMore = Config.Bind(FixesSection, nameof(AllowLookDownMore), true, "If set to true, you will be able to look down at a steeper angle than vanilla.");
+            AutomaticallyCollectTeleportedCorpses = Config.Bind(FixesSection, nameof(AutomaticallyCollectTeleportedCorpses), true, "If set to true, dead bodies will be automatically collected as scrap when being teleported to the ship.");
             DropShipItemLimit = Config.Bind(FixesSection, nameof(DropShipItemLimit), 24, new ConfigDescription("Sets the max amount of items a single dropship delivery will allow. Vanilla = 12.", new AcceptableValueRange<int>(12, 100)));
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
             FixItemsFallingThrough = Config.Bind(FixesSection, nameof(FixItemsFallingThrough), true, "Fixes items falling through furniture on the ship when loading the game.");

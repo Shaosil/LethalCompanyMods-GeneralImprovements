@@ -317,7 +317,7 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateTimeMonitors();
         }
 
-        private static bool ModifyChatAndHasPingCode(IEnumerable<CodeInstruction> instructions, MethodBase method, out TranspilerHelper.FoundInstruction[] pingCode)
+        public static bool ModifyChatAndHasPingCode(IEnumerable<CodeInstruction> instructions, MethodBase method, out TranspilerHelper.FoundInstruction[] pingCode)
         {
             pingCode = new TranspilerHelper.FoundInstruction[] { };
 
@@ -325,8 +325,8 @@ namespace GeneralImprovements.Patches
             {
                 if (instructions.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
                 {
-                    i => i.IsLdarg(0),
-                    i => i.IsLdarg(0),
+                    null,
+                    null,
                     i => i.LoadsField(typeof(HUDManager).GetField(nameof(HUDManager.Chat))),
                     i => i.opcode == OpCodes.Ldc_R4,
                     i => i.opcode == OpCodes.Ldc_R4,
@@ -338,7 +338,7 @@ namespace GeneralImprovements.Patches
                 }
                 else
                 {
-                    Plugin.MLS.LogError($"Unexpected IL Code - Could not patch HUDManager.{method.Name}!");
+                    Plugin.MLS.LogError($"Unexpected IL Code - Could not patch {method.DeclaringType.Name}.{method.Name}!");
                 }
             }
 
@@ -371,7 +371,7 @@ namespace GeneralImprovements.Patches
             if (ModifyChatAndHasPingCode(instructions, method, out var pingCode))
             {
                 // If we found the code, just rip out the entire call since further methods will call it again
-                Plugin.MLS.LogDebug("Patching HUDManager.SubmitChat_performed to remove HUD ping call.");
+                Plugin.MLS.LogDebug($"Patching HUDManager.{method.Name} to remove HUD ping call.");
                 codeList.RemoveRange(pingCode[0].Index, pingCode.Length);
             }
 
