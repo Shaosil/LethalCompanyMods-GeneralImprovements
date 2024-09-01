@@ -1,11 +1,11 @@
-﻿using GeneralImprovements.Items;
-using GeneralImprovements.Utilities;
-using HarmonyLib;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using GeneralImprovements.Items;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -49,7 +49,7 @@ namespace GeneralImprovements.Patches
             var allItems = NetworkManager.Singleton.NetworkConfig.Prefabs.Prefabs
                 .Where(p => p.Prefab.TryGetComponent<GrabbableObject>(out var go) && go.itemProperties != null)
                 .Select(p => p.Prefab.GetComponent<GrabbableObject>().itemProperties).ToList();
-            var nonConductiveItems = new string[] { "Flask", "Whoopie Cushion" };
+            var nonConductiveItems = new string[] { "Flask", "Plastic cup", "Soccer ball", "Whoopie Cushion", "Zed Dog" };
             var tools = new string[] { "Extension ladder", "Jetpack", "Key", "Radar-booster", "Shovel", "Stop sign", "TZP-Inhalant", "Yield sign", "Kitchen knife", "Zap gun" };
             foreach (var item in allItems)
             {
@@ -212,6 +212,7 @@ namespace GeneralImprovements.Patches
         {
             // Save extra game stats
             ES3.Save("Stats_DaysSinceLastDeath", StartOfRoundPatch.DaysSinceLastDeath, GameNetworkManager.Instance.currentSaveFileName);
+            ES3.Save("Stats_AverageDailyScrap", StartOfRoundPatch.DailyScrapCollected, GameNetworkManager.Instance.currentSaveFileName);
             if (Plugin.ShowHiddenMoonsInCatalog.Value == Enums.eShowHiddenMoons.AfterDiscovery)
             {
                 ES3.Save("DiscoveredMoons", string.Join(',', StartOfRoundPatch.FlownToHiddenMoons), GameNetworkManager.Instance.currentSaveFileName);

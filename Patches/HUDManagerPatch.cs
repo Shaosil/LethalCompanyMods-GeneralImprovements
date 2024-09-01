@@ -6,12 +6,17 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using TMPro;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace GeneralImprovements.Patches
 {
     internal static class HUDManagerPatch
     {
+        private static readonly ProfilerMarker _pm_HUDAssignNewNodes = new ProfilerMarker(ProfilerCategory.Scripts, "GeneralImprovements.HUDManager.AssignNewNodes");
+        private static readonly ProfilerMarker _pm_HUDAssignNodeToUI = new ProfilerMarker(ProfilerCategory.Scripts, "GeneralImprovements.HUDManager.AssignNodeToUIElement");
+        private static readonly ProfilerMarker _pm_HUDUpdate = new ProfilerMarker(ProfilerCategory.Scripts, "GeneralImprovements.HUDManager.Update");
+
         private static TextMeshProUGUI _hpText;
         public static GrabbableObject CurrentLightningTarget;
         private static List<SpriteRenderer> _lightningOverlays;
@@ -108,6 +113,8 @@ namespace GeneralImprovements.Patches
                 return true;
             }
 
+            ProfilerHelper.BeginProfilingSafe(_pm_HUDAssignNewNodes);
+
             ___nodesOnScreen.Clear();
             ___scannedScrapNum = 0;
 
@@ -130,6 +137,8 @@ namespace GeneralImprovements.Patches
                     break;
                 }
             }
+
+            ProfilerHelper.EndProfilingSafe(_pm_HUDAssignNewNodes);
 
             // Skip the original method
             return false;
@@ -269,6 +278,8 @@ namespace GeneralImprovements.Patches
         [HarmonyPrefix]
         private static void AssignNodeToUIElement(ScanNodeProperties node)
         {
+            ProfilerHelper.BeginProfilingSafe(_pm_HUDAssignNodeToUI);
+
             // If we have scanned a player or a masked entity, make sure their health subtext is up to date
             PlayerControllerB player = null;
             MaskedPlayerEnemy masked = null;
@@ -288,6 +299,8 @@ namespace GeneralImprovements.Patches
                 node.subText = ObjectHelper.GetEntityHealthDescription(curHealth, maxHealth);
                 node.nodeType = curHealth <= 0 && (masked == null || masked.enemyHP <= 0) ? 1 : 0; // Red or blue depending on live status
             }
+
+            ProfilerHelper.EndProfilingSafe(_pm_HUDAssignNodeToUI);
         }
 
         [HarmonyPatch(typeof(HUDManager), nameof(SetClock))]
@@ -460,6 +473,8 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void Update(HUDManager __instance)
         {
+            ProfilerHelper.BeginProfilingSafe(_pm_HUDUpdate);
+
             if (_hpText != null && StartOfRound.Instance?.localPlayerController != null)
             {
                 _hpText.text = $"{StartOfRound.Instance.localPlayerController.health} HP";
@@ -480,6 +495,8 @@ namespace GeneralImprovements.Patches
                     }
                 }
             }
+
+            ProfilerHelper.EndProfilingSafe(_pm_HUDUpdate);
         }
 
         [HarmonyPatch(typeof(HUDManager), nameof(Update))]

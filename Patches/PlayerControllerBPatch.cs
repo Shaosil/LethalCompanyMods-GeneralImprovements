@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using TMPro;
 using Unity.Netcode;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using static GeneralImprovements.Enums;
@@ -17,6 +18,10 @@ namespace GeneralImprovements.Patches
 {
     internal static class PlayerControllerBPatch
     {
+        private static readonly ProfilerMarker _pm_PlayerHovertip = new ProfilerMarker(ProfilerCategory.Scripts, "GeneralImprovements.PlayerControllerB.SetHoverTipAndCurrentInteractTrigger");
+        private static readonly ProfilerMarker _pm_PlayerUpdate = new ProfilerMarker(ProfilerCategory.Scripts, "GeneralImprovements.PlayerControllerB.Update");
+        private static readonly ProfilerMarker _pm_PlayerLateUpdate = new ProfilerMarker(ProfilerCategory.Scripts, "GeneralImprovements.PlayerControllerB.LateUpdate");
+
         public static Dictionary<PlayerControllerB, int> PlayerMaxHealthValues = new Dictionary<PlayerControllerB, int>();
 
         private static Func<bool> _flashlightTogglePressed;
@@ -533,6 +538,8 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SetHoverTipAndCurrentInteractTrigger(PlayerControllerB __instance, Ray ___interactRay, RaycastHit ___hit)
         {
+            ProfilerHelper.BeginProfilingSafe(_pm_PlayerHovertip);
+
             if (Plugin.ShowUIReticle.Value && AssetBundleHelper.Reticle != null && __instance.isPlayerControlled && !__instance.inTerminalMenu)
             {
                 // Use our reticle and resize
@@ -561,6 +568,8 @@ namespace GeneralImprovements.Patches
             {
                 __instance.hoveringOverTrigger.interactable = __instance.health < PlayerMaxHealthValues[__instance];
             }
+
+            ProfilerHelper.EndProfilingSafe(_pm_PlayerHovertip);
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(ShowNameBillboard))]
@@ -720,6 +729,8 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void Update(PlayerControllerB __instance)
         {
+            ProfilerHelper.BeginProfilingSafe(_pm_PlayerUpdate);
+
             // Keep max health values up to date
             if (!PlayerMaxHealthValues.ContainsKey(__instance) || PlayerMaxHealthValues[__instance] < __instance.health)
             {
@@ -748,17 +759,23 @@ namespace GeneralImprovements.Patches
                     targetFlashlight.UseItemOnClient();
                 }
             }
+
+            ProfilerHelper.EndProfilingSafe(_pm_PlayerUpdate);
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(LateUpdate))]
         [HarmonyPostfix]
         private static void LateUpdate(PlayerControllerB __instance)
         {
+            ProfilerHelper.BeginProfilingSafe(_pm_PlayerLateUpdate);
+
             // If we are invulnerable, never let the sprint meter drain
             if (StartOfRound.Instance != null && !StartOfRound.Instance.allowLocalPlayerDeath && __instance != null && __instance.sprintMeter < 1)
             {
                 __instance.sprintMeter = 1;
             }
+
+            ProfilerHelper.EndProfilingSafe(_pm_PlayerLateUpdate);
         }
 
         public static void UpdatePlayerSuitToSavedValue(PlayerControllerB player)

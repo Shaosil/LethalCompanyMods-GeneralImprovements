@@ -1,12 +1,12 @@
-﻿using GameNetcodeStuff;
-using GeneralImprovements.Utilities;
-using HarmonyLib;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
+using GameNetcodeStuff;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
@@ -184,7 +184,7 @@ namespace GeneralImprovements.Patches
             // Improve the scanning
             if (modifiedDisplayText.Contains("[scanForItems]"))
             {
-                var scannedItems = GrabbableObjectsPatch.GetOutsideScrap(!Plugin.ScanCommandUsesExactAmount.Value);
+                var scannedItems = GrabbableObjectsPatch.GetScrapAmountAndValue(!Plugin.ScanCommandUsesExactAmount.Value);
                 string desc = Plugin.ScanCommandUsesExactAmount.Value ? "exact" : "approximate";
                 modifiedDisplayText = modifiedDisplayText.Replace("[scanForItems]", $"There are {scannedItems.Key} objects outside the ship, totalling at an {desc} value of ${scannedItems.Value}.");
             }

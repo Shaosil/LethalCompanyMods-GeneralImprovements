@@ -1,15 +1,15 @@
-﻿using BepInEx;
-using BepInEx.Configuration;
-using BepInEx.Logging;
-using GeneralImprovements.Patches;
-using GeneralImprovements.Utilities;
-using HarmonyLib;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using BepInEx;
+using BepInEx.Configuration;
+using BepInEx.Logging;
+using GeneralImprovements.Patches;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 using UnityEngine;
 using static GeneralImprovements.Enums;
 
@@ -83,6 +83,10 @@ namespace GeneralImprovements
         public static int MinimumStartingMoneyVal => Math.Clamp(MinimumStartingMoney.Value, StartingMoneyPerPlayerVal, 10000);
         public static ConfigEntry<bool> SavePlayerSuits { get; private set; }
         public static ConfigEntry<bool> ScanCommandUsesExactAmount { get; private set; }
+        public static ConfigEntry<string> ScrapValueWeatherMultipliers { get; private set; }
+        public static Dictionary<string, float> SanitizedScrapValueWeatherMultipliers { get; private set; }
+        public static ConfigEntry<string> ScrapAmountWeatherMultipliers { get; private set; }
+        public static Dictionary<string, float> SanitizedScrapAmountWeatherMultipliers { get; private set; }
         public static ConfigEntry<int> StartingMoneyPerPlayer { get; private set; }
         public static int StartingMoneyPerPlayerVal => Math.Clamp(StartingMoneyPerPlayer.Value, -1, 10000);
         public static ConfigEntry<bool> UnlockDoorsFromInventory { get; private set; }
@@ -327,6 +331,8 @@ namespace GeneralImprovements
             MinimumStartingMoney = Config.Bind(MechanicsSection, nameof(MinimumStartingMoney), 30, "[Host Only] When paired with StartingMoneyPerPlayer, will ensure a group always starts with at least this much money. Must be at least the value of StartingMoneyPerPlayer. Internally capped at 10k.");
             SavePlayerSuits = Config.Bind(MechanicsSection, nameof(SavePlayerSuits), true, "If set to true, the host will keep track of every player's last used suit, and will persist between loads and ship resets for each save file. Only works in Online mode.");
             ScanCommandUsesExactAmount = Config.Bind(MechanicsSection, nameof(ScanCommandUsesExactAmount), false, "If set to true, the terminal's scan command (and ScrapLeft monitor) will use display the exact scrap value remaining instead of approximate.");
+            ScrapValueWeatherMultipliers = Config.Bind(MechanicsSection, nameof(ScrapValueWeatherMultipliers), string.Empty, "[Host Only] You may specify comma separated weather:multiplier (0.1 - 2.0) for all weather types, including modded weather. Default vanilla scrap value multiplier is 0.4, which will default for any unspecified weather type. A recommended value would be 'None:0.4, DustClouds:0.5, Foggy:0.5, Rainy:0.55, Flooded:0.6, Stormy:0.7, Eclipsed:0.8'.");
+            ScrapAmountWeatherMultipliers = Config.Bind(MechanicsSection, nameof(ScrapAmountWeatherMultipliers), string.Empty, "[Host Only] You may specify comma separated weather:multiplier (1.0 - 5.0) for all weather types, including modded weather. Default vanilla scrap amount multiplier is 1.0, which will default for any unspecified weather type. A recommended value would be 'None:1.0, DustClouds:1.2, Foggy:1.2, Rainy:1.3, Flooded:1.4, Stormy:1.5, Eclipsed:1.6'.");
             StartingMoneyPerPlayer = Config.Bind(MechanicsSection, nameof(StartingMoneyPerPlayer), -1, "[Host Only] How much starting money the group gets per player. Set to -1 to disable. Adjusts money as players join and leave, until the game starts. Internally capped at 10k.");
             UnlockDoorsFromInventory = Config.Bind(MechanicsSection, nameof(UnlockDoorsFromInventory), false, "If set to true, keys in your inventory do not have to be held when unlocking facility doors.");
 
@@ -399,6 +405,7 @@ namespace GeneralImprovements
                 MinimumStartingMoney.Value = StartingMoneyPerPlayer.Value;
             }
 
+            // Handle custom scannable tools parsing
             var validGrabbables = new List<string>();
             string[] specifiedScannables = ScannableTools.Value.Replace(" ", "").Split(',');
             if (specifiedScannables.Any(s => s.ToUpper() == "ALL"))
@@ -424,6 +431,32 @@ namespace GeneralImprovements
 
                 ScannableTools.Value = string.Join(',', validGrabbables.ToArray());
             }
+
+            // Sanitize weather multipliers by removing invalid entries and clamping the multipliers
+            var scrapValueWeatherMatches = Regex.Matches(ScrapValueWeatherMultipliers.Value, @"[a-z]+:\d*(\.\d+)?", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+            var scrapAmountWeatherMatches = Regex.Matches(ScrapAmountWeatherMultipliers.Value, @"[a-z]+:\d(\.\d+)?", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+            List<string[]> sanitizedScrapValues = new List<string[]>();
+            List<string[]> sanitizedScrapAmounts = new List<string[]>();
+            foreach (Match valueMatch in scrapValueWeatherMatches)
+            {
+                string[] curSplit = valueMatch.Value.Split(":");
+                if (float.TryParse(curSplit[1], out var multiplier))
+                {
+                    sanitizedScrapValues.Add(new[] { curSplit[0], Mathf.Clamp(multiplier, 0.1f, 2f).ToString() });
+                }
+            }
+            foreach (Match amountMatch in scrapAmountWeatherMatches)
+            {
+                string[] curSplit = amountMatch.Value.Split(":");
+                if (float.TryParse(curSplit[1], out var multiplier))
+                {
+                    sanitizedScrapAmounts.Add(new[] { curSplit[0], Mathf.Clamp(multiplier, 1f, 5f).ToString() });
+                }
+            }
+            ScrapValueWeatherMultipliers.Value = string.Join(", ", sanitizedScrapValues.Select(s => $"{s[0]}:{s[1]}"));
+            SanitizedScrapValueWeatherMultipliers = sanitizedScrapValues.ToDictionary(k => k[0], v => float.Parse(v[1]));
+            ScrapAmountWeatherMultipliers.Value = string.Join(", ", sanitizedScrapAmounts.Select(s => $"{s[0]}:{s[1]}"));
+            SanitizedScrapAmountWeatherMultipliers = sanitizedScrapAmounts.ToDictionary(k => k[0], v => float.Parse(v[1]));
         }
 
         private static Color HexToColor(string hex)

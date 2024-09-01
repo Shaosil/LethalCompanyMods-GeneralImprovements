@@ -1,9 +1,10 @@
-﻿using GeneralImprovements.Utilities;
-using HarmonyLib;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 
 namespace GeneralImprovements.Patches
 {
@@ -44,8 +45,10 @@ namespace GeneralImprovements.Patches
                 return instructions;
             }
 
+            var codeList = instructions.ToList();
+
             // Patch out the overtime bonus if needed
-            if (instructions.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+            if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
             {
                 i => i.IsLdloc(),
                 i => i.IsLdarg(),
@@ -62,9 +65,18 @@ namespace GeneralImprovements.Patches
                 Plugin.MLS.LogError("Unexpected IL code found in TimeOfDay.SetNewProfitQuota! Could not patch out overtime bonus.");
             }
 
-            return instructions;
+            // Add the monitor update at the end of the function
+            codeList.Insert(codeList.Count - 1, Transpilers.EmitDelegate<Action>(() => MonitorsHelper.UpdateOvertimeCalculatorMonitors()));
+
+            return codeList;
         }
 
+        [HarmonyPatch(typeof(TimeOfDay), nameof(TimeOfDay.SetBuyingRateForDay))]
+        [HarmonyPostfix]
+        private static void SetBuyingRateForDay()
+        {
+            MonitorsHelper.UpdateCompanyBuyRateMonitors();
+        }
 
         [HarmonyPatch(typeof(TimeOfDay), "SyncNewProfitQuotaClientRpc")]
         [HarmonyPrefix]
@@ -90,6 +102,7 @@ namespace GeneralImprovements.Patches
             }
 
             MonitorsHelper.UpdateTotalQuotasMonitors();
+            MonitorsHelper.UpdateCompanyBuyRateMonitors();
         }
 
         [HarmonyPatch(typeof(TimeOfDay), nameof(UpdateProfitQuotaCurrentTime))]

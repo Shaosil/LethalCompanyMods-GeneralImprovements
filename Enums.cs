@@ -20,12 +20,16 @@ namespace GeneralImprovements
             None,
 
             // Text assignments
+            AverageDailyScrap,
+            CompanyBuyRate,
             Credits,
+            DailyProfit,
             DangerLevel,
             DaysSinceDeath,
             Deadline,
             DoorPower,
             FancyWeather,
+            OvertimeCalculator,
             PlayerHealth,
             PlayerHealthExact,
             ProfitQuota,

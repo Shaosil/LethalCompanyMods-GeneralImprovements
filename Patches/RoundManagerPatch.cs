@@ -1,7 +1,9 @@
-﻿using GeneralImprovements.Utilities;
-using HarmonyLib;
+﻿using System.Collections.Generic;
 using System.Linq;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 using UnityEngine;
+using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements.Patches
 {
@@ -10,12 +12,44 @@ namespace GeneralImprovements.Patches
         private static bool _gotShipNode = false;
         public static ScanNodeProperties CurShipNode { get; private set; }
 
+        [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.CollectNewScrapForThisRound))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> CollectNewScrapForThisRound_Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+
+            if (Plugin.ShipMonitorAssignments.Any(a => a.Value == eMonitorNames.DailyProfit))
+            {
+                if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+                {
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(RoundManager).GetField(nameof(RoundManager.scrapCollectedThisRound))),
+                    i => i.IsLdarg(1),
+                    i => i.Calls(typeof(List<GrabbableObject>).GetMethod("Add"))
+                }, out var addScrapCode))
+                {
+                    Plugin.MLS.LogDebug("Patching RoundManager.CollectNewScrapForThisRound to update certain monitor(s).");
+                    codeList.Insert(addScrapCode.Last().Index + 1, Transpilers.EmitDelegate<System.Action>(() =>
+                    {
+                        MonitorsHelper.UpdateDailyProfitMonitors();
+                        MonitorsHelper.UpdateOvertimeCalculatorMonitors();
+                    }));
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected IL Code - Could not patch RoundManager.CollectNewScrapForThisRound to update certain monitor(s)!");
+                }
+            }
+
+            return codeList;
+        }
+
         [HarmonyPatch(typeof(RoundManager), nameof(SyncScrapValuesClientRpc))]
         [HarmonyPostfix]
         private static void SyncScrapValuesClientRpc()
         {
             // Update and override the total scrap in level
-            var outsideScrap = GrabbableObjectsPatch.GetOutsideScrap(false);
+            var outsideScrap = GrabbableObjectsPatch.GetScrapAmountAndValue(false);
             RoundManager.Instance.totalScrapValueInLevel = outsideScrap.Value;
         }
 
@@ -51,7 +85,32 @@ namespace GeneralImprovements.Patches
             // Refresh the current audio presets
             AudioReverbTriggerPatch.CurrentAudioReverbPresets = Object.FindAnyObjectByType<AudioReverbPresets>();
 
+            // Update round specific monitors
+            MonitorsHelper.UpdateDailyProfitMonitors();
             MonitorsHelper.UpdateScrapLeftMonitors();
+        }
+
+        [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnScrapInLevel))]
+        [HarmonyPrefix]
+        private static void SpawnScrapInLevel(RoundManager __instance)
+        {
+            // Multiply generated scrap value by defined weather multiplier
+            var modifiedScrapValue = Plugin.SanitizedScrapValueWeatherMultipliers
+                .FirstOrDefault(s => s.Key.Equals(__instance.currentLevel.currentWeather.ToString(), System.StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(modifiedScrapValue.Key))
+            {
+                Plugin.MLS.LogInfo($"Applying defined scrap value weather multiplier for {__instance.currentLevel.currentWeather} ({modifiedScrapValue.Value}x).");
+                __instance.scrapValueMultiplier = modifiedScrapValue.Value;
+            }
+
+            // Multiply generated scrap amount by defined weather multiplier
+            var modifiedScrapAmount = Plugin.SanitizedScrapAmountWeatherMultipliers
+                .FirstOrDefault(s => s.Key.Equals(__instance.currentLevel.currentWeather.ToString(), System.StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(modifiedScrapAmount.Key))
+            {
+                Plugin.MLS.LogInfo($"Applying defined scrap amount weather multiplier for {__instance.currentLevel.currentWeather} ({modifiedScrapAmount.Value}x).");
+                __instance.scrapAmountMultiplier = modifiedScrapAmount.Value;
+            }
         }
 
         [HarmonyPatch(typeof(RoundManager), nameof(DespawnPropsAtEndOfRound))]

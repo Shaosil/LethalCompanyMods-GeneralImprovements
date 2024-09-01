@@ -1,8 +1,8 @@
-﻿using GeneralImprovements.Utilities;
-using HarmonyLib;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 using Unity.Netcode;
 
 namespace GeneralImprovements.Patches
@@ -51,6 +51,8 @@ namespace GeneralImprovements.Patches
         {
             var items = __instance.deskObjectsContainer.GetComponentsInChildren<GrabbableObject>();
             NumItemsSoldToday += items.Length;
+
+            MonitorsHelper.UpdateCompanyBuyRateMonitors();
         }
 
         [HarmonyPatch(typeof(DepositItemsDesk), nameof(Start))]

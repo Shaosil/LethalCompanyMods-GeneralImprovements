@@ -1,5 +1,19 @@
 # Changelog
 
+### v1.4.0 - More monitors, better performance, and weather multipliers
+* Further optimized the better monitor rendering system, resulting in a decent performance boost when UseBetterMonitors = true.
+* Added a "Company Buy Rate" monitor.
+* Added a "Daily Profit" monitor. (Yer an Employee, Harry!)
+* Added an "Average Daily Scrap" monitor.
+* Added an "Overtime Calculator" monitor.
+* Added config option to have loot and amount multipliers based on the current weather.
+	* Defaults to the vanilla value of 0.4 everywhere, but a recommended config string is in the description.
+	* It should also support custom weathers if you specify the correct name.
+	* This will affect the apparatus as well but does it earlier than other mods (like [FacilityMeltdown](https://thunderstore.io/c/lethal-company/p/loaforc/FacilityMeltdown/) so they take precedence.)
+* Fixed the internal ship cam still showing underneath a canvas if UseBetterMonitors was set to false and a custom monitor replaces it.
+* Fixed challenge files not properly resetting several GI related stats and monitors
+* Fixed the plastic cup, soccer ball, and zed dog being conductive.
+
 ### v1.3.8 - Hotfix
 * Fixed the sales monitor breaking in v1.3.7
 

@@ -1,21 +1,25 @@
-﻿using GameNetcodeStuff;
-using GeneralImprovements.Utilities;
-using HarmonyLib;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using GameNetcodeStuff;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 using Unity.Netcode;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace GeneralImprovements.Patches
 {
     internal static class StartOfRoundPatch
     {
+        private static readonly ProfilerMarker _pm_StartUpdate = new ProfilerMarker(ProfilerCategory.Scripts, "GeneralImprovements.StartOfRound.Update");
+        private static readonly ProfilerMarker _pm_StartLateUpdate = new ProfilerMarker(ProfilerCategory.Scripts, "GeneralImprovements.StartOfRound.LateUpdate");
         private static bool _playerInElevatorLastFrame = true;
 
         public static int DaysSinceLastDeath = -1;
         public static Dictionary<ulong, int> SteamIDsToSuits = new Dictionary<ulong, int>();
         public static HashSet<string> FlownToHiddenMoons = new HashSet<string>();
+        public static Dictionary<int, int> DailyScrapCollected = new Dictionary<int, int>(); // Each day's scrap collected
 
         [HarmonyPatch(typeof(StartOfRound), nameof(Start))]
         [HarmonyPostfix]
@@ -272,7 +276,8 @@ namespace GeneralImprovements.Patches
                         var stats = __instance.gameStats;
                         string foundMoons = string.Join(',', FlownToHiddenMoons);
                         Plugin.MLS.LogInfo("Server sending extra data sync RPC.");
-                        NetworkHelper.Instance.SyncExtraDataOnConnectClientRpc(TimeOfDay.Instance.timesFulfilledQuota, stats.daysSpent, stats.deaths, DaysSinceLastDeath, foundMoons, clientParams);
+                        var convertedDailyScrap = new List<int[]> { DailyScrapCollected.Keys.ToArray(), DailyScrapCollected.Values.ToArray() };
+                        NetworkHelper.Instance.SyncExtraDataOnConnectClientRpc(TimeOfDay.Instance.timesFulfilledQuota, stats.daysSpent, stats.deaths, DaysSinceLastDeath, foundMoons, convertedDailyScrap[0], convertedDailyScrap[1], clientParams);
                     }
 
                     // Send over color information about existing spray cans
@@ -357,30 +362,57 @@ namespace GeneralImprovements.Patches
             return codeList;
         }
 
+        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.EndOfGameClientRpc))]
+        [Harmony]
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(PassTimeToNextDay))]
+        [HarmonyPrefix]
+        private static void PassTimeToNextDay(StartOfRound __instance)
+        {
+            if (__instance.isChallengeFile)
+            {
+                FullQuotaReset(__instance);
+            }
+            else if (__instance.currentLevel.planetHasTime && TimeOfDay.Instance.timeUntilDeadline > 0)
+            {
+                DailyScrapCollected[__instance.gameStats.daysSpent] = __instance.scrapCollectedLastRound;
+                MonitorsHelper.UpdateAverageDailyScrapMonitors();
+            }
+        }
+
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.EndPlayersFiredSequenceClientRpc))]
         [HarmonyPostfix]
         private static void EndPlayersFiredSequenceClientRpc(StartOfRound __instance)
         {
+            FullQuotaReset(__instance);
+        }
+
+        private static void FullQuotaReset(StartOfRound instance)
+        {
             // Reset money and health
             TerminalPatch.SetStartingMoneyPerPlayer();
             PlayerControllerBPatch.PlayerMaxHealthValues = new Dictionary<PlayerControllerB, int>();
-            foreach (var player in __instance.allPlayerScripts.Where(p => p.isPlayerControlled))
+            foreach (var player in instance.allPlayerScripts.Where(p => p.isPlayerControlled))
             {
                 Plugin.MLS.LogInfo($"Resetting player {player.playerUsername}'s health to {player.health}.");
                 PlayerControllerBPatch.PlayerMaxHealthValues[player] = player.health;
             }
 
             // Update monitors that may need it
+            DaysSinceLastDeath = -1;
+            DailyScrapCollected = new Dictionary<int, int>();
+            MonitorsHelper.UpdateAverageDailyScrapMonitors();
+            MonitorsHelper.UpdateDailyProfitMonitors();
+            MonitorsHelper.UpdateDeathMonitors(false);
+            MonitorsHelper.UpdateOvertimeCalculatorMonitors();
             MonitorsHelper.UpdateScrapLeftMonitors();
             MonitorsHelper.UpdateTotalDaysMonitors();
             MonitorsHelper.UpdateTotalQuotasMonitors();
-            DaysSinceLastDeath = -1;
-            MonitorsHelper.UpdateDeathMonitors(false);
 
             // If we are the host, update everyone's suits since they have been reset
-            if (Plugin.SavePlayerSuits.Value && StartOfRound.Instance.IsHost)
+            if (Plugin.SavePlayerSuits.Value && instance.IsHost)
             {
-                foreach (var player in StartOfRound.Instance.allPlayerScripts)
+                foreach (var player in instance.allPlayerScripts)
                 {
                     PlayerControllerBPatch.UpdatePlayerSuitToSavedValue(player);
                 }
@@ -419,6 +451,13 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateTotalQuotasMonitors();
             MonitorsHelper.UpdatePlayerHealthMonitors();
             MonitorsHelper.UpdateDangerLevelMonitors();
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.SyncCompanyBuyingRateClientRpc))]
+        [HarmonyPostfix]
+        private static void SyncCompanyBuyingRateClientRpc()
+        {
+            MonitorsHelper.UpdateCompanyBuyRateMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(LoadShipGrabbableItems))]
@@ -514,6 +553,7 @@ namespace GeneralImprovements.Patches
             // Load custom stats
             var anyDeaths = StartOfRound.Instance.gameStats.deaths > 0;
             DaysSinceLastDeath = ES3.Load("Stats_DaysSinceLastDeath", GameNetworkManager.Instance.currentSaveFileName, anyDeaths ? 0 : -1);
+            DailyScrapCollected = ES3.Load("Stats_AverageDailyScrap", GameNetworkManager.Instance.currentSaveFileName, new Dictionary<int, int>());
             if (Plugin.ShowHiddenMoonsInCatalog.Value == Enums.eShowHiddenMoons.AfterDiscovery)
             {
                 FlownToHiddenMoons = new HashSet<string>();
@@ -535,15 +575,21 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void Update()
         {
+            ProfilerHelper.BeginProfilingSafe(_pm_StartUpdate);
+
             MonitorsHelper.AnimateSpecialMonitors();
             MonitorsHelper.UpdateCreditsMonitors();
             MonitorsHelper.UpdateDoorPowerMonitors();
+
+            ProfilerHelper.EndProfilingSafe(_pm_StartUpdate);
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(LateUpdate))]
         [HarmonyPostfix]
         private static void LateUpdate(StartOfRound __instance)
         {
+            ProfilerHelper.BeginProfilingSafe(_pm_StartLateUpdate);
+
             // Keep track of "in elevator" changes and refresh monitors when needed
             if (__instance.localPlayerController != null && _playerInElevatorLastFrame != __instance.localPlayerController.isInElevator)
             {
@@ -553,6 +599,8 @@ namespace GeneralImprovements.Patches
                     MonitorsHelper.RefreshQueuedMonitorChanges();
                 }
             }
+
+            ProfilerHelper.EndProfilingSafe(_pm_StartLateUpdate);
         }
     }
 }

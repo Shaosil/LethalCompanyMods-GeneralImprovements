@@ -1,18 +1,20 @@
-﻿using GeneralImprovements.API;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using GeneralImprovements.API;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.UI;
 
 namespace GeneralImprovements.Assets
 {
     internal class Monitors : MonoBehaviour
     {
-        private Camera _camera;
         private MeshRenderer _mapRenderer;
         private Material _blankScreenMaterial;
+        private Queue<MonitorsAPI.MonitorInfo> _queuedMonitorTextUpdates = new Queue<MonitorsAPI.MonitorInfo>();
+        private bool _renderedLastFrame = false;
 
         public void Initialize(Material hullMaterial, Material startingMapMaterial, Material blankScreenMaterial)
         {
@@ -47,10 +49,8 @@ namespace GeneralImprovements.Assets
             if (Plugin.AddMoreBetterMonitors.Value) allMonitors.Add(bigScreenL.Find("LScreen"));
             allMonitors.Add(bigScreenR.Find("RScreen"));
 
-            // Get the text and camera objects (they are not children of our monitor objects above)
+            // Get the text objects (they are not children of our monitor objects above)
             var allTexts = transform.Find("Canvas/Texts").GetComponentsInChildren<TextMeshProUGUI>();
-            _camera = transform.GetComponentInChildren<Camera>();
-            _camera.enabled = false;
 
             // Store anything that may have been overwritten so we can keep using the same materials after initialization
             var overwrittenMaterials = MonitorsAPI.AllMonitors.Where(m => m.Value.OverwrittenMaterial != null).ToDictionary(k => k.Key, v => v.Value.OverwrittenMaterial);
@@ -82,12 +82,21 @@ namespace GeneralImprovements.Assets
 
                 MonitorsAPI.AllMonitors[i] = new MonitorsAPI.MonitorInfo
                 {
+                    Camera = screenText.GetComponentInChildren<Camera>(),
                     MeshRenderer = renderer,
                     TextCanvas = (Plugin.ShowBackgroundOnAllScreens.Value || curAssignment > Enums.eMonitorNames.None) && curAssignment < Enums.eMonitorNames.ExternalCam ? screenText : null,
                     ScreenMaterialIndex = 0, // Our screen meshes are separate from the surrounding meshes and always only have one material
                     AssignedMaterial = renderer.sharedMaterial,
                     OverwrittenMaterial = overwrittenMaterials.GetValueOrDefault(i)
                 };
+                MonitorsAPI.AllMonitors[i].Camera.enabled = false;
+                MonitorsAPI.AllMonitors[i].Camera.GetComponent<HDAdditionalCameraData>().hasPersistentHistory = true;
+
+                // No idea why, but left aligning the text needs an extra offset or it will be off screen
+                if (!Plugin.CenterAlignMonitorText.Value)
+                {
+                    MonitorsAPI.AllMonitors[i].Camera.transform.localPosition = new Vector3(-10, 10, MonitorsAPI.AllMonitors[i].Camera.transform.localPosition.z);
+                }
             }
         }
 
@@ -100,36 +109,37 @@ namespace GeneralImprovements.Assets
             }
         }
 
+        private void Update()
+        {
+            // If we rendered last frame, make sure to disable the affected camera
+            if (_renderedLastFrame)
+            {
+                foreach (var cam in MonitorsAPI.AllMonitors.Values.Select(m => m.Camera))
+                {
+                    if (cam.enabled)
+                    {
+                        cam.enabled = false;
+                    }
+                }
+                _renderedLastFrame = false;
+            }
+
+            // If there is anything in the render queue, process one item
+            if (_queuedMonitorTextUpdates.TryDequeue(out var monitor))
+            {
+                // Enable the camera - the render pipeline will pick it up later in the frame
+                monitor.Camera.enabled = true;
+                _renderedLastFrame = true;
+            }
+        }
+
         public bool RefreshMonitorAfterTextChange(MonitorsAPI.MonitorInfo monitor)
         {
             // Only render if this monitor has a text canvas associated with it and is not overwritten
             if (monitor.TextCanvas != null && monitor.MeshRenderer.sharedMaterial == monitor.AssignedMaterial)
             {
-                // Move the camera to be in front of the text component
-                _camera.transform.parent = monitor.TextCanvas.transform;
-                if (Plugin.CenterAlignMonitorText.Value)
-                {
-                    _camera.transform.localPosition = new Vector3(0, 0, _camera.transform.localPosition.z);
-                }
-                else
-                {
-                    // No idea why, but left aligning the text needs an extra offset or it will be off screen
-                    _camera.transform.localPosition = new Vector3(-10, 10, _camera.transform.localPosition.z);
-                }
-
-                // Render to render texture
-                _camera.Render();
-
-                // Apply the render texture to the associated material
-                var oldRenderTex = RenderTexture.active;
-                Graphics.SetRenderTarget(_camera.activeTexture);
-                var tex = new Texture2D(_camera.activeTexture.width, _camera.activeTexture.height, TextureFormat.RGB24, false, true);
-                tex.ReadPixels(new Rect(0, 0, _camera.activeTexture.width, _camera.activeTexture.height), 0, 0);
-                tex.Apply();
-                monitor.MeshRenderer.sharedMaterial.mainTexture = tex;
-
-                Graphics.SetRenderTarget(oldRenderTex);
-
+                // Add the change to the queue and let the next Update() handle one per frame
+                _queuedMonitorTextUpdates.Enqueue(monitor);
                 return true;
             }
 

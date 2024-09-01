@@ -1,6 +1,7 @@
-﻿using GeneralImprovements.Patches;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using GeneralImprovements.Patches;
 using Unity.Netcode;
 using static GeneralImprovements.Enums;
 
@@ -51,7 +52,7 @@ namespace GeneralImprovements.Utilities
         }
 
         [ClientRpc]
-        public void SyncExtraDataOnConnectClientRpc(int quotaNum, int totalDays, int totalDeaths, int daysSinceLastDeath, string foundMoons, ClientRpcParams clientParams)
+        public void SyncExtraDataOnConnectClientRpc(int quotaNum, int totalDays, int totalDeaths, int daysSinceLastDeath, string foundMoons, int[] dailyScrapDays, int[] dailyScrapValues, ClientRpcParams clientParams)
         {
             if (!IsServer && StartOfRound.Instance != null)
             {
@@ -59,6 +60,7 @@ namespace GeneralImprovements.Utilities
                 TimeOfDay.Instance.timesFulfilledQuota = quotaNum;
                 StartOfRound.Instance.gameStats.daysSpent = totalDays;
                 StartOfRound.Instance.gameStats.deaths = totalDeaths;
+                StartOfRoundPatch.DailyScrapCollected = dailyScrapDays.Select((i, k) => new KeyValuePair<int, int>(k, dailyScrapValues[i])).ToDictionary(k => k.Key, v => v.Value);
                 StartOfRoundPatch.DaysSinceLastDeath = daysSinceLastDeath;
                 StartOfRoundPatch.FlownToHiddenMoons = new HashSet<string>();
                 foreach (string foundMoon in foundMoons.Split(',', StringSplitOptions.RemoveEmptyEntries))
@@ -69,6 +71,7 @@ namespace GeneralImprovements.Utilities
                 MonitorsHelper.UpdateTotalQuotasMonitors();
                 MonitorsHelper.UpdateTotalDaysMonitors();
                 MonitorsHelper.UpdateDeathMonitors();
+                MonitorsHelper.UpdateAverageDailyScrapMonitors();
             }
         }
 

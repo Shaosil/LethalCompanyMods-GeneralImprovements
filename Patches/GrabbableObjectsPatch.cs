@@ -1,11 +1,11 @@
-﻿using GameNetcodeStuff;
-using GeneralImprovements.Utilities;
-using HarmonyLib;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using GameNetcodeStuff;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 using UnityEngine;
 
 namespace GeneralImprovements.Patches
@@ -185,13 +185,17 @@ namespace GeneralImprovements.Patches
             return codeList;
         }
 
-        public static KeyValuePair<int, int> GetOutsideScrap(bool approximate)
+        public static List<GrabbableObject> GetAllScrap(bool inShip)
+        {
+            return UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom == inShip && o.isInElevator == inShip && o.itemProperties.minValue > 0
+                && !(o is RagdollGrabbableObject) && (!(o is StunGrenadeItem grenade) || !grenade.hasExploded || !grenade.DestroyGrenade)).ToList();
+        }
+
+        public static KeyValuePair<int, int> GetScrapAmountAndValue(bool approximate)
         {
             // Get every non-ragdoll and unexploded grenade/grabbable outside of the ship that has a minimum value
             var fixedRandom = new System.Random(StartOfRound.Instance.randomMapSeed + 91); // Why 91? Shrug. It's the offset in vanilla code and I kept it.
-            var valuables = UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(o => !o.isInShipRoom && !o.isInElevator && o.itemProperties.minValue > 0
-                && !(o is RagdollGrabbableObject) && (!(o is StunGrenadeItem grenade) || !grenade.hasExploded || !grenade.DestroyGrenade)).ToList();
-
+            var valuables = GetAllScrap(false);
             float multiplier = RoundManager.Instance.scrapValueMultiplier;
             int sum = approximate ? (int)Math.Round(valuables.Sum(i => fixedRandom.Next(Mathf.Clamp(i.itemProperties.minValue, 0, i.itemProperties.maxValue), i.itemProperties.maxValue) * multiplier))
                 : valuables.Sum(i => i.scrapValue);

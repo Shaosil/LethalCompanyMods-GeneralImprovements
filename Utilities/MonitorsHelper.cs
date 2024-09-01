@@ -1,11 +1,11 @@
-﻿using GeneralImprovements.API;
-using GeneralImprovements.Assets;
-using GeneralImprovements.Patches;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using GeneralImprovements.API;
+using GeneralImprovements.Assets;
+using GeneralImprovements.Patches;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
@@ -28,6 +28,9 @@ namespace GeneralImprovements.Utilities
 
         private static List<TextMeshProUGUI> _profitQuotaTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _deadlineTexts = new List<TextMeshProUGUI>();
+        private static List<TextMeshProUGUI> _averageDailyScrapMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<TextMeshProUGUI> _companyBuyRateMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<TextMeshProUGUI> _dailyProfitMonitorTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _shipScrapMonitorTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _scrapLeftMonitorTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _timeMonitorTexts = new List<TextMeshProUGUI>();
@@ -41,6 +44,7 @@ namespace GeneralImprovements.Utilities
         private static List<TextMeshProUGUI> _totalDeathsMonitorTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _daysSinceDeathMonitorTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _dangerLevelMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<TextMeshProUGUI> _overtimeCalculatorMonitorTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _playerHealthMonitorTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _playerExactHealthMonitorTexts = new List<TextMeshProUGUI>();
         private static List<Image> _monitorBackgrounds = new List<Image>();
@@ -144,6 +148,7 @@ namespace GeneralImprovements.Utilities
 
             // Find our monitor objects
             _oldMonitorsObject = _UIContainer.parent.parent;
+            var oldMonitorsMeshRenderer = _oldMonitorsObject.GetComponent<MeshRenderer>();
             _oldBigMonitors = _oldMonitorsObject.parent.GetComponentInChildren<ManualCameraRenderer>().transform.parent;
             _profitQuotaScanNode = StartOfRound.Instance.elevatorTransform.GetComponentsInChildren<ScanNodeProperties>().FirstOrDefault(s => s.headerText == "Quota");
 
@@ -160,7 +165,7 @@ namespace GeneralImprovements.Utilities
                     UpdateSecurityCamFPSAndResolution(externalShipCamObj, Plugin.ShipExternalCamFPS.Value, Plugin.ShipExternalCamSizeMultiplier.Value);
                 }
 
-                _oldMonitorsObject.GetComponent<MeshRenderer>().sharedMaterials[2].mainTexture = internalShipCamObj.targetTexture;
+                oldMonitorsMeshRenderer.sharedMaterials[2].mainTexture = internalShipCamObj.targetTexture;
                 _oldBigMonitors.GetComponent<MeshRenderer>().sharedMaterials[2].mainTexture = externalShipCamObj.targetTexture;
             }
 
@@ -171,16 +176,28 @@ namespace GeneralImprovements.Utilities
             else
             {
                 CreateOldStyleMonitors(monitorAssignments);
+
+                // Disable the internal cam if we specified a custom monitor in that spot
+                if (monitorAssignments[6] != eMonitorNames.None)
+                {
+                    var newMats = oldMonitorsMeshRenderer.sharedMaterials;
+                    newMats[2] = newMats[1]; // Replace it with the blank screen texture
+                    oldMonitorsMeshRenderer.sharedMaterials = newMats;
+                }
             }
 
             // Initialize everything's text (some are initialized elsewhere)
             CopyProfitQuotaAndDeadlineTexts();
+            UpdateAverageDailyScrapMonitors();
+            UpdateCompanyBuyRateMonitors();
+            UpdateDailyProfitMonitors();
+            UpdateDangerLevelMonitors();
+            UpdateDoorPowerMonitors();
+            UpdateOvertimeCalculatorMonitors();
             UpdateShipScrapMonitors();
             UpdateScrapLeftMonitors();
             UpdateTimeMonitors();
             UpdateWeatherMonitors();
-            UpdateDoorPowerMonitors();
-            UpdateDangerLevelMonitors();
 
             // Remove scan node if it no profit quota monitor exists
             if (_profitQuotaScanNode != null && !monitorAssignments.Any(a => a == eMonitorNames.ProfitQuota))
@@ -213,6 +230,9 @@ namespace GeneralImprovements.Utilities
             {
                 _profitQuotaTexts.ForEach(g => Object.Destroy(g));
                 _deadlineTexts.ForEach(g => Object.Destroy(g));
+                _averageDailyScrapMonitorTexts.ForEach(g => Object.Destroy(g));
+                _companyBuyRateMonitorTexts.ForEach(g => Object.Destroy(g));
+                _dailyProfitMonitorTexts.ForEach(g => Object.Destroy(g));
                 _shipScrapMonitorTexts.ForEach(g => Object.Destroy(g));
                 _scrapLeftMonitorTexts.ForEach(g => Object.Destroy(g));
                 _timeMonitorTexts.ForEach(g => Object.Destroy(g));
@@ -226,6 +246,7 @@ namespace GeneralImprovements.Utilities
                 _totalDeathsMonitorTexts.ForEach(g => Object.Destroy(g));
                 _daysSinceDeathMonitorTexts.ForEach(g => Object.Destroy(g));
                 _dangerLevelMonitorTexts.ForEach(g => Object.Destroy(g));
+                _overtimeCalculatorMonitorTexts.ForEach(g => Object.Destroy(g));
                 _playerHealthMonitorTexts.ForEach(g => Object.Destroy(g));
                 _playerExactHealthMonitorTexts.ForEach(g => Object.Destroy(g));
                 _monitorBackgrounds.ForEach(g => Object.Destroy(g));
@@ -244,6 +265,9 @@ namespace GeneralImprovements.Utilities
 
             _profitQuotaTexts = new List<TextMeshProUGUI>();
             _deadlineTexts = new List<TextMeshProUGUI>();
+            _averageDailyScrapMonitorTexts = new List<TextMeshProUGUI>();
+            _companyBuyRateMonitorTexts = new List<TextMeshProUGUI>();
+            _dailyProfitMonitorTexts = new List<TextMeshProUGUI>();
             _shipScrapMonitorTexts = new List<TextMeshProUGUI>();
             _scrapLeftMonitorTexts = new List<TextMeshProUGUI>();
             _timeMonitorTexts = new List<TextMeshProUGUI>();
@@ -257,6 +281,7 @@ namespace GeneralImprovements.Utilities
             _totalDeathsMonitorTexts = new List<TextMeshProUGUI>();
             _daysSinceDeathMonitorTexts = new List<TextMeshProUGUI>();
             _dangerLevelMonitorTexts = new List<TextMeshProUGUI>();
+            _overtimeCalculatorMonitorTexts = new List<TextMeshProUGUI>();
             _playerHealthMonitorTexts = new List<TextMeshProUGUI>();
             _playerExactHealthMonitorTexts = new List<TextMeshProUGUI>();
             _monitorBackgrounds = new List<Image>();
@@ -305,12 +330,16 @@ namespace GeneralImprovements.Utilities
 
                 switch (curAssignment)
                 {
+                    case eMonitorNames.AverageDailyScrap: curTexts = _averageDailyScrapMonitorTexts; break;
+                    case eMonitorNames.CompanyBuyRate: curTexts = _companyBuyRateMonitorTexts; break;
+                    case eMonitorNames.DailyProfit: curTexts = _dailyProfitMonitorTexts; break;
                     case eMonitorNames.Credits: curTexts = _creditsMonitorTexts; break;
                     case eMonitorNames.DangerLevel: curTexts = _dangerLevelMonitorTexts; break;
                     case eMonitorNames.DaysSinceDeath: curTexts = _daysSinceDeathMonitorTexts; break;
                     case eMonitorNames.Deadline: curTexts = _deadlineTexts; break;
                     case eMonitorNames.DoorPower: curTexts = _doorPowerMonitorTexts; break;
                     case eMonitorNames.FancyWeather: curTexts = _fancyWeatherMonitorTexts; break;
+                    case eMonitorNames.OvertimeCalculator: curTexts = _overtimeCalculatorMonitorTexts; break;
                     case eMonitorNames.PlayerHealth: curTexts = _playerHealthMonitorTexts; break;
                     case eMonitorNames.PlayerHealthExact: curTexts = _playerExactHealthMonitorTexts; break;
                     case eMonitorNames.ProfitQuota: curTexts = _profitQuotaTexts; break;
@@ -332,8 +361,8 @@ namespace GeneralImprovements.Utilities
                 var positionOffset = offsets[i].Key;
                 var rotationOffset = offsets[i].Value;
 
-                // Create a background if desired, and we either have a text assignment or want to show the blue backgrounds everywhere
-                if (Plugin.ShowBlueMonitorBackground.Value && (curTexts != null || Plugin.ShowBackgroundOnAllScreens.Value))
+                // Create a background if desired, and we either have a text assignment or want to show the blue backgrounds everywhere (except the internal cam spot)
+                if (Plugin.ShowBlueMonitorBackground.Value && (curTexts != null || (Plugin.ShowBackgroundOnAllScreens.Value && i != 6)))
                 {
                     var newBG = Object.Instantiate(_originalProfitQuotaBG, _originalProfitQuotaBG.transform.parent);
                     newBG.enabled = true;
@@ -407,6 +436,9 @@ namespace GeneralImprovements.Utilities
 
                 switch (curAssignment)
                 {
+                    case eMonitorNames.AverageDailyScrap: _averageDailyScrapMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.CompanyBuyRate: _companyBuyRateMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.DailyProfit: _dailyProfitMonitorTexts.Add(curMonitor.TextCanvas); break;
                     case eMonitorNames.Credits: _creditsMonitorTexts.Add(curMonitor.TextCanvas); break;
                     case eMonitorNames.DangerLevel: _dangerLevelMonitorTexts.Add(curMonitor.TextCanvas); break;
                     case eMonitorNames.DaysSinceDeath: _daysSinceDeathMonitorTexts.Add(curMonitor.TextCanvas); break;
@@ -426,6 +458,7 @@ namespace GeneralImprovements.Utilities
                         _fancyWeatherMonitorTexts.Add(curMonitor.TextCanvas);
                         UpdateWeatherMonitors();
                         break;
+                    case eMonitorNames.OvertimeCalculator: _overtimeCalculatorMonitorTexts.Add(curMonitor.TextCanvas); break;
                     case eMonitorNames.PlayerHealth:
                     case eMonitorNames.PlayerHealthExact:
                         curMonitor.TextCanvas.fontSize = 20f;
@@ -537,21 +570,58 @@ namespace GeneralImprovements.Utilities
             }
         }
 
+        public static void UpdateAverageDailyScrapMonitors()
+        {
+            if (_averageDailyScrapMonitorTexts.Count > 0)
+            {
+                double avg = StartOfRoundPatch.DailyScrapCollected.Count > 0 ? StartOfRoundPatch.DailyScrapCollected.Values.Average() : 0;
+                if (UpdateGenericTextList(_averageDailyScrapMonitorTexts, $"AVERAGE SCRAP:\n${Math.Round(avg, 0)}"))
+                {
+                    Plugin.MLS.LogInfo($"Updated average daily scrap monitors.");
+                }
+            }
+        }
+
+        public static void UpdateCompanyBuyRateMonitors()
+        {
+            if (_companyBuyRateMonitorTexts.Count > 0 && StartOfRound.Instance != null)
+            {
+                string color = StartOfRound.Instance.companyBuyingRate > 1 ? "0080ff"
+                    : StartOfRound.Instance.companyBuyingRate == 1 ? "00ff00"
+                    : StartOfRound.Instance.companyBuyingRate >= 0.75f ? "ffff00"
+                    : StartOfRound.Instance.companyBuyingRate >= 0.5f ? "ff8800"
+                    : "ff0000";
+
+                if (UpdateGenericTextList(_companyBuyRateMonitorTexts, $"COMPANY RATE:\n<color=#{color}>{(int)Mathf.Round(StartOfRound.Instance.companyBuyingRate * 100f)}%</color>"))
+                {
+                    Plugin.MLS.LogInfo($"Updated company buy rate monitors.");
+                }
+            }
+        }
+
+        public static void UpdateDailyProfitMonitors()
+        {
+            if (_dailyProfitMonitorTexts.Count > 0 && RoundManager.Instance != null)
+            {
+                int profit = RoundManager.Instance.scrapCollectedThisRound.Sum(s => s.scrapValue);
+                if (UpdateGenericTextList(_dailyProfitMonitorTexts, $"DAY'S PROFIT:\n${profit}"))
+                {
+                    Plugin.MLS.LogInfo($"Updated daily profit monitors. ({RoundManager.Instance.scrapCollectedThisRound.Count} items, {profit} profit)");
+                }
+            }
+        }
+
         public static void UpdateShipScrapMonitors()
         {
-            if (_shipScrapMonitorTexts.Count == 0)
+            if (_shipScrapMonitorTexts.Count > 0)
             {
-                return;
-            }
+                var allScrap = GrabbableObjectsPatch.GetAllScrap(false);
+                int scrapValue = allScrap.Sum(s => s.scrapValue);
 
-            // All dropped scrap except ragdolls and exploded grenades
-            var allScrap = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom && o.isInElevator && !o.isHeld
-                && !(o is RagdollGrabbableObject) && (!(o is StunGrenadeItem grenade) || !grenade.hasExploded || !grenade.DestroyGrenade)).ToList();
-            int shipLoot = allScrap.Sum(o => o.scrapValue);
-
-            if (UpdateGenericTextList(_shipScrapMonitorTexts, $"SCRAP IN SHIP:\n<color=#80ffff>${shipLoot}</color>"))
-            {
-                Plugin.MLS.LogInfo($"Set ship scrap total to ${shipLoot} ({allScrap.Count} items).");
+                if (UpdateGenericTextList(_shipScrapMonitorTexts, $"SCRAP IN SHIP:\n<color=#80ffff>${scrapValue}</color>"))
+                {
+                    Plugin.MLS.LogInfo($"Updated ship scrap total monitors to ${scrapValue} ({allScrap.Count} items).");
+                }
             }
         }
 
@@ -559,7 +629,7 @@ namespace GeneralImprovements.Utilities
         {
             if (_scrapLeftMonitorTexts.Count > 0)
             {
-                var outsideScrap = GrabbableObjectsPatch.GetOutsideScrap(!Plugin.ScanCommandUsesExactAmount.Value);
+                var outsideScrap = GrabbableObjectsPatch.GetScrapAmountAndValue(!Plugin.ScanCommandUsesExactAmount.Value);
                 bool updatedText = false;
                 if (outsideScrap.Key > 0)
                 {
@@ -903,6 +973,25 @@ namespace GeneralImprovements.Utilities
             }
         }
 
+        public static void UpdateOvertimeCalculatorMonitors()
+        {
+            if (_overtimeCalculatorMonitorTexts.Count > 0)
+            {
+                int overtime = 0;
+                if (TimeOfDay.Instance != null && RoundManager.Instance?.currentLevel?.PlanetName != "71 Gordion")
+                {
+                    var rollover = Math.Max(TimeOfDay.Instance.quotaFulfilled - TimeOfDay.Instance.profitQuota, 0);
+                    var profit = rollover + GrabbableObjectsPatch.GetAllScrap(true).Sum(s => s.scrapValue);
+                    overtime = profit < TimeOfDay.Instance.profitQuota ? 0 : ((profit - TimeOfDay.Instance.profitQuota) / 5) - 15;
+                }
+
+                if (UpdateGenericTextList(_overtimeCalculatorMonitorTexts, $"OVERTIME ESTIMATE:\n${Mathf.Max(overtime, 0)}"))
+                {
+                    Plugin.MLS.LogInfo("Updated overtime calculator display.");
+                }
+            }
+        }
+
         public static void UpdatePlayerHealthMonitors()
         {
             if (_playerHealthMonitorTexts.Count > 0 || _playerExactHealthMonitorTexts.Count > 0)
@@ -964,7 +1053,13 @@ namespace GeneralImprovements.Utilities
 
         private static bool UpdateGenericTextList(List<TextMeshProUGUI> textList, string text)
         {
-            bool allSuccess = _newMonitors == null; // Default to true with old style
+            bool allSuccess = _newMonitors == null && textList.Count > 0; // Default to true with old style if there are any text objects to update
+
+            // If the text matches what the first entry currently has, do nothing
+            if (textList.Count > 0 && textList[0].text == text)
+            {
+                return false;
+            }
 
             foreach (var t in textList)
             {

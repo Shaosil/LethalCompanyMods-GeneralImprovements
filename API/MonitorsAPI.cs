@@ -11,6 +11,7 @@ namespace GeneralImprovements.API
         public class MonitorInfo
         {
             // Public properties for monitor information
+            public Camera Camera { get; internal set; } // The associated camera that handles text updates for text based monitors
             public MeshRenderer MeshRenderer { get; internal set; }
             public TextMeshProUGUI TextCanvas { get; internal set; } // Will only have a value if assigned a text-based monitor
             public int ScreenMaterialIndex { get; internal set; }
