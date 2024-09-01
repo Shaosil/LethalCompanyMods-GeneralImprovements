@@ -615,7 +615,7 @@ namespace GeneralImprovements.Utilities
         {
             if (_shipScrapMonitorTexts.Count > 0)
             {
-                var allScrap = GrabbableObjectsPatch.GetAllScrap(false);
+                var allScrap = GrabbableObjectsPatch.GetAllScrap(true);
                 int scrapValue = allScrap.Sum(s => s.scrapValue);
 
                 if (UpdateGenericTextList(_shipScrapMonitorTexts, $"SCRAP IN SHIP:\n<color=#80ffff>${scrapValue}</color>"))
