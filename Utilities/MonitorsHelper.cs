@@ -647,19 +647,15 @@ namespace GeneralImprovements.Utilities
             }
         }
 
-        public static void UpdateTimeMonitors(bool force = false)
+        public static void UpdateTimeMonitors()
         {
-            if (HUDManager.Instance?.clockNumber != null && _timeMonitorTexts.Count > 0)
+            // Do not update faster than we should - some mods may increase the vanilla time update call
+            if (_timeMonitorTexts.Count > 0 && _curTimeMonitorTimer >= _timeMonitorCycleTime)
             {
-                // Do not update faster than we should - some mods may increase the vanilla time update call
-                if (!force && _curTimeMonitorTimer < _timeMonitorCycleTime)
-                {
-                    return;
-                }
-
-                _curTimeMonitorTimer = 0;
                 string time;
-                if (TimeOfDay.Instance.movingGlobalTimeForward)
+                _curTimeMonitorTimer = 0;
+
+                if (TimeOfDay.Instance.movingGlobalTimeForward && HUDManager.Instance?.clockNumber != null)
                 {
                     time = $"TIME:\n{HUDManager.Instance.clockNumber.text.Replace('\n', ' ')}";
                 }

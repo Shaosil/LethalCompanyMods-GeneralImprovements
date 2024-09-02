@@ -1,5 +1,9 @@
 # Changelog
 
+### v1.4.2 - More fixes and improvements
+* Fixed a performance bug that remained from v1.3.8 when AddMoreBetterMonitors was set to false.
+* Fixed a small bug where exiting and loading a file in some cases would not display the time monitor properly.
+
 ### v1.4.1 - Hotfix
 * Fixed a bug with AddMoreBetterMonitors not working properly with the new monitor rendering system.
 

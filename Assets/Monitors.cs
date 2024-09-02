@@ -39,6 +39,14 @@ namespace GeneralImprovements.Assets
             bigScreenR.GetComponent<MeshRenderer>().sharedMaterial = hullMaterial;
             transform.Find("Canvas/Background").GetComponent<Image>().color = Plugin.MonitorBackgroundColorVal;
 
+            // Disable all cameras and set them to have persistent history to reduce GC calls
+            var allCameras = transform.GetComponentsInChildren<Camera>();
+            foreach (var cam in allCameras)
+            {
+                cam.enabled = false;
+                cam.GetComponent<HDAdditionalCameraData>().hasPersistentHistory = true;
+            }
+
             // Add the transforms of each monitor (in order) that we will be using, depending on which config settings are active
             var allMonitors = new List<Transform>();
             if (Plugin.AddMoreBetterMonitors.Value) allMonitors.AddRange(new[] { structureL.Find("Screen1"), structureL.Find("Screen2") });
@@ -97,8 +105,6 @@ namespace GeneralImprovements.Assets
                     AssignedMaterial = renderer.sharedMaterial,
                     OverwrittenMaterial = overwrittenMaterials.GetValueOrDefault(i)
                 };
-                MonitorsAPI.AllMonitors[i].Camera.enabled = false;
-                MonitorsAPI.AllMonitors[i].Camera.GetComponent<HDAdditionalCameraData>().hasPersistentHistory = true;
 
                 // No idea why, but left aligning the text needs an extra offset or it will be off screen
                 if (!Plugin.CenterAlignMonitorText.Value)
