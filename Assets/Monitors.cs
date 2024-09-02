@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using GeneralImprovements.API;
 using TMPro;
@@ -50,16 +49,25 @@ namespace GeneralImprovements.Assets
             allMonitors.Add(bigScreenR.Find("RScreen"));
 
             // Get the text objects (they are not children of our monitor objects above)
-            var allTexts = transform.Find("Canvas/Texts").GetComponentsInChildren<TextMeshProUGUI>();
+            var textObjects = transform.Find("Canvas/Texts").GetComponentsInChildren<TextMeshProUGUI>();
+            var activeTexts = new List<TextMeshProUGUI>();
+            for (int i = 0; i < textObjects.Length; i++)
+            {
+                // Skip the "more monitors" indexes if needed
+                if (Plugin.AddMoreBetterMonitors.Value || !new[] { 0, 1, 6, 7, 12 }.Contains(i))
+                {
+                    activeTexts.Add(textObjects[i]);
+                }
+            }
 
             // Store anything that may have been overwritten so we can keep using the same materials after initialization
             var overwrittenMaterials = MonitorsAPI.AllMonitors.Where(m => m.Value.OverwrittenMaterial != null).ToDictionary(k => k.Key, v => v.Value.OverwrittenMaterial);
 
             // Initialize the TMP objects and assign all information to our API dictionary
             MonitorsAPI.AllMonitors = new Dictionary<int, MonitorsAPI.MonitorInfo>();
-            for (int i = 0; i < Math.Min(allTexts.Length, allMonitors.Count); i++)
+            for (int i = 0; i < allMonitors.Count; i++)
             {
-                var screenText = allTexts[i];
+                var screenText = activeTexts[i];
                 screenText.font = StartOfRound.Instance.profitQuotaMonitorText.font;
                 screenText.spriteAsset = StartOfRound.Instance.profitQuotaMonitorText.spriteAsset;
                 screenText.color = Plugin.MonitorTextColorVal;

@@ -1,5 +1,8 @@
 # Changelog
 
+### v1.4.1 - Hotfix
+* Fixed a bug with AddMoreBetterMonitors not working properly with the new monitor rendering system.
+
 ### v1.4.0 - More monitors, better performance, and weather multipliers
 * Further optimized the better monitor rendering system, resulting in a decent performance boost when UseBetterMonitors = true.
 * Added a "Company Buy Rate" monitor.
