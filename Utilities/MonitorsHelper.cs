@@ -55,10 +55,6 @@ namespace GeneralImprovements.Utilities
         private static Monitors _newMonitors;
         private static Dictionary<TextMeshProUGUI, Action> _queuedMonitorRefreshes = new Dictionary<TextMeshProUGUI, Action>();
 
-        // Time monitor manual control
-        private static float _curTimeMonitorTimer = 1;
-        private static float _timeMonitorCycleTime = 1f;
-
         // Weather animation
         private static int _curWeatherAnimIndex = 0;
         private static int _curWeatherOverlayIndex = 0;
@@ -625,7 +621,7 @@ namespace GeneralImprovements.Utilities
             }
         }
 
-        public static void UpdateScrapLeftMonitors()
+        public static void UpdateScrapLeftMonitors(bool pending = false)
         {
             if (_scrapLeftMonitorTexts.Count > 0)
             {
@@ -633,7 +629,8 @@ namespace GeneralImprovements.Utilities
                 bool updatedText = false;
                 if (outsideScrap.Key > 0)
                 {
-                    updatedText = UpdateGenericTextList(_scrapLeftMonitorTexts, $"SCRAP LEFT:\n{outsideScrap.Key} ITEMS\n<color=#80ffff>${outsideScrap.Value}</color>");
+                    string display = pending ? "(PENDING)" : $"{outsideScrap.Key} ITEMS\n<color=#80ffff>${outsideScrap.Value}</color>";
+                    updatedText = UpdateGenericTextList(_scrapLeftMonitorTexts, $"SCRAP LEFT:\n{display}");
                 }
                 else
                 {
@@ -649,11 +646,9 @@ namespace GeneralImprovements.Utilities
 
         public static void UpdateTimeMonitors()
         {
-            // Do not update faster than we should - some mods may increase the vanilla time update call
-            if (_timeMonitorTexts.Count > 0 && _curTimeMonitorTimer >= _timeMonitorCycleTime)
+            if (_timeMonitorTexts.Count > 0)
             {
                 string time;
-                _curTimeMonitorTimer = 0;
 
                 if (TimeOfDay.Instance.movingGlobalTimeForward && HUDManager.Instance?.clockNumber != null)
                 {
@@ -661,7 +656,7 @@ namespace GeneralImprovements.Utilities
                 }
                 else
                 {
-                    time = "TIME:\nPENDING";
+                    time = "TIME:\n(PENDING)";
                 }
 
                 if (UpdateGenericTextList(_timeMonitorTexts, time))
@@ -799,12 +794,6 @@ namespace GeneralImprovements.Utilities
                     if (_playerHealthMonitorTexts.Count > 0) UpdateGenericTextList(_playerHealthMonitorTexts, _curPlayerHealthAnimations[_curPlayerHealthAnimIndex]);
                     if (_playerExactHealthMonitorTexts.Count > 0) UpdateGenericTextList(_playerExactHealthMonitorTexts, _curPlayerExactHealthAnimations[_curPlayerHealthAnimIndex]);
                 }
-            }
-
-            // Handle the timer increment for the time monitors as well
-            if (_timeMonitorTexts.Count > 0)
-            {
-                _curTimeMonitorTimer += Time.deltaTime;
             }
         }
 
@@ -974,7 +963,7 @@ namespace GeneralImprovements.Utilities
             if (_overtimeCalculatorMonitorTexts.Count > 0)
             {
                 int overtime = 0;
-                if (TimeOfDay.Instance != null && RoundManager.Instance?.currentLevel?.PlanetName != "71 Gordion")
+                if (TimeOfDay.Instance != null && (RoundManager.Instance?.currentLevel?.PlanetName != "71 Gordion" || !StartOfRound.Instance.shipHasLanded)) // Ignore while landed at company
                 {
                     var rollover = Math.Max(TimeOfDay.Instance.quotaFulfilled - TimeOfDay.Instance.profitQuota, 0);
                     var profit = rollover + GrabbableObjectsPatch.GetAllScrap(true).Sum(s => s.scrapValue);

@@ -5,6 +5,7 @@ using System.Reflection.Emit;
 using System.Text.RegularExpressions;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
+using UnityEngine;
 
 namespace GeneralImprovements.Patches
 {
@@ -75,6 +76,16 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SetBuyingRateForDay()
         {
+            MonitorsHelper.UpdateCompanyBuyRateMonitors();
+
+            // Also set a 5 second delay to do it again to support the delay that BuyRateSettings uses
+            TimeOfDay.Instance.StartCoroutine(UpdateCompanyBuyRateDelayed());
+        }
+
+        private static System.Collections.IEnumerator UpdateCompanyBuyRateDelayed()
+        {
+            yield return new WaitForSeconds(5);
+
             MonitorsHelper.UpdateCompanyBuyRateMonitors();
         }
 

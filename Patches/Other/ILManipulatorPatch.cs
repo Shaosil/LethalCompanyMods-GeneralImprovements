@@ -1,11 +1,11 @@
-﻿using GeneralImprovements.Utilities;
-using HarmonyLib;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 
-namespace GeneralImprovements.Patches
+namespace GeneralImprovements.Patches.Other
 {
     internal static class ILManipulatorPatch
     {

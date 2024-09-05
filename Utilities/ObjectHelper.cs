@@ -1,6 +1,6 @@
-﻿using GeneralImprovements.Items;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using GeneralImprovements.Items;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -13,17 +13,18 @@ namespace GeneralImprovements.Utilities
 
         public static ScanNodeProperties CreateScanNodeOnObject(GameObject obj, int nodeType, int minRange, int maxRange, string headerText, string subText = "", int size = 1)
         {
-            var scanNodeObj = new GameObject("ScanNode", typeof(ScanNodeProperties), typeof(BoxCollider));
-            scanNodeObj.layer = LayerMask.NameToLayer("ScanNode");
+            var scanNodeObj = new GameObject("ScanNode", typeof(ScanNodeProperties), typeof(BoxCollider), typeof(Rigidbody));
+            scanNodeObj.GetComponent<Rigidbody>().isKinematic = true;
             scanNodeObj.transform.localScale = Vector3.one * size;
-            scanNodeObj.transform.parent = obj.transform;
-            scanNodeObj.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+            scanNodeObj.transform.SetParent(obj.transform, false);
+            scanNodeObj.layer = LayerMask.NameToLayer("ScanNode");
 
             var newScanNode = scanNodeObj.GetComponent<ScanNodeProperties>();
             newScanNode.nodeType = nodeType;
             newScanNode.minRange = minRange;
             newScanNode.maxRange = maxRange;
             newScanNode.headerText = headerText;
+            newScanNode.subText = subText;
 
             return newScanNode;
         }
@@ -78,13 +79,7 @@ namespace GeneralImprovements.Utilities
                 interactScript.onInteractEarly.AddListener(_ => MedStation.HealLocalPlayer());
 
                 // Add scan node
-                var scanNode = MedStation.transform.Find("ScanNode").gameObject.AddComponent<ScanNodeProperties>();
-                scanNode.gameObject.layer = LayerMask.NameToLayer("ScanNode");
-                scanNode.minRange = 0;
-                scanNode.maxRange = 6;
-                scanNode.nodeType = 0;
-                scanNode.headerText = "Med Station";
-                scanNode.subText = "Fully heal yourself";
+                CreateScanNodeOnObject(MedStation.gameObject, 0, 0, 6, "Med Station", "Fully heal yourself");
             }
         }
 

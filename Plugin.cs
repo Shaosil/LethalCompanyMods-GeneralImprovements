@@ -8,6 +8,7 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using GeneralImprovements.Patches;
+using GeneralImprovements.Patches.Other;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
 using UnityEngine;
@@ -16,10 +17,11 @@ using static GeneralImprovements.Enums;
 namespace GeneralImprovements
 {
     [BepInPlugin(Metadata.GUID, Metadata.PLUGIN_NAME, Metadata.VERSION)]
-    [BepInDependency(OtherModHelper.TwoRadarCamsGUID, BepInDependency.DependencyFlags.SoftDependency)]
-    [BepInDependency(OtherModHelper.MimicsGUID, BepInDependency.DependencyFlags.SoftDependency)]
-    [BepInDependency(OtherModHelper.WeatherTweaksGUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(OtherModHelper.BuyRateSettingsGUID, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(OtherModHelper.CodeRebirthGUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(OtherModHelper.MimicsGUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(OtherModHelper.TwoRadarCamsGUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(OtherModHelper.WeatherTweaksGUID, BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
         public static ManualLogSource MLS { get; private set; }
@@ -51,7 +53,6 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> UseBetterMonitors { get; private set; }
 
         private const string FixesSection = "Fixes";
-        public static ConfigEntry<bool> AllowLookDownMore { get; private set; }
         public static ConfigEntry<bool> AutomaticallyCollectTeleportedCorpses { get; private set; }
         public static ConfigEntry<int> DropShipItemLimit { get; private set; }
         public static ConfigEntry<bool> FixInternalFireExits { get; private set; }
@@ -257,6 +258,7 @@ namespace GeneralImprovements
             GameNetworkManagerPatch.PatchNetcode();
 
             // Custom patches for other things
+            OtherModHelper.PatchBuyRateSettingsIfNeeded(harmony);
             OtherModHelper.PatchCodeRebirthIfNeeded(harmony);
 
             MLS.LogInfo($"{Metadata.PLUGIN_NAME} v{Metadata.VERSION} fully loaded.");
@@ -300,7 +302,6 @@ namespace GeneralImprovements
             UseBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(UseBetterMonitors), false, "If set to true, upgrades the vanilla monitors with integrated and more customizable overlays.");
 
             // Fixes
-            AllowLookDownMore = Config.Bind(FixesSection, nameof(AllowLookDownMore), true, "If set to true, you will be able to look down at a steeper angle than vanilla.");
             AutomaticallyCollectTeleportedCorpses = Config.Bind(FixesSection, nameof(AutomaticallyCollectTeleportedCorpses), true, "If set to true, dead bodies will be automatically collected as scrap when being teleported to the ship.");
             DropShipItemLimit = Config.Bind(FixesSection, nameof(DropShipItemLimit), 24, new ConfigDescription("Sets the max amount of items a single dropship delivery will allow. Vanilla = 12.", new AcceptableValueRange<int>(12, 100)));
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
@@ -433,8 +434,8 @@ namespace GeneralImprovements
             }
 
             // Sanitize weather multipliers by removing invalid entries and clamping the multipliers
-            var scrapValueWeatherMatches = Regex.Matches(ScrapValueWeatherMultipliers.Value, @"[a-z]+:\d*(\.\d+)?", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
-            var scrapAmountWeatherMatches = Regex.Matches(ScrapAmountWeatherMultipliers.Value, @"[a-z]+:\d(\.\d+)?", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+            var scrapValueWeatherMatches = Regex.Matches(ScrapValueWeatherMultipliers.Value, @"[a-z]+:\d*([\. ]\d+)?", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+            var scrapAmountWeatherMatches = Regex.Matches(ScrapAmountWeatherMultipliers.Value, @"[a-z]+:\d([\. ]\d+)?", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
             List<string[]> sanitizedScrapValues = new List<string[]>();
             List<string[]> sanitizedScrapAmounts = new List<string[]>();
             foreach (Match valueMatch in scrapValueWeatherMatches)

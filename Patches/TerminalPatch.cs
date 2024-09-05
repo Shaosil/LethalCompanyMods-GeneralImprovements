@@ -342,33 +342,52 @@ namespace GeneralImprovements.Patches
             }
         }
 
-        [HarmonyPatch(typeof(Terminal), nameof(SyncGroupCreditsClientRpc))]
+        [HarmonyPatch(typeof(Terminal), nameof(Terminal.SyncGroupCreditsClientRpc))]
         [HarmonyPostfix]
         private static void SyncGroupCreditsClientRpc(int newGroupCredits)
         {
             // Adjust our current credits tracker by the difference to ensure it is always accurate
-            _currentCredits += (newGroupCredits - _currentCredits);
+            _currentCredits += (newGroupCredits - Math.Max(_currentCredits, 0));
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.BuyShipUnlockableClientRpc))]
+        [HarmonyPostfix]
+        private static void BuyShipUnlockableClientRpc(int newGroupCreditsAmount)
+        {
+            // This is a StartOfRound patch but belongs here with the rest of the credits functionality
+            _currentCredits += (newGroupCreditsAmount - Math.Max(_currentCredits, 0));
         }
 
         public static void SetStartingMoneyPerPlayer()
         {
-            // Grab initial credits value if this is the server
-            if (Instance.IsServer && Plugin.StartingMoneyPerPlayerVal >= 0)
+            // Grab initial credits value if this is the server and we specified a value
+            if (Instance.IsServer && (Plugin.StartingMoneyPerPlayerVal >= 0 || Plugin.MinimumStartingMoney.Value != (int)Plugin.MinimumStartingMoney.DefaultValue))
             {
                 // Set initial credits value if this is a new game
                 if (StartOfRound.Instance.gameStats.daysSpent == 0)
                 {
-                    _currentCredits = Math.Clamp(Plugin.StartingMoneyPerPlayerVal * (StartOfRound.Instance.connectedPlayersAmount + 1), Plugin.MinimumStartingMoneyVal, int.MaxValue);
-                    Plugin.MLS.LogInfo($"Setting starting money to {_currentCredits} ({Plugin.StartingMoneyPerPlayerVal} per player x {StartOfRound.Instance.connectedPlayersAmount + 1} current players), with a minimium of {Plugin.MinimumStartingMoneyVal}.");
+                    if (Plugin.StartingMoneyPerPlayerVal >= 0)
+                    {
+                        _currentCredits = Math.Clamp(Plugin.StartingMoneyPerPlayerVal * (StartOfRound.Instance.connectedPlayersAmount + 1), Plugin.MinimumStartingMoneyVal, int.MaxValue);
+                        Plugin.MLS.LogInfo($"Setting starting money to {_currentCredits} ({Plugin.StartingMoneyPerPlayerVal} per player x {StartOfRound.Instance.connectedPlayersAmount + 1} current players), with a minimium of {Plugin.MinimumStartingMoneyVal}.");
+                    }
+                    else
+                    {
+                        _currentCredits = Plugin.MinimumStartingMoneyVal;
+                        Plugin.MLS.LogInfo($"Setting starting money to {_currentCredits} (minimium of {Plugin.MinimumStartingMoneyVal}).");
+                    }
+
                     TimeOfDay.Instance.quotaVariables.startingCredits = _currentCredits;
-                    Instance.groupCredits = Math.Clamp(_currentCredits, 0, _currentCredits);
                     ES3.Save("GroupCredits", _currentCredits, GameNetworkManager.Instance.currentSaveFileName);
-                    Instance.SyncGroupCreditsServerRpc(Instance.groupCredits, Instance.numberOfItemsInDropship);
                 }
                 else
                 {
-                    _currentCredits = ES3.Load("GroupCredits", GameNetworkManager.Instance.currentSaveFileName, Plugin.StartingMoneyPerPlayerVal);
+                    int defaultMoney = Plugin.StartingMoneyPerPlayerVal >= 0 ? Plugin.StartingMoneyPerPlayerVal : Plugin.MinimumStartingMoneyVal;
+                    _currentCredits = ES3.Load("GroupCredits", GameNetworkManager.Instance.currentSaveFileName, defaultMoney);
                 }
+
+                Instance.groupCredits = Math.Clamp(_currentCredits, 0, _currentCredits);
+                Instance.SyncGroupCreditsServerRpc(Instance.groupCredits, Instance.numberOfItemsInDropship);
             }
         }
 
@@ -385,8 +404,8 @@ namespace GeneralImprovements.Patches
                 }
 
                 _currentCredits += Plugin.StartingMoneyPerPlayerVal * (adding ? 1 : -1);
-                Plugin.MLS.LogInfo($"{(adding ? "Adding" : "Subtracting")} {Plugin.StartingMoneyPerPlayerVal} {(adding ? "to" : "from")} group credits.");
-                Instance.groupCredits = Math.Clamp(_currentCredits, 0, _currentCredits);
+                Plugin.MLS.LogInfo($"{(adding ? "Adding" : "Subtracting")} {Plugin.StartingMoneyPerPlayerVal} {(adding ? "to" : "from")} group credits (tracked: ${_currentCredits})");
+                Instance.groupCredits = Math.Max(_currentCredits, 0);
 
                 // If this is a disconnect, credits will not be synced automatically, so do that here
                 if (!adding)

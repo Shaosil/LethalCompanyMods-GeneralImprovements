@@ -87,7 +87,7 @@ namespace GeneralImprovements.Patches
 
             // Update round specific monitors
             MonitorsHelper.UpdateDailyProfitMonitors();
-            MonitorsHelper.UpdateScrapLeftMonitors();
+            MonitorsHelper.UpdateScrapLeftMonitors(true);
         }
 
         [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnScrapInLevel))]

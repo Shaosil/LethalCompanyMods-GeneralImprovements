@@ -130,6 +130,7 @@ namespace GeneralImprovements.Patches
         private static void OnShipLandedMiscEvents()
         {
             RoundManagerPatch.EnableAndAttachShipScanNode();
+            MonitorsHelper.UpdateScrapLeftMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(ShipLeave))]
@@ -208,6 +209,40 @@ namespace GeneralImprovements.Patches
             {
                 FlownToHiddenMoons.Add(__instance.currentLevel.PlanetName);
             }
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), "TravelToLevelEffects", MethodType.Enumerator)]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> TravelToLevelEffects_Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+
+            if (Plugin.AllowPreGameLeverPullAsClient.Value)
+            {
+                if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+                {
+                    i => i.Calls(AccessTools.Method(typeof(StartOfRound), nameof(StartOfRound.ArriveAtLevel))),
+
+                    i => i.IsLdloc(),
+                    i => i.Calls(AccessTools.Method(typeof(NetworkBehaviour), "get_IsServer")),
+                    i => i.Branches(out _),
+                    i => i.Calls(AccessTools.Method(typeof(GameNetworkManager), "get_Instance")),
+                    i => i.LoadsField(AccessTools.Field(typeof(GameNetworkManager), nameof(GameNetworkManager.gameHasStarted))),
+                    i => i.Branches(out _)
+                }, out var gameStartedCode))
+                {
+                    Plugin.MLS.LogDebug("Patching StartOfRound.TravelToLevelEffects to allow AllowPreGameLeverPullAsClient to work properly.");
+
+                    // Remove the if statement entirely
+                    codeList.RemoveRange(gameStartedCode[1].Index, gameStartedCode.Length - 1);
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected IL Code - Could not patch StartOfRound.TravelToLevelEffects to allow AllowPreGameLeverPullAsClient to work properly!");
+                }
+            }
+
+            return codeList;
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(SetMapScreenInfoToCurrentLevel))]
@@ -310,9 +345,9 @@ namespace GeneralImprovements.Patches
             }
         }
 
-        [HarmonyPatch(typeof(StartOfRound), nameof(OnPlayerDC))]
+        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.OnClientDisconnect))]
         [HarmonyPostfix]
-        private static void OnPlayerDC()
+        private static void OnClientDisconnect()
         {
             TerminalPatch.AdjustGroupCredits(false);
             MonitorsHelper.UpdatePlayerHealthMonitors();

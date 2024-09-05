@@ -1,8 +1,27 @@
 # Changelog
 
-### v1.4.2 - More fixes and improvements
+### v1.4.3 - More fixes and improvements
+* Fixed a few things with StartingMoneyPerPlayer and MinimumStartingMoney:
+	* MinimumStartingMoney now works without having to be paired with StartingMoneyPerPlayer, if you want to use it as a hardcoded money setting for new saves.
+	* Fixed a bug that would subtract the value twice every time a client disconnected.
+	* Fixed a bug that would refill the credits if another player joined after a ship unlockable was purchased, or if the tracked credits were negative.
+	* Fixed a bug that would throw an error if the tracked credits went negative (background tracking to prevent purchase exploits).
+* Fixed a small Time monitor bug that would not initialize properly when quickly exiting out during a level load and reloading the save file.
+	* As part of this fix I chose to remove the 1 second update timer requirement for that monitor, since the new rendering system will never render the same thing anyway.
+* Remove AllowLookDownMore from the config and code since it has been implemented as of v64.
+* Fixed toilet paper being marked as conductive.
+	* Removed flask, plastic cup, and whoopie cushion's conductivity fixes since they are now in v64 vanilla.
+* Made the CompanyBuyRate monitor more compatible with [BuyRateSettings](https://thunderstore.io/c/lethal-company/p/MoonJuice/BuyRateSettings/)
+	* The monitor will still briefly show an "incorrect" buy rate for a short duration after a quota is met due to how BuyRateSettings updates it.
+* Fixed AllowPreGameLeverPullAsClient not working for clients if a new moon was travelled to before the game start.
+* Fixed ScanPlayers only working if FixPersonalScanner was also true.
+* Fixed a bug where PlayerHealth monitors would not update after a player was killed (mostly affected PlayerHealthExact).
+* Fixed a bug where the OvertimeCalculator monitor would not update while in orbit over the company.
+* Fixed a bug where the ScrapLeft monitor would display an incomplete value for clients on very large moons from calculating before the scrap was fully loaded.
+* Potentially fixed a very rare edge case when using certain regional PC settings with Gale mod manager that would interpret weather multiplier values incorrectly and clamp them.
+
+### v1.4.2 - Performance hotfix
 * Fixed a performance bug that remained from v1.3.8 when AddMoreBetterMonitors was set to false.
-* Fixed a small bug where exiting and loading a file in some cases would not display the time monitor properly.
 
 ### v1.4.1 - Hotfix
 * Fixed a bug with AddMoreBetterMonitors not working properly with the new monitor rendering system.
@@ -13,8 +32,8 @@
 * Added a "Daily Profit" monitor. (Yer an Employee, Harry!)
 * Added an "Average Daily Scrap" monitor.
 * Added an "Overtime Calculator" monitor.
-* Added config option to have loot and amount multipliers based on the current weather.
-	* Defaults to the vanilla value of 0.4 everywhere, but a recommended config string is in the description.
+* Added config options to have loot and amount multipliers based on the current weather.
+	* Defaults to the vanilla values everywhere, but recommended config strings are in the description.
 	* It should also support custom weathers if you specify the correct name.
 	* This will affect the apparatus as well but does it earlier than other mods (like [FacilityMeltdown](https://thunderstore.io/c/lethal-company/p/loaforc/FacilityMeltdown/) so they take precedence.)
 * Fixed the internal ship cam still showing underneath a canvas if UseBetterMonitors was set to false and a custom monitor replaces it.

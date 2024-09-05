@@ -1,12 +1,12 @@
-﻿using GameNetcodeStuff;
-using GeneralImprovements.Utilities;
-using HarmonyLib;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using GameNetcodeStuff;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 using TMPro;
 using Unity.Netcode;
 using Unity.Profiling;
@@ -54,7 +54,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
         [HarmonyPriority(Priority.Low)]
         [HarmonyFinalizer] // Need a finalizer because CorporateRestructure sometimes has an exception before this, stopping our hide code
-        private static void ConnectClientToPlayerObjectPost()
+        private static void ConnectClientToPlayerObjectPost(PlayerControllerB __instance)
         {
             // If using the new monitors, hide the old text objects HERE in order to let other mods utilize them first
             if (Plugin.UseBetterMonitors.Value)
@@ -134,7 +134,8 @@ namespace GeneralImprovements.Patches
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.DamagePlayer))]
-        [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.DamagePlayerClientRpc))]
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.DamagePlayer))]
+        [HarmonyPatch(typeof(PlayerControllerB), "KillPlayerClientRpc")]
         [HarmonyPostfix]
         private static void AfterDamage()
         {
@@ -578,35 +579,6 @@ namespace GeneralImprovements.Patches
         {
             // Do not show player names if we are hiding them, unless we are orbiting
             return !(Plugin.HidePlayerNames.Value && !(StartOfRound.Instance?.inShipPhase ?? true));
-        }
-
-        [HarmonyPatch(typeof(PlayerControllerB), "CalculateSmoothLookingInput")]
-        [HarmonyPatch(typeof(PlayerControllerB), "CalculateNormalLookingInput")]
-        [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> PatchLookDownClamper(IEnumerable<CodeInstruction> instructions, MethodBase original)
-        {
-            if (!Plugin.AllowLookDownMore.Value)
-            {
-                return instructions;
-            }
-
-            if (instructions.TryFindInstructions(new Func<CodeInstruction, bool>[]
-            {
-                i => i.LoadsField(typeof(PlayerControllerB).GetField("cameraUp", BindingFlags.NonPublic | BindingFlags.Instance)),
-                i => i.LoadsConstant(-80f),
-                i => i.LoadsConstant(60f),
-                i => i.Calls(typeof(Mathf).GetMethod(nameof(Mathf.Clamp), new[] { typeof(float), typeof(float), typeof(float) }))
-            }, out var found))
-            {
-                Plugin.MLS.LogDebug($"Updating look down angle to 85 in {original.Name}.");
-                found[2].Instruction.operand = 85f;
-            }
-            else
-            {
-                Plugin.MLS.LogError($"Unexpected IL code found - Could not patch look down angle in {original.Name}!");
-            }
-
-            return instructions;
         }
 
         private static void ShiftRightFromSlot(PlayerControllerB player, int slot)

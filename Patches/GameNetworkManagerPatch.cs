@@ -49,7 +49,7 @@ namespace GeneralImprovements.Patches
             var allItems = NetworkManager.Singleton.NetworkConfig.Prefabs.Prefabs
                 .Where(p => p.Prefab.TryGetComponent<GrabbableObject>(out var go) && go.itemProperties != null)
                 .Select(p => p.Prefab.GetComponent<GrabbableObject>().itemProperties).ToList();
-            var nonConductiveItems = new string[] { "Flask", "Plastic cup", "Soccer ball", "Whoopie Cushion", "Zed Dog" };
+            var nonConductiveItems = new string[] { "Soccer ball", "Toilet paper", "Zed Dog" };
             var tools = new string[] { "Extension ladder", "Jetpack", "Key", "Radar-booster", "Shovel", "Stop sign", "TZP-Inhalant", "Yield sign", "Kitchen knife", "Zap gun" };
             foreach (var item in allItems)
             {
