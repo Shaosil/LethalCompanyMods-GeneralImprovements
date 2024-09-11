@@ -89,15 +89,12 @@ namespace GeneralImprovements.Patches
         }
 
         [HarmonyPatch(typeof(GrabbableObject), "OnHitGround")]
+        [HarmonyPatch(typeof(GrabbableObject), "OnPlaceObject")]
         [HarmonyPatch(typeof(StunGrenadeItem), "ExplodeStunGrenade")]
         [HarmonyPostfix]
-        private static void OnHitGroundOrExplode(GrabbableObject __instance)
+        private static void OnPlaceFallOrExplode(GrabbableObject __instance)
         {
-            if (__instance.isInShipRoom)
-            {
-                MonitorsHelper.UpdateShipScrapMonitors();
-                MonitorsHelper.UpdateScrapLeftMonitors();
-            }
+            MonitorsHelper.UpdateCalculatedScrapMonitors();
         }
 
         [HarmonyPatch(typeof(KeyItem), "ItemActivate")]
@@ -185,17 +182,18 @@ namespace GeneralImprovements.Patches
             return codeList;
         }
 
-        public static List<GrabbableObject> GetAllScrap(bool inShip)
+        public static List<GrabbableObject> GetAllScrap(bool? inShip = null)
         {
-            return UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.isInShipRoom == inShip && o.isInElevator == inShip && o.itemProperties.minValue > 0
-                && !(o is RagdollGrabbableObject) && (!(o is StunGrenadeItem grenade) || !grenade.hasExploded || !grenade.DestroyGrenade)).ToList();
+            return UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(o => o.itemProperties.isScrap && o.itemProperties.minValue > 0
+                && !(o is RagdollGrabbableObject) && (!(o is StunGrenadeItem grenade) || !grenade.hasExploded || !grenade.DestroyGrenade)
+                && (!inShip.HasValue || (o.isInShipRoom == inShip && o.isInElevator == inShip))).ToList();
         }
 
-        public static KeyValuePair<int, int> GetScrapAmountAndValue(bool approximate)
+        public static KeyValuePair<int, int> GetScrapAmountAndValue(bool approximate, List<GrabbableObject> customScraplist = null)
         {
             // Get every non-ragdoll and unexploded grenade/grabbable outside of the ship that has a minimum value
             var fixedRandom = new System.Random(StartOfRound.Instance.randomMapSeed + 91); // Why 91? Shrug. It's the offset in vanilla code and I kept it.
-            var valuables = GetAllScrap(false);
+            var valuables = customScraplist ?? GetAllScrap(false);
             float multiplier = RoundManager.Instance.scrapValueMultiplier;
             int sum = approximate ? (int)Math.Round(valuables.Sum(i => fixedRandom.Next(Mathf.Clamp(i.itemProperties.minValue, 0, i.itemProperties.maxValue), i.itemProperties.maxValue) * multiplier))
                 : valuables.Sum(i => i.scrapValue);

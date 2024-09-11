@@ -165,6 +165,11 @@ namespace GeneralImprovements.Utilities
                 _oldBigMonitors.GetComponent<MeshRenderer>().sharedMaterials[2].mainTexture = externalShipCamObj.targetTexture;
             }
 
+            // Initialize API items
+            MonitorsAPI.AllMonitors = new Dictionary<int, MonitorsAPI.MonitorInfo>();
+            MonitorsAPI.NewMonitorMeshActive = Plugin.AddMoreBetterMonitors.Value;
+            MonitorsAPI.NumMonitorsActive = 0;
+
             if (Plugin.UseBetterMonitors.Value)
             {
                 CreateNewStyleMonitors(monitorAssignments);
@@ -189,9 +194,7 @@ namespace GeneralImprovements.Utilities
             UpdateDailyProfitMonitors();
             UpdateDangerLevelMonitors();
             UpdateDoorPowerMonitors();
-            UpdateOvertimeCalculatorMonitors();
-            UpdateShipScrapMonitors();
-            UpdateScrapLeftMonitors();
+            UpdateCalculatedScrapMonitors();
             UpdateTimeMonitors();
             UpdateWeatherMonitors();
 
@@ -416,6 +419,7 @@ namespace GeneralImprovements.Utilities
             newMonitorsObj.transform.SetLocalPositionAndRotation(_oldMonitorsObject.localPosition, Quaternion.identity);
 
             _newMonitors = newMonitorsObj.AddComponent<Monitors>();
+            MonitorsAPI.NewMonitors = _newMonitors;
             var oldMonitorsMeshRenderer = _oldMonitorsObject.GetComponent<MeshRenderer>();
             var oldBigMonitorsMeshRenderer = _oldBigMonitors.GetComponent<MeshRenderer>();
             _newMonitors.Initialize(oldMonitorsMeshRenderer.sharedMaterials[0], oldBigMonitorsMeshRenderer.sharedMaterials[1], oldMonitorsMeshRenderer.sharedMaterials[1]);
@@ -595,41 +599,42 @@ namespace GeneralImprovements.Utilities
             }
         }
 
-        public static void UpdateDailyProfitMonitors()
+        public static void UpdateCalculatedScrapMonitors(bool pending = false)
         {
-            if (_dailyProfitMonitorTexts.Count > 0 && RoundManager.Instance != null)
+            // Condense the scrap loading into a single call and use it down the chain if needed
+            var allScrap = new List<GrabbableObject>();
+            var shipScrap = new List<GrabbableObject>();
+            var outsideScrap = new List<GrabbableObject>();
+            if (_shipScrapMonitorTexts.Count > 0 || _scrapLeftMonitorTexts.Count > 0 || _overtimeCalculatorMonitorTexts.Count > 0)
             {
-                int profit = RoundManager.Instance.scrapCollectedThisRound.Sum(s => s.scrapValue);
-                if (UpdateGenericTextList(_dailyProfitMonitorTexts, $"DAY'S PROFIT:\n${profit}"))
+                allScrap = GrabbableObjectsPatch.GetAllScrap();
+                foreach (var scrap in allScrap)
                 {
-                    Plugin.MLS.LogInfo($"Updated daily profit monitors. ({RoundManager.Instance.scrapCollectedThisRound.Count} items, {profit} profit)");
+                    if (scrap.isInShipRoom && scrap.isInElevator) shipScrap.Add(scrap);
+                    else outsideScrap.Add(scrap);
                 }
             }
-        }
 
-        public static void UpdateShipScrapMonitors()
-        {
+            // Ship scrap
             if (_shipScrapMonitorTexts.Count > 0)
             {
-                var allScrap = GrabbableObjectsPatch.GetAllScrap(true);
-                int scrapValue = allScrap.Sum(s => s.scrapValue);
+                int scrapValue = shipScrap.Sum(s => s.scrapValue);
 
-                if (UpdateGenericTextList(_shipScrapMonitorTexts, $"SCRAP IN SHIP:\n<color=#80ffff>${scrapValue}</color>"))
+                if (UpdateGenericTextList(_shipScrapMonitorTexts, $"SHIP SCRAP:\n<color=#80ffff>${scrapValue}</color>\n({shipScrap.Count} ITEMS)"))
                 {
-                    Plugin.MLS.LogInfo($"Updated ship scrap total monitors to ${scrapValue} ({allScrap.Count} items).");
+                    Plugin.MLS.LogInfo($"Updated ship scrap total monitors to ${scrapValue} ({shipScrap.Count} items).");
                 }
             }
-        }
 
-        public static void UpdateScrapLeftMonitors(bool pending = false)
-        {
+            // Scrap left
             if (_scrapLeftMonitorTexts.Count > 0)
             {
-                var outsideScrap = GrabbableObjectsPatch.GetScrapAmountAndValue(!Plugin.ScanCommandUsesExactAmount.Value);
+                var outsideScrapKeyValues = GrabbableObjectsPatch.GetScrapAmountAndValue(!Plugin.ScanCommandUsesExactAmount.Value, outsideScrap);
                 bool updatedText = false;
-                if (outsideScrap.Key > 0)
+
+                if (outsideScrapKeyValues.Key > 0)
                 {
-                    string display = pending ? "(PENDING)" : $"{outsideScrap.Key} ITEMS\n<color=#80ffff>${outsideScrap.Value}</color>";
+                    string display = pending ? "(PENDING)" : $"{outsideScrapKeyValues.Key} ITEMS\n<color=#80ffff>${outsideScrapKeyValues.Value}</color>";
                     updatedText = UpdateGenericTextList(_scrapLeftMonitorTexts, $"SCRAP LEFT:\n{display}");
                 }
                 else
@@ -640,6 +645,37 @@ namespace GeneralImprovements.Utilities
                 if (updatedText)
                 {
                     Plugin.MLS.LogInfo("Updated remaining scrap display.");
+                }
+            }
+
+            // Overtime estimate
+            if (_overtimeCalculatorMonitorTexts.Count > 0)
+            {
+                int overtime = 0;
+                if (TimeOfDay.Instance != null)
+                {
+                    // Count all scrap on the company, ship scrap otherwise
+                    var scrapValue = (RoundManager.Instance?.currentLevel?.PlanetName == "71 Gordion" ? allScrap : shipScrap).Sum(s => s.scrapValue);
+                    var remainingQuota = TimeOfDay.Instance.profitQuota - TimeOfDay.Instance.quotaFulfilled;
+                    var profit = scrapValue - remainingQuota;
+                    overtime = profit <= 0 ? 0 : (profit / 5) - 15;
+                }
+
+                if (UpdateGenericTextList(_overtimeCalculatorMonitorTexts, $"OVERTIME ESTIMATE:\n${Mathf.Max(overtime, 0)}"))
+                {
+                    Plugin.MLS.LogInfo("Updated overtime calculator display.");
+                }
+            }
+        }
+
+        public static void UpdateDailyProfitMonitors()
+        {
+            if (_dailyProfitMonitorTexts.Count > 0 && RoundManager.Instance != null)
+            {
+                int profit = RoundManager.Instance.scrapCollectedThisRound.Sum(s => s.scrapValue);
+                if (UpdateGenericTextList(_dailyProfitMonitorTexts, $"DAY'S PROFIT:\n${profit}"))
+                {
+                    Plugin.MLS.LogInfo($"Updated daily profit monitors. ({RoundManager.Instance.scrapCollectedThisRound.Count} items, {profit} profit)");
                 }
             }
         }
@@ -954,25 +990,6 @@ namespace GeneralImprovements.Utilities
                 if (UpdateGenericTextList(_dangerLevelMonitorTexts, $"DANGER LEVEL:\n<color=#{colorHexes[curDanger]}>{dangerLevels[curDanger]}</color>"))
                 {
                     Plugin.MLS.LogDebug("Updated danger level display.");
-                }
-            }
-        }
-
-        public static void UpdateOvertimeCalculatorMonitors()
-        {
-            if (_overtimeCalculatorMonitorTexts.Count > 0)
-            {
-                int overtime = 0;
-                if (TimeOfDay.Instance != null && (RoundManager.Instance?.currentLevel?.PlanetName != "71 Gordion" || !StartOfRound.Instance.shipHasLanded)) // Ignore while landed at company
-                {
-                    var rollover = Math.Max(TimeOfDay.Instance.quotaFulfilled - TimeOfDay.Instance.profitQuota, 0);
-                    var profit = rollover + GrabbableObjectsPatch.GetAllScrap(true).Sum(s => s.scrapValue);
-                    overtime = profit < TimeOfDay.Instance.profitQuota ? 0 : ((profit - TimeOfDay.Instance.profitQuota) / 5) - 15;
-                }
-
-                if (UpdateGenericTextList(_overtimeCalculatorMonitorTexts, $"OVERTIME ESTIMATE:\n${Mathf.Max(overtime, 0)}"))
-                {
-                    Plugin.MLS.LogInfo("Updated overtime calculator display.");
                 }
             }
         }

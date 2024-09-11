@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using BepInEx;
@@ -30,6 +29,7 @@ namespace GeneralImprovements
         public static ConfigEntry<eMaskedEntityCopyLook> MaskedEntitiesCopyPlayerLooks { get; private set; }
         public static ConfigEntry<bool> MaskedEntitiesReachTowardsPlayer { get; private set; }
         public static ConfigEntry<bool> MaskedEntitiesShowPlayerNames { get; private set; }
+        public static ConfigEntry<int> MaskedEntitiesShowScrapIconChance { get; private set; }
         public static ConfigEntry<bool> MaskedEntitiesSpinOnRadar { get; private set; }
         public static ConfigEntry<bool> MaskedEntitiesWearMasks { get; private set; }
 
@@ -81,7 +81,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> DestroyKeysAfterOrbiting { get; private set; }
         public static ConfigEntry<bool> KeysHaveInfiniteUses { get; private set; }
         public static ConfigEntry<int> MinimumStartingMoney { get; private set; }
-        public static int MinimumStartingMoneyVal => Math.Clamp(MinimumStartingMoney.Value, StartingMoneyPerPlayerVal, 10000);
+        public static int MinimumStartingMoneyVal => Math.Clamp(MinimumStartingMoney.Value, Math.Max(StartingMoneyPerPlayerVal, 0), 10000);
         public static ConfigEntry<bool> SavePlayerSuits { get; private set; }
         public static ConfigEntry<bool> ScanCommandUsesExactAmount { get; private set; }
         public static ConfigEntry<string> ScrapValueWeatherMultipliers { get; private set; }
@@ -99,6 +99,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> ShowDropshipOnScanner { get; private set; }
 
         private const string ShipSection = "Ship";
+        public static bool AllowChargerPlacement { get; private set; } = false; // TODO
         public static ConfigEntry<eValidKeys> CounterClockwiseKey { get; private set; }
         public static ConfigEntry<bool> DisableShipCamPostProcessing { get; private set; }
         public static ConfigEntry<eValidKeys> FreeRotateKey { get; private set; }
@@ -119,6 +120,7 @@ namespace GeneralImprovements
         public static ConfigEntry<int> RegularTeleporterCooldown { get; private set; }
 
         private const string TerminalSection = "Terminal";
+        public static ConfigEntry<bool> FitCreditsInBackgroundImage { get; private set; }
         public static ConfigEntry<bool> LockCameraAtTerminal { get; private set; }
         public static ConfigEntry<bool> ShowBlanksDuringViewMonitor { get; private set; }
         public static ConfigEntry<eShowHiddenMoons> ShowHiddenMoonsInCatalog { get; private set; }
@@ -137,6 +139,7 @@ namespace GeneralImprovements
 
         private const string UISection = "UI";
         public static ConfigEntry<bool> AlwaysShowClock { get; private set; }
+        public static ConfigEntry<bool> CenterSignalTranslatorText { get; private set; }
         public static ConfigEntry<float> ChatFadeDelay { get; private set; }
         public static ConfigEntry<float> ChatOpacity { get; private set; }
         public static ConfigEntry<bool> DisplayKgInsteadOfLb { get; private set; }
@@ -266,6 +269,9 @@ namespace GeneralImprovements
 
         public void BindConfigs()
         {
+            string incompatWarning = "";
+            string defaultNoChange = "Leaving this on its default value will ensure no vanilla code is changed.";
+
             var validSnapRotations = Enumerable.Range(0, 360 / 15).Select(n => n * 15).Where(n => n == 0 || 360 % n == 0).ToArray();
 
             var validToolTypes = new List<Type> { typeof(BoomboxItem), typeof(ExtensionLadderItem), typeof(FlashlightItem), typeof(JetpackItem), typeof(LockPicker), typeof(RadarBoosterItem), typeof(KnifeItem),
@@ -276,6 +282,7 @@ namespace GeneralImprovements
             MaskedEntitiesCopyPlayerLooks = Config.Bind(EnemiesSection, nameof(MaskedEntitiesCopyPlayerLooks), eMaskedEntityCopyLook.None, "How much masked entities should look like a targeted player.");
             MaskedEntitiesReachTowardsPlayer = Config.Bind(EnemiesSection, nameof(MaskedEntitiesReachTowardsPlayer), true, "If set to true, masked entities will reach towards the player they are chasing in a zombie-like way.");
             MaskedEntitiesShowPlayerNames = Config.Bind(EnemiesSection, nameof(MaskedEntitiesShowPlayerNames), false, "If set to true, masked entities will display their targeted player's name above their head, as well as be scannable if ScanPlayers = True.");
+            MaskedEntitiesShowScrapIconChance = Config.Bind(EnemiesSection, nameof(MaskedEntitiesShowScrapIconChance), 0, new ConfigDescription("The percentage (0-100) a masked entity will spawn with a radar map scrap icon attached.", new AcceptableValueRange<int>(0, 100)));
             MaskedEntitiesSpinOnRadar = Config.Bind(EnemiesSection, nameof(MaskedEntitiesSpinOnRadar), true, "If set to true, masked entities' radar dots will spin randomly, slightly giving away their identity.");
             MaskedEntitiesWearMasks = Config.Bind(EnemiesSection, nameof(MaskedEntitiesWearMasks), true, "If set to true, masked entities will wear their default masks.");
 
@@ -323,18 +330,18 @@ namespace GeneralImprovements
             TwoHandedInSlotOne = Config.Bind(InventorySection, nameof(TwoHandedInSlotOne), false, $"When picking up a two handed item, it will always place it in slot 1 and shift things to the right if needed. Makes selling quicker when paired with RearrangeOnDrop.");
 
             // Mechanics
-            AddHealthRechargeStation = Config.Bind(MechanicsSection, nameof(AddHealthRechargeStation), false, "[Host Only] If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full. **WARNING:** THIS WILL PREVENT YOU FROM CONNECTING TO ANY OTHER PLAYERS THAT DO NOT ALSO HAVE IT ENABLED!");
+            AddHealthRechargeStation = Config.Bind(MechanicsSection, nameof(AddHealthRechargeStation), false, $"[Host Only] If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full. {incompatWarning}");
             AllowOvertimeBonus = Config.Bind(MechanicsSection, nameof(AllowOvertimeBonus), true, "[Host Only] If set to false, will prevent the vanilla overtime bonus from being applied after the end of a quota.");
             AllowPickupOfAllItemsPreStart = Config.Bind(MechanicsSection, nameof(AllowPickupOfAllItemsPreStart), true, "Allows you to pick up all grabbable items before the game is started.");
             AllowQuotaRollover = Config.Bind(MechanicsSection, nameof(AllowQuotaRollover), false, "[Host Required] If set to true, will keep the surplus money remaining after selling things to the company, and roll it over to the next quota. If clients do not set this, they will see visual desyncs.");
             DestroyKeysAfterOrbiting = Config.Bind(MechanicsSection, nameof(DestroyKeysAfterOrbiting), false, "If set to true, all keys in YOUR inventory (and IF HOSTING, the ship) will be destroyed after orbiting. Works well to nerf KeysHaveInfiniteUses. Players who do not have this enabled will keep keys currently in their inventory.");
             KeysHaveInfiniteUses = Config.Bind(MechanicsSection, nameof(KeysHaveInfiniteUses), false, "If set to true, keys will not despawn when they are used.");
-            MinimumStartingMoney = Config.Bind(MechanicsSection, nameof(MinimumStartingMoney), 30, "[Host Only] When paired with StartingMoneyPerPlayer, will ensure a group always starts with at least this much money. Must be at least the value of StartingMoneyPerPlayer. Internally capped at 10k.");
+            MinimumStartingMoney = Config.Bind(MechanicsSection, nameof(MinimumStartingMoney), 30, $"[Host Only] When paired with StartingMoneyPerPlayer, will ensure a group always starts with at least this much money. Must be at least the value of StartingMoneyPerPlayer. Internally capped at 10k. {defaultNoChange}");
             SavePlayerSuits = Config.Bind(MechanicsSection, nameof(SavePlayerSuits), true, "If set to true, the host will keep track of every player's last used suit, and will persist between loads and ship resets for each save file. Only works in Online mode.");
             ScanCommandUsesExactAmount = Config.Bind(MechanicsSection, nameof(ScanCommandUsesExactAmount), false, "If set to true, the terminal's scan command (and ScrapLeft monitor) will use display the exact scrap value remaining instead of approximate.");
             ScrapValueWeatherMultipliers = Config.Bind(MechanicsSection, nameof(ScrapValueWeatherMultipliers), string.Empty, "[Host Only] You may specify comma separated weather:multiplier (0.1 - 2.0) for all weather types, including modded weather. Default vanilla scrap value multiplier is 0.4, which will default for any unspecified weather type. A recommended value would be 'None:0.4, DustClouds:0.5, Foggy:0.5, Rainy:0.55, Flooded:0.6, Stormy:0.7, Eclipsed:0.8'.");
             ScrapAmountWeatherMultipliers = Config.Bind(MechanicsSection, nameof(ScrapAmountWeatherMultipliers), string.Empty, "[Host Only] You may specify comma separated weather:multiplier (1.0 - 5.0) for all weather types, including modded weather. Default vanilla scrap amount multiplier is 1.0, which will default for any unspecified weather type. A recommended value would be 'None:1.0, DustClouds:1.2, Foggy:1.2, Rainy:1.3, Flooded:1.4, Stormy:1.5, Eclipsed:1.6'.");
-            StartingMoneyPerPlayer = Config.Bind(MechanicsSection, nameof(StartingMoneyPerPlayer), -1, "[Host Only] How much starting money the group gets per player. Set to -1 to disable. Adjusts money as players join and leave, until the game starts. Internally capped at 10k.");
+            StartingMoneyPerPlayer = Config.Bind(MechanicsSection, nameof(StartingMoneyPerPlayer), -1, $"[Host Only] How much starting money the group gets per player. Set to -1 to disable. Adjusts money as players join and leave, until the game starts. Internally capped at 10k. {defaultNoChange}");
             UnlockDoorsFromInventory = Config.Bind(MechanicsSection, nameof(UnlockDoorsFromInventory), false, "If set to true, keys in your inventory do not have to be held when unlocking facility doors.");
 
             // Scanner
@@ -344,6 +351,7 @@ namespace GeneralImprovements
             ShowDropshipOnScanner = Config.Bind(ScannerSection, nameof(ShowDropshipOnScanner), false, "If set to true, the item drop ship will be scannable.");
 
             // Ship
+            //AllowChargerPlacement = Config.Bind(ShipSection, nameof(AllowChargerPlacement), false, $"[Host Only] If set to true, the battery charger may be placed via the ship's build mode. May cause temporary desyncs on unmodded clients. {incompatWarning}");
             CounterClockwiseKey = Config.Bind(ShipSection, nameof(CounterClockwiseKey), eValidKeys.LeftShift, "If SnapObjectsByDegrees > 0, configures which modifier key spins it CCW.");
             DisableShipCamPostProcessing = Config.Bind(ShipSection, nameof(DisableShipCamPostProcessing), false, "If set to true, the internal and external ship cameras will no longer use post processing. This may improve performance with higher resolution camera settings.");
             FreeRotateKey = Config.Bind(ShipSection, nameof(FreeRotateKey), eValidKeys.LeftAlt, "If SnapObjectsByDegrees > 0, configures which modifer key activates free rotation.");
@@ -364,6 +372,7 @@ namespace GeneralImprovements
             RegularTeleporterCooldown = Config.Bind(TeleportersSection, nameof(RegularTeleporterCooldown), 10, new ConfigDescription("How many seconds to wait in between button presses for the REGULAR teleporter. Vanilla = 10. If using the vanilla value, the teleporter code will not be modified.", new AcceptableValueRange<int>(1, 300)));
 
             // Terminal
+            FitCreditsInBackgroundImage = Config.Bind(TerminalSection, nameof(FitCreditsInBackgroundImage), true, "If set to true, the credits displayed in the terminal will always fit nicely inside its dark green background.");
             LockCameraAtTerminal = Config.Bind(TerminalSection, nameof(LockCameraAtTerminal), true, "If set to true, the camera will no longer move around when moving your mouse/controller while at the terminal.");
             ShowBlanksDuringViewMonitor = Config.Bind(TerminalSection, nameof(ShowBlanksDuringViewMonitor), true, "If set to true, typing commands while View Monitor is active requires you to scroll down to see the result.");
             ShowHiddenMoonsInCatalog = Config.Bind(TerminalSection, nameof(ShowHiddenMoonsInCatalog), eShowHiddenMoons.AfterDiscovery, "When to show any hidden moons in the terminal's moon catalog. AfterDiscovery is per save file.");
@@ -381,6 +390,7 @@ namespace GeneralImprovements
 
             // UI
             AlwaysShowClock = Config.Bind(UISection, nameof(AlwaysShowClock), false, "If set to true, the clock will always be displayed on the HUD when landed on a moon.");
+            CenterSignalTranslatorText = Config.Bind(UISection, nameof(CenterSignalTranslatorText), true, "If set to true, the signal translator text will always be perfectly horizontally centered.");
             ChatFadeDelay = Config.Bind(UISection, nameof(ChatFadeDelay), 4f, new ConfigDescription("How long to wait before fading chat after a new chat message appears.", new AcceptableValueRange<float>(0f, 10f)));
             ChatOpacity = Config.Bind(UISection, nameof(ChatOpacity), 0.2f, new ConfigDescription("How faded the chat should be after the fade delay. 0 = fully transparent, 1 = solid.", new AcceptableValueRange<float>(0f, 1f)));
             DisplayKgInsteadOfLb = Config.Bind(UISection, nameof(DisplayKgInsteadOfLb), false, "If set to true, your carry weight will be converted from lb to kg.");
@@ -469,83 +479,20 @@ namespace GeneralImprovements
             return new Color(r, g, b);
         }
 
-        public static Dictionary<string, List<InternalConfigDef>> GetConfigSectionsAndItems(string filePath)
-        {
-            string[] configLines = File.ReadAllLines(filePath);
-            var ourEntries = new Dictionary<string, List<InternalConfigDef>> { { string.Empty, new List<InternalConfigDef>() } };
-            string curSection = string.Empty;
-            string curDescription = string.Empty;
-            string curDefaultValue = string.Empty;
-
-            foreach (string line in configLines.Select(l => l.Trim()))
-            {
-                if (line.StartsWith('#'))
-                {
-                    if (line.StartsWith("##")) curDescription = line.Substring(2);
-                    else
-                    {
-                        var match = Regex.Match(line, "# Default value: (.+)");
-                        if (match.Groups[1].Success)
-                        {
-                            curDefaultValue = match.Groups[1].Value;
-                        }
-                    }
-                    continue;
-                }
-
-                if (line.StartsWith('[') && line.EndsWith(']'))
-                {
-                    curSection = line.Substring(1, line.Length - 2);
-                    ourEntries.TryAdd(curSection, new List<InternalConfigDef>());
-                    continue;
-                }
-
-                string[] entry = line.Split('=');
-                if (entry.Length == 2)
-                {
-                    ourEntries[curSection].Add(new InternalConfigDef(curSection, curDescription, entry[0].Trim(), entry[1].Trim(), curDefaultValue));
-
-                    curDescription = string.Empty;
-                    curDefaultValue = string.Empty;
-                }
-            }
-
-            return ourEntries;
-        }
-
         private void MigrateOldConfigValues()
         {
             try
             {
-                // Manually read sections and entries since the config classes don't provide a way to see unused values
-                var ourEntries = GetConfigSectionsAndItems(Config.ConfigFilePath);
-
-                // Find definitions that are not part of our current keys and remove migrate if possible
-                bool foundOrphans = false;
-                foreach (string section in ourEntries.Keys)
+                // Migrate and clear any orphans
+                if (Config?.OrphanedEntries?.Any() ?? false)
                 {
-                    foreach (var entry in ourEntries[section])
+                    foreach (var orphan in Config.OrphanedEntries)
                     {
-                        if (!Config.Any(k => k.Key.Section == section && entry.Name == k.Value.Definition.Key))
-                        {
-                            MigrateSpecificValue(entry);
-                            foundOrphans = true;
-                        }
+                        MigrateSpecificValue(orphan);
                     }
-                }
 
-                // Manually clear the private orphans
-                if (foundOrphans)
-                {
-                    if (Config?.OrphanedEntries != null)
-                    {
-                        Config.OrphanedEntries.Clear();
-                        Config.Save();
-                    }
-                    else
-                    {
-                        MLS.LogWarning("Could not clear orphaned config values when migrating old config values.");
-                    }
+                    Config.OrphanedEntries.Clear();
+                    Config.Save();
                 }
             }
             catch (Exception ex)
@@ -554,9 +501,9 @@ namespace GeneralImprovements
             }
         }
 
-        private void MigrateSpecificValue(InternalConfigDef entry)
+        private void MigrateSpecificValue(KeyValuePair<ConfigDefinition, string> entry)
         {
-            MLS.LogMessage($"Found unused config value: {entry.Name}. Migrating and removing if possible...");
+            MLS.LogMessage($"Found unused config value: {entry.Key.Key}. Migrating and removing if possible...");
 
             Action<eMonitorNames> convertMonitor = s =>
             {
@@ -567,7 +514,7 @@ namespace GeneralImprovements
                 }
             };
 
-            switch (entry.Name)
+            switch (entry.Key.Key)
             {
                 // Ship monitors
                 case "ShipProfitQuotaMonitorNum": convertMonitor(eMonitorNames.ProfitQuota); break;
@@ -621,24 +568,6 @@ namespace GeneralImprovements
                 default:
                     MLS.LogDebug("No matching migration");
                     break;
-            }
-        }
-
-        public class InternalConfigDef
-        {
-            public readonly string Section;
-            public readonly string Description;
-            public readonly string Name;
-            public readonly string Value;
-            public readonly string DefaultValue;
-
-            public InternalConfigDef(string section, string description, string name, string value, string defaultValue)
-            {
-                Section = section;
-                Description = description;
-                Name = name;
-                Value = value;
-                DefaultValue = defaultValue;
             }
         }
     }

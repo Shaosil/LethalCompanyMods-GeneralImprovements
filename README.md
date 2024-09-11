@@ -32,6 +32,8 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Saving item rotations so they aren't all facing the same way when you load up a saved game.
 * Items which cannot be grabbed will not display the "Grab" hover tip.
 * Improves performance in many situations where audio reverb objects were searching for a static gameobject every frame.
+* Adds an option to center the signal translator text.
+* Adds an option to keep the credits display of the terminal fit inside the dark green background behind it.
 
 ### NEW FEATURES:
 * A total of 14 customizable, screen-integrated monitors for the ship (instead of the vanilla 8)! Choose which monitor to put what item, including ship cams and background color.

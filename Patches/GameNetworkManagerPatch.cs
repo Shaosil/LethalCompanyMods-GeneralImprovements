@@ -40,6 +40,11 @@ namespace GeneralImprovements.Patches
                 NetworkManager.Singleton.AddNetworkPrefab(AssetBundleHelper.MedStationPrefab);
             }
 
+            //if (Plugin.AllowChargerPlacement.Value)
+            //{
+            // TODO: Add network object component and gameobject to NetworkManager for charger if we're going to be moving it around
+            //}
+
             ObjectHelper.AlterFancyLampPrefab();
 
             // Attach our own network helper to this gameobject

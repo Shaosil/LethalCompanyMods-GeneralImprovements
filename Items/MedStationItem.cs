@@ -1,7 +1,7 @@
-﻿using GeneralImprovements.Patches;
-using GeneralImprovements.Utilities;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
+using GeneralImprovements.Patches;
+using GeneralImprovements.Utilities;
 using Unity.Netcode;
 using UnityEngine;
 

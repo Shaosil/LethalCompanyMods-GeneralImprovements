@@ -1,5 +1,22 @@
 # Changelog
 
+### v1.4.4 - More fixes and improvements
+* Removed an outdated and error prone way of migrating old config values, which should also fix potential errors during migrations.
+* Fixed overtime bonus monitor calculation not working with quota rollover.
+* Fixed daily scrap, external scrap, and overtime bonus monitors not updating when things are sold at the company.
+* Fixed daily and external scrap not updating consistently.
+* Fixed MinimumStartingMoney allowing a value of -1 and potentially causing errors.
+* Added an option to center the signal translator text. Defaults to true.
+* Added an option to keep the terminal's credits display fit inside of its dark green background box. Defaults to true.
+* Added another sneaky mask option to allow them to have a configurable chance to display a scrap icon on the map radar, as if they are holding something (though they are not).
+* The Med Station ship object may now be placed and moved via ship build mode.
+* Updated the ship scrap monitor to include the number of scrap items on the ship.
+* Updated the MonitorsAPI for other developers:
+	* Fixed GetMonitorAtIndex returning things in some situations even if UseBetterMonitors was false.
+	* Fixed NewMonitorMeshActive not working.
+	* Added NumMonitorsActive.
+	* Added a QueueRender function to the MonitorInfo object.
+
 ### v1.4.3 - More fixes and improvements
 * Fixed a few things with StartingMoneyPerPlayer and MinimumStartingMoney:
 	* MinimumStartingMoney now works without having to be paired with StartingMoneyPerPlayer, if you want to use it as a hardcoded money setting for new saves.

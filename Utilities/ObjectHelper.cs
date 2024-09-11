@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using GeneralImprovements.Items;
+using GeneralImprovements.Patches;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -10,6 +11,10 @@ namespace GeneralImprovements.Utilities
     {
         private static IReadOnlyList<NetworkPrefab> AllPrefabs => NetworkManager.Singleton.NetworkConfig.Prefabs.Prefabs;
         public static MedStationItem MedStation = null;
+        public static Dictionary<PlaceableShipObject, InteractTrigger> PlaceablesToTriggers = new Dictionary<PlaceableShipObject, InteractTrigger>();
+        public static float OriginalChargeYHeight;
+        public static int MedStationUnlockableID = -1;
+        public static int ChargeStationUnlockableID = -1;
 
         public static ScanNodeProperties CreateScanNodeOnObject(GameObject obj, int nodeType, int minRange, int maxRange, string headerText, string subText = "", int size = 1)
         {
@@ -29,7 +34,7 @@ namespace GeneralImprovements.Utilities
             return newScanNode;
         }
 
-        public static void CreateMedStation()
+        public static void CreateMedStation(InteractTrigger chargeStation)
         {
             if (Plugin.AddHealthRechargeStation.Value && AssetBundleHelper.MedStationPrefab != null)
             {
@@ -55,7 +60,6 @@ namespace GeneralImprovements.Utilities
                     }
                 }
 
-                var chargeStation = Object.FindObjectOfType<ItemCharger>().GetComponent<InteractTrigger>();
                 MedStation.GetComponent<AudioSource>().outputAudioMixerGroup = chargeStation.GetComponent<AudioSource>().outputAudioMixerGroup;
 
                 // Add interaction trigger
@@ -72,14 +76,41 @@ namespace GeneralImprovements.Utilities
                 interactScript.specialCharacterAnimation = true;
                 interactScript.animationString = chargeStation.animationString;
                 interactScript.lockPlayerPosition = true;
-                interactScript.playerPositionNode = chargeStation.playerPositionNode;
+                interactScript.playerPositionNode = medTrigger.transform.GetChild(0);
                 interactScript.onInteract = new InteractEvent();
                 interactScript.onCancelAnimation = new InteractEvent();
                 interactScript.onInteractEarly = new InteractEvent();
                 interactScript.onInteractEarly.AddListener(_ => MedStation.HealLocalPlayer());
 
+                // Depend on the light switch for copying audio
+                var lightSwitchPlaceable = StartOfRound.Instance.elevatorTransform.Find("LightSwitchContainer")?.GetComponentInChildren<PlaceableShipObject>();
+                var placeable = AddPlaceableComponentToGameObject(MedStation.gameObject, MedStationUnlockableID, 0.05f, lightSwitchPlaceable);
+                PlaceablesToTriggers.Add(placeable, interactScript);
+
                 // Add scan node
                 CreateScanNodeOnObject(MedStation.gameObject, 0, 0, 6, "Med Station", "Fully heal yourself");
+            }
+        }
+
+        public static void MakeChargeStationPlaceable(InteractTrigger chargeStation)
+        {
+            if (Plugin.AllowChargerPlacement && chargeStation?.transform.parent?.parent is Transform charger)
+            {
+                Plugin.MLS.LogInfo("Allowing item charger to be placeable.");
+
+                // Add a new placeable gameobject with a box collider
+                var placementObject = new GameObject("PlacementCollider");
+                placementObject.transform.SetParent(charger.transform);
+                placementObject.transform.SetLocalPositionAndRotation(new Vector3(0.35f, 0, 0), Quaternion.identity);
+                placementObject.layer = LayerMask.NameToLayer("PlaceableShipObjects");
+                var collider = placementObject.AddComponent<BoxCollider>();
+                collider.size = new Vector3(1, 2, 2);
+                placementObject.AddComponent<AudioSource>();
+
+                // Add the actual placeable components
+                var terminalPlaceable = TerminalPatch.Instance.transform.parent.parent.GetComponentInChildren<PlaceableShipObject>();
+                var placeable = AddPlaceableComponentToGameObject(charger.gameObject, ChargeStationUnlockableID, 0.75f, terminalPlaceable);
+                PlaceablesToTriggers.Add(placeable, chargeStation);
             }
         }
 
@@ -170,6 +201,51 @@ namespace GeneralImprovements.Utilities
             float pct = (float)curHP / maxHP;
 
             return pct > 1 ? "Radiant" : pct >= 0.75f ? "Healthy" : pct >= 0.5f ? "Injured" : pct >= 0.25f ? "Badly Injured" : pct > 0 ? "Near Death" : "Deceased";
+        }
+
+        public static int AddUnlockable(string name)
+        {
+            var unlockable = new UnlockableItem
+            {
+                unlockableName = name,
+                unlockableType = 1,
+                IsPlaceable = true,
+                canBeStored = false,
+                maxNumber = 1,
+                alreadyUnlocked = true,
+                spawnPrefab = false
+            };
+            StartOfRound.Instance.unlockablesList.unlockables.Add(unlockable);
+
+            return StartOfRound.Instance.unlockablesList.unlockables.Count - 1;
+        }
+
+        public static PlaceableShipObject AddPlaceableComponentToGameObject(GameObject gameObject, int unlockableID, float wallOffset, PlaceableShipObject copyAudioFrom)
+        {
+            if (copyAudioFrom != null)
+            {
+                // Add PlaceableShipObject and AutoParentToShip
+                var placeable = gameObject.transform.Find("PlacementCollider").gameObject.AddComponent<PlaceableShipObject>();
+                placeable.gameObject.tag = "PlaceableObject";
+                placeable.unlockableID = unlockableID;
+                placeable.parentObject = gameObject.AddComponent<AutoParentToShip>();
+                placeable.placeObjectCollider = placeable.GetComponent<BoxCollider>();
+                placeable.AllowPlacementOnWalls = true;
+                placeable.mainMesh = gameObject.GetComponentInChildren<MeshFilter>();
+                placeable.mainTransform = placeable.mainMesh.transform;
+                placeable.overrideWallOffset = true;
+                placeable.wallOffset = wallOffset;
+                CopyAudioSource(copyAudioFrom.GetComponent<AudioSource>(), placeable.GetComponent<AudioSource>());
+                placeable.placeObjectSFX = copyAudioFrom.placeObjectSFX;
+
+                return placeable;
+            }
+            else
+            {
+                Plugin.MLS.LogError("Error - Could not create a ship placeable. The copyAudioFrom parameter was null.");
+            }
+
+            return null;
         }
     }
 }

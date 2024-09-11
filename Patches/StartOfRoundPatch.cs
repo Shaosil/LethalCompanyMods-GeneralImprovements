@@ -22,6 +22,29 @@ namespace GeneralImprovements.Patches
         public static Dictionary<int, int> DailyScrapCollected = new Dictionary<int, int>(); // Each day's scrap collected
 
         [HarmonyPatch(typeof(StartOfRound), nameof(Start))]
+        [HarmonyPrefix]
+        private static void Start_Pre(StartOfRound __instance)
+        {
+            // Reset med station reference and other helpers
+            ObjectHelper.MedStation = null;
+            ObjectHelper.PlaceablesToTriggers = new Dictionary<PlaceableShipObject, InteractTrigger>();
+            ObjectHelper.MedStationUnlockableID = -1;
+            ObjectHelper.ChargeStationUnlockableID = -1;
+
+            // If we will be creating the med station, make sure it is registered as an unlockable
+            if (Plugin.AddHealthRechargeStation.Value)
+            {
+                ObjectHelper.MedStationUnlockableID = ObjectHelper.AddUnlockable("Med Station");
+            }
+
+            // TODO: If we allow the item charger to be a placeable, make sure it is registered as an unlockable
+            if (Plugin.AllowChargerPlacement)
+            {
+                ObjectHelper.ChargeStationUnlockableID = ObjectHelper.AddUnlockable("Item Charger");
+            }
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(Start))]
         [HarmonyPostfix]
         [HarmonyPriority(Priority.High)]
         private static void Start(StartOfRound __instance)
@@ -70,8 +93,15 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateTotalQuotasMonitors();
             MonitorsHelper.UpdateDeathMonitors();
 
-            // Add medical charging station
-            ObjectHelper.CreateMedStation();
+            // Reset charging station and med station player lock positions as needed
+            var chargeStation = Object.FindObjectOfType<ItemCharger>().GetComponent<InteractTrigger>();
+            ObjectHelper.OriginalChargeYHeight = chargeStation.playerPositionNode.position.y;
+
+            // Add medical station
+            ObjectHelper.CreateMedStation(chargeStation);
+
+            // Allow charging station to be placeable
+            ObjectHelper.MakeChargeStationPlaceable(chargeStation);
 
             // Fix max items allowed to be stored
             __instance.maxShipItemCapacity = 999;
@@ -130,7 +160,7 @@ namespace GeneralImprovements.Patches
         private static void OnShipLandedMiscEvents()
         {
             RoundManagerPatch.EnableAndAttachShipScanNode();
-            MonitorsHelper.UpdateScrapLeftMonitors();
+            MonitorsHelper.UpdateCalculatedScrapMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(ShipLeave))]
@@ -357,7 +387,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SyncShipUnlockablesClientRpc()
         {
-            MonitorsHelper.UpdateShipScrapMonitors();
+            MonitorsHelper.UpdateCalculatedScrapMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(ResetShipFurniture))]
@@ -439,8 +469,7 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateAverageDailyScrapMonitors();
             MonitorsHelper.UpdateDailyProfitMonitors();
             MonitorsHelper.UpdateDeathMonitors(false);
-            MonitorsHelper.UpdateOvertimeCalculatorMonitors();
-            MonitorsHelper.UpdateScrapLeftMonitors();
+            MonitorsHelper.UpdateCalculatedScrapMonitors();
             MonitorsHelper.UpdateTotalDaysMonitors();
             MonitorsHelper.UpdateTotalQuotasMonitors();
 
@@ -480,8 +509,7 @@ namespace GeneralImprovements.Patches
             EnemyAIPatch.CurTotalPowerLevel = 0;
 
             // Reset some monitors
-            MonitorsHelper.UpdateShipScrapMonitors();
-            MonitorsHelper.UpdateScrapLeftMonitors();
+            MonitorsHelper.UpdateCalculatedScrapMonitors();
             MonitorsHelper.UpdateTotalDaysMonitors();
             MonitorsHelper.UpdateTotalQuotasMonitors();
             MonitorsHelper.UpdatePlayerHealthMonitors();
@@ -571,7 +599,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void LoadShipGrabbableItems()
         {
-            MonitorsHelper.UpdateShipScrapMonitors();
+            MonitorsHelper.UpdateCalculatedScrapMonitors();
 
             // Also load any extra item info we've saved
             if (ES3.KeyExists("sprayPaintItemColors", GameNetworkManager.Instance.currentSaveFileName))

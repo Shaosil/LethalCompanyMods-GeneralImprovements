@@ -32,7 +32,7 @@ namespace GeneralImprovements.Patches
                     codeList.Insert(addScrapCode.Last().Index + 1, Transpilers.EmitDelegate<System.Action>(() =>
                     {
                         MonitorsHelper.UpdateDailyProfitMonitors();
-                        MonitorsHelper.UpdateOvertimeCalculatorMonitors();
+                        MonitorsHelper.UpdateCalculatedScrapMonitors();
                     }));
                 }
                 else
@@ -87,7 +87,7 @@ namespace GeneralImprovements.Patches
 
             // Update round specific monitors
             MonitorsHelper.UpdateDailyProfitMonitors();
-            MonitorsHelper.UpdateScrapLeftMonitors(true);
+            MonitorsHelper.UpdateCalculatedScrapMonitors(true);
         }
 
         [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnScrapInLevel))]

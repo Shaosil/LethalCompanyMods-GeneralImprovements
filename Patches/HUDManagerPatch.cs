@@ -55,6 +55,17 @@ namespace GeneralImprovements.Patches
                     _lightningOverlays.Add(sprite);
                 }
             }
+
+            if (Plugin.CenterSignalTranslatorText.Value)
+            {
+                __instance.signalTranslatorText.horizontalAlignment = HorizontalAlignmentOptions.Center;
+                __instance.signalTranslatorText.enableAutoSizing = false;
+                var rect = __instance.signalTranslatorText.rectTransform;
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = new Vector2(-5, -230);
+                rect.offsetMax = new Vector2(-5, -230);
+            }
         }
 
         [HarmonyPatch(typeof(HUDManager), "PingScan_performed")]
@@ -407,6 +418,16 @@ namespace GeneralImprovements.Patches
             return codeList;
         }
 
+        [HarmonyPatch(typeof(HUDManager), nameof(HUDManager.UseSignalTranslatorClientRpc))]
+        [HarmonyPrefix]
+        private static void UseSignalTranslatorClientRpc(ref string signalMessage)
+        {
+            if (Plugin.CenterSignalTranslatorText.Value)
+            {
+                signalMessage = signalMessage.Trim();
+            }
+        }
+
         [HarmonyPatch(typeof(HUDManager), nameof(SetClockVisible))]
         [HarmonyTranspiler]
         private static IEnumerable<CodeInstruction> SetClockVisible(IEnumerable<CodeInstruction> instructions)
@@ -467,6 +488,13 @@ namespace GeneralImprovements.Patches
         private static void CanPlayerScan(ref bool __result)
         {
             __result = __result && !(ShipBuildModeManager.Instance?.InBuildMode ?? false);
+        }
+
+        [HarmonyPatch(typeof(HUDManager), nameof(HUDManager.DisplayCreditsEarning))]
+        [HarmonyPostfix]
+        private static void DisplayCreditsEarning()
+        {
+            MonitorsHelper.UpdateCalculatedScrapMonitors();
         }
 
         [HarmonyPatch(typeof(HUDManager), nameof(Update))]

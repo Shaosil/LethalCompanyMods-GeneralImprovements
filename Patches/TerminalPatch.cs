@@ -10,6 +10,7 @@ using HarmonyLib;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
+using UnityEngine.UI;
 
 namespace GeneralImprovements.Patches
 {
@@ -23,10 +24,10 @@ namespace GeneralImprovements.Patches
         private static Terminal _instance;
         public static Terminal Instance => _instance ?? (_instance = UnityEngine.Object.FindObjectOfType<Terminal>());
 
-        [HarmonyPatch(typeof(Terminal), nameof(Start))]
+        [HarmonyPatch(typeof(Terminal), "Start")]
         [HarmonyPrefix]
         [HarmonyAfter(OtherModHelper.TwoRadarCamsGUID)]
-        private static void Start(Terminal __instance)
+        private static void StartPre(Terminal __instance)
         {
             _instance = __instance;
             _historyCount = Math.Clamp(Plugin.TerminalHistoryItemCount.Value, 0, 100);
@@ -56,11 +57,30 @@ namespace GeneralImprovements.Patches
             }
         }
 
-        [HarmonyPatch(typeof(Terminal), nameof(Start))]
+        [HarmonyPatch(typeof(Terminal), "Start")]
         [HarmonyPostfix]
-        private static void Start()
+        private static void StartPost(Terminal __instance)
         {
             MonitorsHelper.UpdateSalesMonitors();
+
+            if (Plugin.FitCreditsInBackgroundImage.Value)
+            {
+                // If the last sibling has an Image component, resize it, change the text parent to that, stretch to its bounds, and enable autosizing
+                int siblingIndex = (__instance.topRightText?.rectTransform?.GetSiblingIndex() ?? 0) - 1;
+                if (siblingIndex >= 0 && __instance.topRightText.rectTransform.parent.GetChild(siblingIndex).GetComponent<Image>() is Image background)
+                {
+                    background.rectTransform.anchoredPosition = new Vector2(-170, background.rectTransform.anchoredPosition.y);
+                    background.rectTransform.sizeDelta = new Vector2(95, background.rectTransform.sizeDelta.y);
+                    __instance.topRightText.rectTransform.SetParent(background.rectTransform);
+
+                    __instance.topRightText.rectTransform.anchoredPosition = Vector2.zero;
+                    __instance.topRightText.rectTransform.anchorMin = Vector2.zero;
+                    __instance.topRightText.rectTransform.anchorMax = Vector2.one;
+                    __instance.topRightText.rectTransform.sizeDelta = Vector2.zero;
+                    __instance.topRightText.margin = new Vector4(0, 0, 5, 0);
+                    __instance.topRightText.enableAutoSizing = true;
+                }
+            }
         }
 
         [HarmonyPatch(typeof(Terminal), nameof(BeginUsingTerminal))]

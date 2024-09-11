@@ -258,16 +258,6 @@ namespace GeneralImprovements.Patches
             ShiftRightFromSlot(__instance, 0);
         }
 
-        [HarmonyPatch(typeof(PlayerControllerB), nameof(GrabObjectClientRpc))]
-        [HarmonyPostfix]
-        private static void GrabObjectClientRpc(PlayerControllerB __instance, NetworkObjectReference grabbedObject)
-        {
-            if (__instance.currentlyHeldObjectServer?.isInShipRoom ?? false)
-            {
-                MonitorsHelper.UpdateShipScrapMonitors();
-            }
-        }
-
         [HarmonyPatch(typeof(PlayerControllerB), "PlaceObjectClientRpc")]
         [HarmonyPatch(typeof(PlayerControllerB), "ThrowObjectClientRpc")]
         [HarmonyPatch(typeof(PlayerControllerB), "DespawnHeldObjectClientRpc")]

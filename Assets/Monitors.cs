@@ -72,7 +72,6 @@ namespace GeneralImprovements.Assets
             var overwrittenMaterials = MonitorsAPI.AllMonitors.Where(m => m.Value.OverwrittenMaterial != null).ToDictionary(k => k.Key, v => v.Value.OverwrittenMaterial);
 
             // Initialize the TMP objects and assign all information to our API dictionary
-            MonitorsAPI.AllMonitors = new Dictionary<int, MonitorsAPI.MonitorInfo>();
             for (int i = 0; i < allMonitors.Count; i++)
             {
                 var screenText = activeTexts[i];
@@ -105,6 +104,8 @@ namespace GeneralImprovements.Assets
                     AssignedMaterial = renderer.sharedMaterial,
                     OverwrittenMaterial = overwrittenMaterials.GetValueOrDefault(i)
                 };
+
+                MonitorsAPI.NumMonitorsActive++;
 
                 // No idea why, but left aligning the text needs an extra offset or it will be off screen
                 if (!Plugin.CenterAlignMonitorText.Value)

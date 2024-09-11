@@ -1,7 +1,8 @@
-﻿using HarmonyLib;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using static GeneralImprovements.Enums;
@@ -102,34 +103,85 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void Update(ShipBuildModeManager __instance, PlaceableShipObject ___placingObject)
         {
-            if (!__instance.InBuildMode || _snapObjectsByDegrees == 0 || ___placingObject?.parentObject == null)
+            if (__instance.InBuildMode && ___placingObject?.parentObject != null)
             {
-                return;
+                // Handle rotation hotkeys
+                if (_snapObjectsByDegrees != 0 && _rotateAction.IsPressed())
+                {
+                    // If hold free rotate, use vanilla rotation and simply store the current degrees
+                    if (_freeRotateHeld())
+                    {
+                        // If we want counter clockwise movement, apply vanilla rotation backwards
+                        if (_ccwHeld())
+                        {
+                            _curObjectDegrees -= Time.deltaTime * 155f;
+                        }
+                        else
+                        {
+                            _curObjectDegrees = __instance.ghostObject.eulerAngles.y;
+                        }
+                    }
+                    else if (_rotateAction.WasPressedThisFrame())
+                    {
+                        // Just add or subtract to the current degrees. If they want it lined up to the world grid they will need to cancel and rebuild
+                        _curObjectDegrees += _snapObjectsByDegrees * (_ccwHeld() ? -1 : 1);
+                    }
+
+                    // Now make sure we overwrite whatever the game set the rotation to
+                    __instance.ghostObject.rotation = Quaternion.Euler(__instance.ghostObject.eulerAngles.x, _curObjectDegrees, __instance.ghostObject.eulerAngles.z);
+                }
+
+                // If this is the medkit, clamp it to a certain height
+                if (ObjectHelper.MedStation != null && ___placingObject.parentObject.gameObject == ObjectHelper.MedStation.gameObject
+                    && (__instance.ghostObject.position.y < 1.75f || __instance.ghostObject.position.y > 3.5f))
+                {
+                    float clampedY = Mathf.Clamp(__instance.ghostObject.position.y, 1.75f, 3.5f);
+                    __instance.ghostObject.position = new Vector3(__instance.ghostObject.position.x, clampedY, __instance.ghostObject.position.z);
+                }
             }
+        }
 
-            if (_rotateAction.IsPressed())
+        [HarmonyPatch(typeof(ShipBuildModeManager), nameof(ShipBuildModeManager.PlaceShipObject))]
+        [HarmonyPrefix]
+        private static void PlaceShipObjectPre(PlaceableShipObject placeableObject, ref float __state)
+        {
+            // If this was the med station or charging station, reset the player position node(s) Y
+            if (ObjectHelper.PlaceablesToTriggers.ContainsKey(placeableObject))
             {
-                // If hold free rotate, use vanilla rotation and simply store the current degrees
-                if (_freeRotateHeld())
+                // Store the current position offset Y value here to be picked up by the postfix
+                __state = placeableObject.parentObject.positionOffset.y;
+            }
+        }
+
+        [HarmonyPatch(typeof(ShipBuildModeManager), nameof(ShipBuildModeManager.PlaceShipObject))]
+        [HarmonyPostfix]
+        private static void PlaceShipObjectPost(PlaceableShipObject placeableObject, ref float __state)
+        {
+            if (__state != default)
+            {
+                float yDiff = placeableObject.parentObject.positionOffset.y - __state;
+
+                var trigger = ObjectHelper.PlaceablesToTriggers[placeableObject];
+                List<Transform> allNodes = new List<Transform>();
+                for (int i = 0; i < trigger.transform.childCount; i++)
                 {
-                    // If we want counter clockwise movement, apply vanilla rotation backwards
-                    if (_ccwHeld())
-                    {
-                        _curObjectDegrees -= Time.deltaTime * 155f;
-                    }
-                    else
-                    {
-                        _curObjectDegrees = __instance.ghostObject.eulerAngles.y;
-                    }
-                }
-                else if (_rotateAction.WasPressedThisFrame())
-                {
-                    // Just add or subtract to the current degrees. If they want it lined up to the world grid they will need to cancel and rebuild
-                    _curObjectDegrees += _snapObjectsByDegrees * (_ccwHeld() ? -1 : 1);
+                    var child = trigger.transform.GetChild(i);
+                    float newY = child.transform.position.y - yDiff;
+                    child.transform.SetPositionAndRotation(new Vector3(child.transform.position.x, newY, child.transform.position.z), child.transform.rotation);
+                    allNodes.Add(child);
                 }
 
-                // Now make sure we overwrite whatever the game set the rotation to
-                __instance.ghostObject.rotation = Quaternion.Euler(__instance.ghostObject.eulerAngles.x, _curObjectDegrees, __instance.ghostObject.eulerAngles.z);
+                // In case there are multiple target nodes, pick the one that is closest to the ship bounds center
+                if (allNodes.Count > 0)
+                {
+                    // Pre-position and rotate the object here so that we can accurately calculate where the closest node should be
+                    placeableObject.parentObject.transform.position = StartOfRound.Instance.elevatorTransform.position;
+                    placeableObject.parentObject.transform.rotation = StartOfRound.Instance.elevatorTransform.rotation;
+                    placeableObject.parentObject.transform.Rotate(placeableObject.parentObject.rotationOffset);
+                    placeableObject.parentObject.transform.position += (StartOfRound.Instance.elevatorTransform.rotation * placeableObject.parentObject.positionOffset);
+
+                    trigger.playerPositionNode = allNodes.OrderBy(n => Vector3.Distance(StartOfRound.Instance.shipInnerRoomBounds.transform.position, n.transform.position)).First();
+                }
             }
         }
 

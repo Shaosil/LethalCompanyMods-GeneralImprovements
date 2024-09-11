@@ -39,7 +39,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(TimeOfDay), nameof(SetNewProfitQuota))]
         [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> SetNewProfitQuota_RemoveOvertimeBonus(IEnumerable<CodeInstruction> instructions)
+        private static IEnumerable<CodeInstruction> SetNewProfitQuota_Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             if (Plugin.AllowOvertimeBonus.Value)
             {
@@ -67,7 +67,7 @@ namespace GeneralImprovements.Patches
             }
 
             // Add the monitor update at the end of the function
-            codeList.Insert(codeList.Count - 1, Transpilers.EmitDelegate<Action>(() => MonitorsHelper.UpdateOvertimeCalculatorMonitors()));
+            codeList.Insert(codeList.Count - 1, Transpilers.EmitDelegate<Action>(() => MonitorsHelper.UpdateCalculatedScrapMonitors()));
 
             return codeList;
         }
