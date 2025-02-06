@@ -1031,11 +1031,11 @@ namespace GeneralImprovements.Utilities
                         var curPlayer = activePlayers[(a * playerPerPage) + p];
 
                         string displayName = new string(curPlayer.playerUsername.Take(12).Concat(new char[] { ':' }).ToArray()).PadRight(20);
-                        int healthLevel = curPlayer.health >= 100 ? 3 : curPlayer.health >= 50 ? 2 : 1;
+                        int healthLevel = curPlayer.isPlayerDead || curPlayer.health < 50 ? 1 : curPlayer.health < 100 ? 2 : 3;
                         string healthColor = healthLevel == 3 ? "00ff00" : healthLevel == 2 ? "ffff00" : "ff0000";
 
                         curScreenPlayersSb.AppendLine($" {displayName} <color=#{healthColor}>{new string('=', healthLevel).PadRight(3)}</color> ");
-                        curScreenPlayersExactSb.AppendLine($" {displayName} <color=#{healthColor}>{curPlayer.health,3}</color> ");
+                        curScreenPlayersExactSb.AppendLine($" {displayName} <color=#{healthColor}>{(curPlayer.isPlayerDead ? 0 : curPlayer.health),3}</color> ");
                     }
 
                     string header = $"{new string(' ', 10)}PLAYER HEALTH:\n\n";

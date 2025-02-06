@@ -1,9 +1,9 @@
-﻿using GameNetcodeStuff;
-using GeneralImprovements.Utilities;
-using HarmonyLib;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using GameNetcodeStuff;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 
 namespace GeneralImprovements.Patches
 {
@@ -16,12 +16,7 @@ namespace GeneralImprovements.Patches
         private static void Start(FlashlightItem __instance)
         {
             // Make sure the correct material is displayed for the lamp part
-            if (__instance.changeMaterial)
-            {
-                var materials = __instance.flashlightMesh.sharedMaterials;
-                materials[1] = __instance.isBeingUsed ? __instance.bulbLight : __instance.bulbDark;
-                __instance.flashlightMesh.sharedMaterials = materials;
-            }
+            UpdateMaterials(__instance);
         }
 
         [HarmonyPatch(typeof(FlashlightItem), "EquipItem")]
@@ -104,11 +99,7 @@ namespace GeneralImprovements.Patches
             __instance.flashlightBulb.enabled = on && !__instance.isPocketed;
             __instance.flashlightBulbGlow.enabled = on && !__instance.isPocketed;
 
-            // Copied and optimized from vanilla method
-            if (__instance.changeMaterial)
-            {
-                __instance.flashlightMesh.materials[1] = on ? __instance.bulbLight : __instance.bulbDark;
-            }
+            UpdateMaterials(__instance);
 
             if (__instance.playerHeldBy != null)
             {
@@ -140,6 +131,16 @@ namespace GeneralImprovements.Patches
         {
             // Return true if this is a laser pointer IF we are not treating them as flashlights
             return flashlight.flashlightTypeID == LaserPointerTypeID && !Plugin.TreatLasersAsFlashlights.Value;
+        }
+
+        private static void UpdateMaterials(FlashlightItem instance)
+        {
+            if (instance.changeMaterial)
+            {
+                var materials = instance.flashlightMesh.sharedMaterials;
+                materials[1] = instance.isBeingUsed ? instance.bulbLight : instance.bulbDark;
+                instance.flashlightMesh.sharedMaterials = materials;
+            }
         }
     }
 }

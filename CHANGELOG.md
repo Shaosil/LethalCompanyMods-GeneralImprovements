@@ -1,5 +1,11 @@
 # Changelog
 
+### v1.4.5 - Compile Update and minor Fixes
+* Recompiled using the latest version of LC's DLL to ensure full compatibility with v69 (nice).
+* Fixed flashlight bulb material always using the "dark" version even when it was turned on.
+* Fixed health monitors not updating properly on clients, and showing incorrect health values for dead players.
+* Merged PR #236 (Thanks [YoshiRules](https://github.com/YoshiRulz)) that adds the control pad to the list of non conductive scrap.
+
 ### v1.4.4 - More fixes and improvements
 * Removed an outdated and error prone way of migrating old config values, which should also fix potential errors during migrations.
 * Fixed overtime bonus monitor calculation not working with quota rollover.

@@ -134,7 +134,7 @@ namespace GeneralImprovements.Patches
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.DamagePlayer))]
-        [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.DamagePlayer))]
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.DamagePlayerClientRpc))]
         [HarmonyPatch(typeof(PlayerControllerB), "KillPlayerClientRpc")]
         [HarmonyPostfix]
         private static void AfterDamage()
