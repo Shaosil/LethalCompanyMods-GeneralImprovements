@@ -44,13 +44,13 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * [Host Only] Adds an option to specify starting money per player, as well as define a minumum credit amount. Accepts ranges from -1 (disabled/default) to 1000.
 * [Host Only] Adds an option to prevent tools from getting struck by lightning. This is a bit of a cheat in some opinions, so I recommend leaving it off. If the host/server player has this enabled, it will apply to all clients.
 * Adds an option to display text under the 'Deadline' monitor with the current ship loot total.
-* [Host Required] Adds an option to roll over surplus credits to the next quota. If clients do NOT have this enabled, there will be visual desyncs only.
+* [Host Only] Adds an option to roll over surplus credits to the next quota, as well as options to remove a percentage of banked rollover on squad wipes.
+* [Host Only] Adds an option to change how overtime is calculated: Vanilla, Sold Scrap Only (works well with quota rollover), or Disabled.
 * Adds an option for adding a little medical station above the ship's charging station that heals you back to full health when used.
 * Adds an option to use keys from any inventory slot, as well as an option to prevent them from despawning when they are used, AND an option to destroy them when orbiting.
 * Adds an option to hide player names.
 * Adds options to bring held or all items when using teleporters.
 * Adds an option to be able to scan the item dropship.
-* Adds an option to disable overtime bonuses.
 * Adds an option to remove the ship's cupboard's doors.
 * Adds an option to display moon costs next to their names in the terminal.
 * Adds options for a 24 hour clock, and converting lbs to kgs.

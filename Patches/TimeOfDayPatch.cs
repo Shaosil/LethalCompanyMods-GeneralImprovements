@@ -41,29 +41,51 @@ namespace GeneralImprovements.Patches
         [HarmonyTranspiler]
         private static IEnumerable<CodeInstruction> SetNewProfitQuota_Transpiler(IEnumerable<CodeInstruction> instructions)
         {
-            if (Plugin.AllowOvertimeBonus.Value)
-            {
-                return instructions;
-            }
-
             var codeList = instructions.ToList();
 
-            // Patch out the overtime bonus if needed
-            if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+            if (Plugin.OvertimeBonusType.Value != Enums.eOvertimeBonusType.Vanilla)
             {
-                i => i.IsLdloc(),
-                i => i.IsLdarg(),
-                i => i.LoadsField(typeof(TimeOfDay).GetField(nameof(TimeOfDay.timesFulfilledQuota))),
-                i => i.Calls(typeof(TimeOfDay).GetMethod(nameof(TimeOfDay.SyncNewProfitQuotaClientRpc)))
-            }, out var found))
-            {
-                // Replace the overtime bonus parameter with a simple 0
-                Plugin.MLS.LogDebug("Patching new profit quota method to remove overtime bonus.");
-                found.First().Instruction.opcode = OpCodes.Ldc_I4_0;
-            }
-            else
-            {
-                Plugin.MLS.LogError("Unexpected IL code found in TimeOfDay.SetNewProfitQuota! Could not patch out overtime bonus.");
+                // Patch out the overtime bonus if needed
+                if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
+
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(TimeOfDay).GetField(nameof(TimeOfDay.quotaFulfilled))),
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(TimeOfDay).GetField(nameof(TimeOfDay.profitQuota))),
+                    i => i.opcode == OpCodes.Sub
+                }, out var found))
+                {
+                    switch (Plugin.OvertimeBonusType.Value)
+                    {
+                        case Enums.eOvertimeBonusType.Disabled:
+                        case Enums.eOvertimeBonusType.SoldScrapOnly:
+                            if (Plugin.OvertimeBonusType.Value == Enums.eOvertimeBonusType.Disabled)
+                            {
+                                // Replace the subtraction with a simple zero
+                                Plugin.MLS.LogDebug("Patching new profit quota method to remove overtime bonus calculation.");
+                                found.First().Instruction.opcode = OpCodes.Ldc_I4_0;
+                            }
+                            else
+                            {
+                                // Replace the overtime bonus parameter with the amount that we've sold
+                                Plugin.MLS.LogDebug("Patching new profit quota method to use sold scrap only for overtime bonus.");
+                                codeList[found.First().Index] = Transpilers.EmitDelegate<Func<int>>(() => Math.Max(DepositItemsDeskPatch.ProfitThisQuota - TimeOfDay.Instance.profitQuota, 0));
+                            }
+
+                            for (int i = 1; i < found.Length; i++) found[i].Instruction.opcode = OpCodes.Nop;
+
+                            break;
+
+                        default:
+                            Plugin.MLS.LogWarning($"Unknown overtime bonus type specified ({Plugin.OvertimeBonusType.Value})! No action taken.");
+                            break;
+                    }
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Unexpected IL code found in TimeOfDay.SetNewProfitQuota! Could not patch out overtime bonus.");
+                }
             }
 
             // Add the monitor update at the end of the function
@@ -89,31 +111,26 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateCompanyBuyRateMonitors();
         }
 
-        [HarmonyPatch(typeof(TimeOfDay), "SyncNewProfitQuotaClientRpc")]
-        [HarmonyPrefix]
-        private static void SyncNewProfitQuotaClientRpc_Pre(TimeOfDay __instance)
-        {
-            // On clients only, store the leftover funds before they are overwritten
-            if (Plugin.AllowQuotaRollover.Value && !__instance.IsServer)
-            {
-                _leftoverFunds = __instance.quotaFulfilled - __instance.profitQuota;
-                Plugin.MLS.LogInfo($"Storing surplus quota on client: ${_leftoverFunds}");
-            }
-        }
-
-        [HarmonyPatch(typeof(TimeOfDay), "SyncNewProfitQuotaClientRpc")]
+        [HarmonyPatch(typeof(TimeOfDay), nameof(SyncNewProfitQuotaClientRpc))]
         [HarmonyPostfix]
-        private static void SyncNewProfitQuotaClientRpc_Post(TimeOfDay __instance)
+        private static void SyncNewProfitQuotaClientRpc(TimeOfDay __instance)
         {
-            if (Plugin.AllowQuotaRollover.Value)
+            if (__instance.IsServer && Plugin.AllowQuotaRollover.Value)
             {
-                // At this point, we will have the surplus set whether we are server or client
+                // At this point, we will have the surplus set
                 Plugin.MLS.LogInfo($"Applying surplus quota to fulfilled: ${_leftoverFunds}");
                 __instance.quotaFulfilled = _leftoverFunds;
+
+                // Send the new quota surplus over to clients
+                NetworkHelper.Instance.SyncProfitQuotaClientRpc(__instance.quotaFulfilled);
             }
+
+            // Reset per quota variables
+            DepositItemsDeskPatch.ProfitThisQuota = 0;
 
             MonitorsHelper.UpdateTotalQuotasMonitors();
             MonitorsHelper.UpdateCompanyBuyRateMonitors();
+            MonitorsHelper.UpdateSoldScrapMonitors();
         }
 
         [HarmonyPatch(typeof(TimeOfDay), nameof(UpdateProfitQuotaCurrentTime))]

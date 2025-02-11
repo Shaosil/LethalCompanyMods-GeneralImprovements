@@ -15,19 +15,10 @@ namespace GeneralImprovements.Patches
     {
         public static void PatchNetcode()
         {
-            var types = Assembly.GetExecutingAssembly().GetTypes();
-            foreach (var type in types)
-            {
-                var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                foreach (var method in methods)
-                {
-                    var attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
-                    if (attributes.Length > 0)
-                    {
-                        method.Invoke(null, null);
-                    }
-                }
-            }
+            var methods = Assembly.GetExecutingAssembly().GetTypes().SelectMany(t => t.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+                .Where(m => m.GetCustomAttribute<RuntimeInitializeOnLoadMethodAttribute>(false) != null).ToList();
+
+            methods.ForEach(m => m.Invoke(null, null));
         }
 
         [HarmonyPatch(typeof(GameNetworkManager), nameof(Start))]
@@ -45,7 +36,10 @@ namespace GeneralImprovements.Patches
             // TODO: Add network object component and gameobject to NetworkManager for charger if we're going to be moving it around
             //}
 
-            ObjectHelper.AlterFancyLampPrefab();
+            if (Plugin.AllowFancyLampToBeToggled.Value)
+            {
+                ObjectHelper.AlterFancyLampPrefab();
+            }
 
             // Attach our own network helper to this gameobject
             __instance.gameObject.AddComponent<NetworkHelper>();

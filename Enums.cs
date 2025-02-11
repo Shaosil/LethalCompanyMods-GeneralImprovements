@@ -11,9 +11,13 @@ namespace GeneralImprovements
 
         public enum eMaskedEntityCopyLook { None, Suit, SuitAndCosmetics }
 
+        public enum eOvertimeBonusType { Vanilla, SoldScrapOnly, Disabled }
+
         public enum eSaveFurniturePlacement { None, StartingFurniture, All }
 
         public enum eShipCamRotation { None, North, East, South, West }
+
+        public enum eStartingMoneyFunction { Disabled, Total, PerPlayer, PerPlayerWithMinimum }
 
         public enum eMonitorNames
         {
@@ -23,6 +27,7 @@ namespace GeneralImprovements
             AverageDailyScrap,
             CompanyBuyRate,
             Credits,
+            CustomText,
             DailyProfit,
             DangerLevel,
             DaysSinceDeath,
@@ -32,10 +37,12 @@ namespace GeneralImprovements
             OvertimeCalculator,
             PlayerHealth,
             PlayerHealthExact,
+            PlayersAlive,
             ProfitQuota,
             Sales,
             ScrapLeft,
             ShipScrap,
+            SoldScrap,
             Time,
             TotalDays,
             TotalDeaths,

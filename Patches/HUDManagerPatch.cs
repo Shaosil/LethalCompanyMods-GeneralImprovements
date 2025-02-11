@@ -573,5 +573,23 @@ namespace GeneralImprovements.Patches
 
             return codeList;
         }
+
+        [HarmonyPatch(typeof(HUDManager), nameof(HUDManager.FillEndGameStats))]
+        [HarmonyPostfix]
+        private static void FillEndGameStats(HUDManager __instance)
+        {
+            if (__instance.IsServer && Plugin.AllowQuotaRollover.Value && Plugin.QuotaRolloverSquadWipePenalty.Value > 0 && StartOfRound.Instance.allPlayersDead && TimeOfDay.Instance.quotaFulfilled > 0)
+            {
+                // Subtract any leftover funds by a specified percentage if everyone died
+                var pct = Plugin.QuotaRolloverSquadWipePenalty.Value / 100f;
+                var valToRemove = (int)Mathf.Round(TimeOfDay.Instance.quotaFulfilled * pct);
+
+                Plugin.MLS.LogMessage($"Subtracting ${valToRemove} ({Plugin.QuotaRolloverSquadWipePenalty.Value}%) from surplus quota due to squad wipe.");
+                TimeOfDay.Instance.quotaFulfilled -= valToRemove;
+
+                // Send the new quota surplus over to clients
+                NetworkHelper.Instance.SyncProfitQuotaClientRpc(TimeOfDay.Instance.quotaFulfilled);
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
 {
     "name": "GeneralImprovements",
-    "version_number": "1.4.5",
+    "version_number": "1.4.6",
     "website_url": "https://github.com/Shaosil/LethalCompanyMods-GeneralImprovements",
     "description": "Fixes many bugs and adds many QoL improvements and optional tweaks. Very configurable.",
     "dependencies": [

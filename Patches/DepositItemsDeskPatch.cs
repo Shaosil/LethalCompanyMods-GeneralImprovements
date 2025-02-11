@@ -10,6 +10,7 @@ namespace GeneralImprovements.Patches
     internal static class DepositItemsDeskPatch
     {
         public static int NumItemsSoldToday = 0;
+        public static int ProfitThisQuota = 0;
 
         [HarmonyPatch(typeof(DepositItemsDesk), nameof(DepositItemsDesk.PlaceItemOnCounter))]
         [HarmonyTranspiler]
@@ -47,12 +48,14 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(DepositItemsDesk), nameof(SellAndDisplayItemProfits))]
         [HarmonyPostfix]
-        private static void SellAndDisplayItemProfits(DepositItemsDesk __instance)
+        private static void SellAndDisplayItemProfits(DepositItemsDesk __instance, int profit)
         {
             var items = __instance.deskObjectsContainer.GetComponentsInChildren<GrabbableObject>();
             NumItemsSoldToday += items.Length;
+            ProfitThisQuota += profit;
 
             MonitorsHelper.UpdateCompanyBuyRateMonitors();
+            MonitorsHelper.UpdateSoldScrapMonitors();
         }
 
         [HarmonyPatch(typeof(DepositItemsDesk), nameof(Start))]

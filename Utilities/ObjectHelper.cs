@@ -42,7 +42,16 @@ namespace GeneralImprovements.Utilities
                 {
                     // If we are the host, spawn it as a network object
                     Plugin.MLS.LogInfo("Adding medical station to ship.");
-                    var medStationObj = Object.Instantiate(AssetBundleHelper.MedStationPrefab, new Vector3(2.75f, 3.4f, -16.561f), Quaternion.Euler(-90, 0, 0));
+                    var position = new Vector3(2.75f, 3.4f, -16.561f);
+                    var rotation = new Vector3(-90, 0, 0);
+                    if (MedStationUnlockableID >= 0)
+                    {
+                        var unlockable = StartOfRound.Instance.unlockablesList.unlockables[MedStationUnlockableID];
+                        bool hasMoved = ES3.KeyExists($"ShipUnlockedMoved_{unlockable.unlockableName}", GameNetworkManager.Instance.currentSaveFileName);
+                        position = ES3.Load($"ShipUnlockPos_{unlockable.unlockableName}", GameNetworkManager.Instance.currentSaveFileName, position);
+                        rotation = ES3.Load($"ShipUnlockRot_{unlockable.unlockableName}", GameNetworkManager.Instance.currentSaveFileName, rotation);
+                    }
+                    var medStationObj = Object.Instantiate(AssetBundleHelper.MedStationPrefab, position, Quaternion.Euler(rotation));
                     MedStation = medStationObj.GetComponent<MedStationItem>();
                     MedStation.NetworkObject.Spawn();
                     MedStation.NetworkObject.TrySetParent(StartOfRound.Instance.elevatorTransform);
@@ -205,6 +214,9 @@ namespace GeneralImprovements.Utilities
 
         public static int AddUnlockable(string name)
         {
+            int existingUnlockable = StartOfRound.Instance.unlockablesList.unlockables.FindIndex(u => u.unlockableName == name);
+            if (existingUnlockable >= 0) return existingUnlockable;
+
             var unlockable = new UnlockableItem
             {
                 unlockableName = name,

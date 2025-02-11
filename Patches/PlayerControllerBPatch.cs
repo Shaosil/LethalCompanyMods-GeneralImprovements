@@ -140,6 +140,7 @@ namespace GeneralImprovements.Patches
         private static void AfterDamage()
         {
             MonitorsHelper.UpdatePlayerHealthMonitors();
+            MonitorsHelper.UpdatePlayersAliveMonitors();
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(ItemTertiaryUse_performed))]

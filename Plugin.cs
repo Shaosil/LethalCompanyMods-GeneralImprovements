@@ -37,6 +37,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> AddMoreBetterMonitors { get; private set; }
         public static ConfigEntry<bool> AlwaysRenderMonitors { get; private set; }
         public static ConfigEntry<bool> CenterAlignMonitorText { get; private set; }
+        public static ConfigEntry<string> CustomTextMonitorValue { get; private set; }
         public static ConfigEntry<string> MonitorBackgroundColor { get; private set; }
         public static Color MonitorBackgroundColorVal { get; private set; }
         public static ConfigEntry<string> MonitorTextColor { get; private set; }
@@ -51,6 +52,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> SyncExtraMonitorsPower { get; private set; }
         public static ConfigEntry<bool> SyncMonitorsFromOtherHost { get; private set; }
         public static ConfigEntry<bool> UseBetterMonitors { get; private set; }
+        public static ConfigEntry<bool> UseMoreMonitorTextColors { get; private set; }
 
         private const string FixesSection = "Fixes";
         public static ConfigEntry<bool> AutomaticallyCollectTeleportedCorpses { get; private set; }
@@ -75,21 +77,23 @@ namespace GeneralImprovements
 
         private const string MechanicsSection = "Mechanics";
         public static ConfigEntry<bool> AddHealthRechargeStation { get; private set; }
-        public static ConfigEntry<bool> AllowOvertimeBonus { get; private set; }
         public static ConfigEntry<bool> AllowPickupOfAllItemsPreStart { get; private set; }
         public static ConfigEntry<bool> AllowQuotaRollover { get; private set; }
         public static ConfigEntry<bool> DestroyKeysAfterOrbiting { get; private set; }
         public static ConfigEntry<bool> KeysHaveInfiniteUses { get; private set; }
         public static ConfigEntry<int> MinimumStartingMoney { get; private set; }
-        public static int MinimumStartingMoneyVal => Math.Clamp(MinimumStartingMoney.Value, Math.Max(StartingMoneyPerPlayerVal, 0), 10000);
+        public static int MinimumStartingMoneyVal => Math.Clamp(MinimumStartingMoney.Value, StartingMoneyVal, 10000);
+        public static ConfigEntry<eOvertimeBonusType> OvertimeBonusType { get; private set; }
+        public static ConfigEntry<int> QuotaRolloverSquadWipePenalty { get; private set; }
         public static ConfigEntry<bool> SavePlayerSuits { get; private set; }
         public static ConfigEntry<bool> ScanCommandUsesExactAmount { get; private set; }
         public static ConfigEntry<string> ScrapValueWeatherMultipliers { get; private set; }
         public static Dictionary<string, float> SanitizedScrapValueWeatherMultipliers { get; private set; }
         public static ConfigEntry<string> ScrapAmountWeatherMultipliers { get; private set; }
         public static Dictionary<string, float> SanitizedScrapAmountWeatherMultipliers { get; private set; }
-        public static ConfigEntry<int> StartingMoneyPerPlayer { get; private set; }
-        public static int StartingMoneyPerPlayerVal => Math.Clamp(StartingMoneyPerPlayer.Value, -1, 10000);
+        public static ConfigEntry<int> StartingMoney { get; private set; }
+        public static int StartingMoneyVal => Math.Clamp(StartingMoney.Value, 0, 10000);
+        public static ConfigEntry<eStartingMoneyFunction> StartingMoneyFunction { get; private set; }
         public static ConfigEntry<bool> UnlockDoorsFromInventory { get; private set; }
 
         private const string ScannerSection = "Scanner";
@@ -97,6 +101,9 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> ScanPlayers { get; private set; }
         public static ConfigEntry<bool> ShowDoorsOnScanner { get; private set; }
         public static ConfigEntry<bool> ShowDropshipOnScanner { get; private set; }
+
+        public const string ScrapSection = "Scrap";
+        public static ConfigEntry<bool> AllowFancyLampToBeToggled { get; private set; }
 
         private const string ShipSection = "Ship";
         public static bool AllowChargerPlacement { get; private set; } = false; // TODO
@@ -269,13 +276,13 @@ namespace GeneralImprovements
 
         public void BindConfigs()
         {
-            string incompatWarning = "";
+            string incompatWarning = "**WARNING:** THIS WILL PREVENT YOU FROM CONNECTING TO ANY OTHER PLAYERS THAT DO NOT ALSO HAVE IT ENABLED!";
             string defaultNoChange = "Leaving this on its default value will ensure no vanilla code is changed.";
 
             var validSnapRotations = Enumerable.Range(0, 360 / 15).Select(n => n * 15).Where(n => n == 0 || 360 % n == 0).ToArray();
 
             var validToolTypes = new List<Type> { typeof(BoomboxItem), typeof(ExtensionLadderItem), typeof(FlashlightItem), typeof(JetpackItem), typeof(LockPicker), typeof(RadarBoosterItem), typeof(KnifeItem),
-                                                typeof(Shovel), typeof(SprayPaintItem), typeof(StunGrenadeItem), typeof(TetraChemicalItem), typeof(WalkieTalkie), typeof(PatcherTool) };
+                                                typeof(Shovel), typeof(SprayPaintItem), typeof(StunGrenadeItem), typeof(TetraChemicalItem), typeof(WalkieTalkie), typeof(PatcherTool), typeof(BeltBagItem) };
             var validToolStrings = string.Join(", ", new[] { "All" }.Concat(validToolTypes.Select(t => t.Name)));
 
             // Enemies
@@ -290,6 +297,7 @@ namespace GeneralImprovements
             AddMoreBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(AddMoreBetterMonitors), true, "If set to true and paired with UseBetterMonitors (required), adds 4 more small and 1 large monitor to the left of the main ship monitor group.");
             AlwaysRenderMonitors = Config.Bind(ExtraMonitorsSection, nameof(AlwaysRenderMonitors), false, $"If using better monitors and set to true, text-based monitors will render updates even when you are not in the ship. May slightly affect performance.");
             CenterAlignMonitorText = Config.Bind(ExtraMonitorsSection, nameof(CenterAlignMonitorText), true, "If set to true, all small monitors in the ship will have their text center aligned, instead of left.");
+            CustomTextMonitorValue = Config.Bind(ExtraMonitorsSection, nameof(CustomTextMonitorValue), "SAMPLE TEXT 1|SAMPLE TEXT 2", $"If using any custom text monitors, will display custom text set by {nameof(CustomTextMonitorValue)}. Pipes (|) can be used to set multiple monitor's values, in display order. Each value is limited to 100 characters.");
             MonitorBackgroundColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorBackgroundColor), "160959", "The hex color code of what the backgrounds of the monitors should be. A recommended value close to black is 050505.");
             MonitorTextColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorTextColor), "00FF2C", "The hex color code of what the text on the monitors should be.");
             ShipExternalCamFPS = Config.Bind(ExtraMonitorsSection, nameof(ShipExternalCamFPS), 0, new ConfigDescription($"Limits the FPS of the external ship cam for performance. 0 = Unrestricted.", new AcceptableValueRange<int>(0, 30)));
@@ -307,6 +315,7 @@ namespace GeneralImprovements
             SyncExtraMonitorsPower = Config.Bind(ExtraMonitorsSection, nameof(SyncExtraMonitorsPower), true, "If set to true, The smaller monitors above the map screen will turn off and on when the map screen power is toggled.");
             SyncMonitorsFromOtherHost = Config.Bind(ExtraMonitorsSection, nameof(SyncMonitorsFromOtherHost), false, "If set to true, all monitor placements will be synced from the host when joining a game, if the host is also using this mod. Settings such as color, FPS, etc will not be synced.");
             UseBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(UseBetterMonitors), false, "If set to true, upgrades the vanilla monitors with integrated and more customizable overlays.");
+            UseMoreMonitorTextColors = Config.Bind(ExtraMonitorsSection, nameof(UseMoreMonitorTextColors), true, "If set to true, many monitors' texts will have multiple context sensitive colors to try making them more pleasant to read.");
 
             // Fixes
             AutomaticallyCollectTeleportedCorpses = Config.Bind(FixesSection, nameof(AutomaticallyCollectTeleportedCorpses), true, "If set to true, dead bodies will be automatically collected as scrap when being teleported to the ship.");
@@ -331,17 +340,19 @@ namespace GeneralImprovements
 
             // Mechanics
             AddHealthRechargeStation = Config.Bind(MechanicsSection, nameof(AddHealthRechargeStation), false, $"[Host Only] If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full. {incompatWarning}");
-            AllowOvertimeBonus = Config.Bind(MechanicsSection, nameof(AllowOvertimeBonus), true, "[Host Only] If set to false, will prevent the vanilla overtime bonus from being applied after the end of a quota.");
             AllowPickupOfAllItemsPreStart = Config.Bind(MechanicsSection, nameof(AllowPickupOfAllItemsPreStart), true, "Allows you to pick up all grabbable items before the game is started.");
             AllowQuotaRollover = Config.Bind(MechanicsSection, nameof(AllowQuotaRollover), false, "[Host Required] If set to true, will keep the surplus money remaining after selling things to the company, and roll it over to the next quota. If clients do not set this, they will see visual desyncs.");
             DestroyKeysAfterOrbiting = Config.Bind(MechanicsSection, nameof(DestroyKeysAfterOrbiting), false, "If set to true, all keys in YOUR inventory (and IF HOSTING, the ship) will be destroyed after orbiting. Works well to nerf KeysHaveInfiniteUses. Players who do not have this enabled will keep keys currently in their inventory.");
             KeysHaveInfiniteUses = Config.Bind(MechanicsSection, nameof(KeysHaveInfiniteUses), false, "If set to true, keys will not despawn when they are used.");
-            MinimumStartingMoney = Config.Bind(MechanicsSection, nameof(MinimumStartingMoney), 30, $"[Host Only] When paired with StartingMoneyPerPlayer, will ensure a group always starts with at least this much money. Must be at least the value of StartingMoneyPerPlayer. Internally capped at 10k. {defaultNoChange}");
+            MinimumStartingMoney = Config.Bind(MechanicsSection, nameof(MinimumStartingMoney), 60, $"[Host Only] If set to a value higher than {nameof(StartingMoney)}'s and using {eStartingMoneyFunction.PerPlayerWithMinimum} for {nameof(StartingMoneyFunction)}, will ensure the group always starts with at least this much money. Internally capped at 10k. {defaultNoChange}");
+            OvertimeBonusType = Config.Bind(MechanicsSection, nameof(OvertimeBonusType), eOvertimeBonusType.Vanilla, $"[Host Only] {eOvertimeBonusType.Vanilla} will not alter vanilla overtime bonuses. {eOvertimeBonusType.SoldScrapOnly} will calculate bonuses based on what was sold at the company, ignoring any extra rollover. {eOvertimeBonusType.Disabled} disabled overtime bonuses completely.");
+            QuotaRolloverSquadWipePenalty = Config.Bind(MechanicsSection, nameof(QuotaRolloverSquadWipePenalty), 0, new ConfigDescription($"[Host Only] When using {nameof(AllowQuotaRollover)}, this number will be the percentage of rolled-over quota funds that will be immediately deducted if losing every player while on a moon.", new AcceptableValueRange<int>(0, 100)));
             SavePlayerSuits = Config.Bind(MechanicsSection, nameof(SavePlayerSuits), true, "If set to true, the host will keep track of every player's last used suit, and will persist between loads and ship resets for each save file. Only works in Online mode.");
             ScanCommandUsesExactAmount = Config.Bind(MechanicsSection, nameof(ScanCommandUsesExactAmount), false, "If set to true, the terminal's scan command (and ScrapLeft monitor) will use display the exact scrap value remaining instead of approximate.");
             ScrapValueWeatherMultipliers = Config.Bind(MechanicsSection, nameof(ScrapValueWeatherMultipliers), string.Empty, "[Host Only] You may specify comma separated weather:multiplier (0.1 - 2.0) for all weather types, including modded weather. Default vanilla scrap value multiplier is 0.4, which will default for any unspecified weather type. A recommended value would be 'None:0.4, DustClouds:0.5, Foggy:0.5, Rainy:0.55, Flooded:0.6, Stormy:0.7, Eclipsed:0.8'.");
             ScrapAmountWeatherMultipliers = Config.Bind(MechanicsSection, nameof(ScrapAmountWeatherMultipliers), string.Empty, "[Host Only] You may specify comma separated weather:multiplier (1.0 - 5.0) for all weather types, including modded weather. Default vanilla scrap amount multiplier is 1.0, which will default for any unspecified weather type. A recommended value would be 'None:1.0, DustClouds:1.2, Foggy:1.2, Rainy:1.3, Flooded:1.4, Stormy:1.5, Eclipsed:1.6'.");
-            StartingMoneyPerPlayer = Config.Bind(MechanicsSection, nameof(StartingMoneyPerPlayer), -1, $"[Host Only] How much starting money the group gets per player. Set to -1 to disable. Adjusts money as players join and leave, until the game starts. Internally capped at 10k. {defaultNoChange}");
+            StartingMoney = Config.Bind(MechanicsSection, nameof(StartingMoney), 60, $"[Host Only] How much starting money the group gets when starting a new game. Internally clamped between 0 and 10k. {defaultNoChange}");
+            StartingMoneyFunction = Config.Bind(MechanicsSection, nameof(StartingMoneyFunction), eStartingMoneyFunction.Disabled, $"[Host Only] Controls how {nameof(StartingMoney)} behaves. {eStartingMoneyFunction.Total} will set the credits to a single flat amount. {eStartingMoneyFunction.PerPlayer} will adjust the credits by {nameof(StartingMoney)} as players join and leave. {eStartingMoneyFunction.PerPlayerWithMinimum} does the same, with a minimum set by {nameof(MinimumStartingMoney)}. {defaultNoChange}");
             UnlockDoorsFromInventory = Config.Bind(MechanicsSection, nameof(UnlockDoorsFromInventory), false, "If set to true, keys in your inventory do not have to be held when unlocking facility doors.");
 
             // Scanner
@@ -349,6 +360,9 @@ namespace GeneralImprovements
             ScanPlayers = Config.Bind(ScannerSection, nameof(ScanPlayers), false, "If set to true, players (and sneaky masked entities) will be scannable.");
             ShowDoorsOnScanner = Config.Bind(ScannerSection, nameof(ShowDoorsOnScanner), false, "If set to true, all fire entrances and facility exits will be scannable. Compatible with mimics mod (they show up as an exit as well).");
             ShowDropshipOnScanner = Config.Bind(ScannerSection, nameof(ShowDropshipOnScanner), false, "If set to true, the item drop ship will be scannable.");
+
+            // Scrap
+            AllowFancyLampToBeToggled = Config.Bind(ScrapSection, nameof(AllowFancyLampToBeToggled), true, "If set to true, will enable the fancy lamp scrap's light to be turned on and off while being held. Be careful, sound sensitive enemies can hear its click!");
 
             // Ship
             //AllowChargerPlacement = Config.Bind(ShipSection, nameof(AllowChargerPlacement), false, $"[Host Only] If set to true, the battery charger may be placed via the ship's build mode. May cause temporary desyncs on unmodded clients. {incompatWarning}");
@@ -410,11 +424,6 @@ namespace GeneralImprovements
             MonitorBackgroundColorVal = HexToColor(MonitorBackgroundColor.Value);
             MonitorTextColor.Value = textHex.Length == 6 ? textHex : MonitorTextColor.DefaultValue.ToString();
             MonitorTextColorVal = HexToColor(MonitorTextColor.Value);
-
-            if (MinimumStartingMoney.Value < StartingMoneyPerPlayer.Value)
-            {
-                MinimumStartingMoney.Value = StartingMoneyPerPlayer.Value;
-            }
 
             // Handle custom scannable tools parsing
             var validGrabbables = new List<string>();
@@ -564,6 +573,20 @@ namespace GeneralImprovements
                 // Settings that were converted from bools to enums
                 case "SaveShipFurniturePlaces": SaveShipFurniturePlaces.Value = bool.TryParse(entry.Value, out _) ? eSaveFurniturePlacement.All : eSaveFurniturePlacement.None; break;
                 case "ShipMapCamDueNorth": ShipMapCamRotation.Value = bool.TryParse(entry.Value, out _) ? eShipCamRotation.North : eShipCamRotation.None; break;
+
+                // Misc
+                case "AllowOvertimeBonus": OvertimeBonusType.Value = bool.Parse(entry.Value) ? eOvertimeBonusType.Vanilla : eOvertimeBonusType.Disabled; break;
+
+                case "StartingMoneyPerPlayer":
+                    var startingMoneyPerPlayerVal = int.Parse(entry.Value);
+                    if (startingMoneyPerPlayerVal >= 0) StartingMoney.Value = startingMoneyPerPlayerVal;
+
+                    // If the minimum value was something other than the old default, they will either be using per player or total
+                    StartingMoneyFunction.Value = MinimumStartingMoney.Value != 30 ?
+                        (startingMoneyPerPlayerVal >= 0 ? eStartingMoneyFunction.PerPlayerWithMinimum : eStartingMoneyFunction.Total)
+                        : startingMoneyPerPlayerVal >= 0 ? eStartingMoneyFunction.PerPlayer
+                        : eStartingMoneyFunction.Disabled;
+                    break;
 
                 default:
                     MLS.LogDebug("No matching migration");

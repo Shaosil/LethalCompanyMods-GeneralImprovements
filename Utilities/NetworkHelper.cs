@@ -60,7 +60,7 @@ namespace GeneralImprovements.Utilities
                 TimeOfDay.Instance.timesFulfilledQuota = quotaNum;
                 StartOfRound.Instance.gameStats.daysSpent = totalDays;
                 StartOfRound.Instance.gameStats.deaths = totalDeaths;
-                StartOfRoundPatch.DailyScrapCollected = dailyScrapDays.Select((i, k) => new KeyValuePair<int, int>(k, dailyScrapValues[i])).ToDictionary(k => k.Key, v => v.Value);
+                StartOfRoundPatch.DailyScrapCollected = dailyScrapDays.Select((k, i) => new KeyValuePair<int, int>(k, dailyScrapValues[i])).ToDictionary(k => k.Key, v => v.Value);
                 StartOfRoundPatch.DaysSinceLastDeath = daysSinceLastDeath;
                 StartOfRoundPatch.FlownToHiddenMoons = new HashSet<string>();
                 foreach (string foundMoon in foundMoons.Split(',', StringSplitOptions.RemoveEmptyEntries))
@@ -73,6 +73,15 @@ namespace GeneralImprovements.Utilities
                 MonitorsHelper.UpdateDeathMonitors();
                 MonitorsHelper.UpdateAverageDailyScrapMonitors();
             }
+        }
+
+        [ClientRpc]
+        public void SyncProfitQuotaClientRpc(int quotaFulfilled)
+        {
+            // Vanilla code does not have an existing function to sync the current profit quota fulfilled outside of end of round activities
+            Plugin.MLS.LogInfo("Client received quota fulfilled sync RPC.");
+            TimeOfDay.Instance.quotaFulfilled = quotaFulfilled;
+            TimeOfDay.Instance.UpdateProfitQuotaCurrentTime();
         }
 
         [ClientRpc]

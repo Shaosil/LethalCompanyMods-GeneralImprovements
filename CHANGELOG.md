@@ -1,10 +1,32 @@
 # Changelog
 
-### v1.4.5 - Compile Update and minor Fixes
+### v1.4.6 - More options, fixes, and improvements
+* Included the belt bag as an option for scannable tools (BeltBagItem)
+* Updated some things about Starting Money:
+	* Split `StartingMoneyPerPlayer` into `StartingMoney` and `StartingMoneyFunction`.
+	* `StartingMoney` defaults to 60, and `StartingMoneyFunction` has four options: **Disabled** (default), **Total**, **Per Player**, and **Per Player with Minimum**.
+	* `MinimumStartingMoney` now defaults to 60 instead of 30, and is NOT used unless **Per Player with Minimum** is selected as the `StartingMoneyFunction`.
+	* Leaving `StartingMoneyFunction` on **Disabled** will NOT override vanilla behavior, no matter what `StartingMoney` and `MinimumStartingMoney` are set to.
+	* The updated config options will intelligently migrate based on the values of your previous config settings.
+* Made the fancy lamp toggle an option in the config (defaults to on).
+* Added a `QuotaRolloverSquadWipePenalty` option that can range from 0 (default) to 100. The number represents the percentage of quota surplus that will be taken when a squad wipe happens.
+* `AllowQuotaRollover` will no longer cause visual desyncs for clients who have this mod but not the same setting. In other words, when the modded host updates the quota, modded clients always see it.
+* Changed `AllowOvertimeBonus` to `OvertimeBonusType`, which supports three options: **Vanilla** (default), **SoldScrapOnly**, or **Disabled**. As always, your old setting will be migrated.
+* Updated the overtime calculator monitor's calculations to be more accurate and based on `OvertimeBonusType`.
+* Added a new "Players Alive" monitor option that simply shows X/Y players currently alive.
+* Added a new "Sold Scrap" monitor option that shows the total value of all scrap sold in a single quota.
+* Added a new "Custom Text" monitor option that displays any text you like (controlled by `CustomTextMonitorValue`).
+	* Pipe separators (|) can be used to display different values on multiple monitors. Each monitor's custom text is truncated to 200 characters and the font auto sized for her pleasure.
+* Added a new option to allow disabling of extra monitor text colors.
+* Fixed a bug with syncing daily scrap collected to joining clients that would sometimes prevent some of their monitors from displaying correct initial values.
+* Fixed the med station not loading its position from the save file it it had been moved.
+* Fixed a leftover code item for an upcoming feature that was sometimes causing ship unlockables to freeze and not be placeable when starting a new game.
+
+### v1.4.5 - Compile update and minor fixes
 * Recompiled using the latest version of LC's DLL to ensure full compatibility with v69 (nice).
 * Fixed flashlight bulb material always using the "dark" version even when it was turned on.
 * Fixed health monitors not updating properly on clients, and showing incorrect health values for dead players.
-* Merged PR #236 (Thanks [YoshiRules](https://github.com/YoshiRulz)) that adds the control pad to the list of non conductive scrap.
+* Merged PR #236 (Thanks [YoshiRulz](https://github.com/YoshiRulz)) that adds the control pad to the list of non conductive scrap.
 
 ### v1.4.4 - More fixes and improvements
 * Removed an outdated and error prone way of migrating old config values, which should also fix potential errors during migrations.

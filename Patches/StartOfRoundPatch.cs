@@ -7,6 +7,7 @@ using HarmonyLib;
 using Unity.Netcode;
 using Unity.Profiling;
 using UnityEngine;
+using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements.Patches
 {
@@ -40,7 +41,7 @@ namespace GeneralImprovements.Patches
             // TODO: If we allow the item charger to be a placeable, make sure it is registered as an unlockable
             if (Plugin.AllowChargerPlacement)
             {
-                ObjectHelper.ChargeStationUnlockableID = ObjectHelper.AddUnlockable("Item Charger");
+                //ObjectHelper.ChargeStationUnlockableID = ObjectHelper.AddUnlockable("Item Charger");
             }
         }
 
@@ -302,7 +303,10 @@ namespace GeneralImprovements.Patches
             if (__instance.IsServer)
             {
                 // Add to the terminal credits before this function gets called so it is relayed to the connecting client
-                TerminalPatch.AdjustGroupCredits(true);
+                if (Plugin.StartingMoneyFunction.Value == eStartingMoneyFunction.PerPlayer || Plugin.StartingMoneyFunction.Value == eStartingMoneyFunction.PerPlayerWithMinimum)
+                {
+                    TerminalPatch.AdjustGroupCredits(true);
+                }
 
                 // Send positional, rotational, emotional (heh), light, and monitor power data to all when new people connect
                 foreach (var connectedPlayer in __instance.allPlayerScripts.Where(p => p.isPlayerControlled))
@@ -371,16 +375,29 @@ namespace GeneralImprovements.Patches
 
             if (GameNetworkManager.Instance.disableSteam)
             {
+                // Need a specific call to health monitors for LAN situations
                 MonitorsHelper.UpdatePlayerHealthMonitors();
             }
+
+            MonitorsHelper.UpdatePlayersAliveMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.OnClientDisconnect))]
         [HarmonyPostfix]
         private static void OnClientDisconnect()
         {
-            TerminalPatch.AdjustGroupCredits(false);
+            if (Plugin.StartingMoneyFunction.Value == eStartingMoneyFunction.PerPlayer || Plugin.StartingMoneyFunction.Value == eStartingMoneyFunction.PerPlayerWithMinimum)
+            {
+                TerminalPatch.AdjustGroupCredits(false);
+            }
             MonitorsHelper.UpdatePlayerHealthMonitors();
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.OnClientDisconnectClientRpc))]
+        [HarmonyPostfix]
+        private static void OnClientDisconnectClientRpc()
+        {
+            MonitorsHelper.UpdatePlayersAliveMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(SyncShipUnlockablesClientRpc))]
@@ -426,9 +443,6 @@ namespace GeneralImprovements.Patches
 
             return codeList;
         }
-
-        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.EndOfGameClientRpc))]
-        [Harmony]
 
         [HarmonyPatch(typeof(StartOfRound), nameof(PassTimeToNextDay))]
         [HarmonyPrefix]
@@ -514,6 +528,7 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateTotalQuotasMonitors();
             MonitorsHelper.UpdatePlayerHealthMonitors();
             MonitorsHelper.UpdateDangerLevelMonitors();
+            MonitorsHelper.UpdatePlayersAliveMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.SyncCompanyBuyingRateClientRpc))]

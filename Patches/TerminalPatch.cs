@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 using UnityEngine.UI;
+using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements.Patches
 {
@@ -381,29 +382,24 @@ namespace GeneralImprovements.Patches
         public static void SetStartingMoneyPerPlayer()
         {
             // Grab initial credits value if this is the server and we specified a value
-            if (Instance.IsServer && (Plugin.StartingMoneyPerPlayerVal >= 0 || Plugin.MinimumStartingMoney.Value != (int)Plugin.MinimumStartingMoney.DefaultValue))
+            if (Instance.IsServer && Plugin.StartingMoneyFunction.Value != eStartingMoneyFunction.Disabled)
             {
-                // Set initial credits value if this is a new game
+                // Calculate default money based on settings
+                _currentCredits = Plugin.StartingMoneyVal;
+                if (Plugin.StartingMoneyFunction.Value != eStartingMoneyFunction.Total) _currentCredits *= (StartOfRound.Instance.connectedPlayersAmount + 1);
+                if (Plugin.StartingMoneyFunction.Value == eStartingMoneyFunction.PerPlayerWithMinimum) _currentCredits = Math.Max(_currentCredits, Plugin.MinimumStartingMoneyVal);
+
                 if (StartOfRound.Instance.gameStats.daysSpent == 0)
                 {
-                    if (Plugin.StartingMoneyPerPlayerVal >= 0)
-                    {
-                        _currentCredits = Math.Clamp(Plugin.StartingMoneyPerPlayerVal * (StartOfRound.Instance.connectedPlayersAmount + 1), Plugin.MinimumStartingMoneyVal, int.MaxValue);
-                        Plugin.MLS.LogInfo($"Setting starting money to {_currentCredits} ({Plugin.StartingMoneyPerPlayerVal} per player x {StartOfRound.Instance.connectedPlayersAmount + 1} current players), with a minimium of {Plugin.MinimumStartingMoneyVal}.");
-                    }
-                    else
-                    {
-                        _currentCredits = Plugin.MinimumStartingMoneyVal;
-                        Plugin.MLS.LogInfo($"Setting starting money to {_currentCredits} (minimium of {Plugin.MinimumStartingMoneyVal}).");
-                    }
-
+                    // Set initial credits value if this is a new game
+                    Plugin.MLS.LogInfo($"Setting starting money to {_currentCredits} based on current settings. ({nameof(Plugin.StartingMoney)}: {Plugin.StartingMoneyVal}. {nameof(Plugin.StartingMoneyFunction)}: {Plugin.StartingMoneyFunction.Value}. {nameof(Plugin.MinimumStartingMoney)}: {Plugin.MinimumStartingMoneyVal})");
                     TimeOfDay.Instance.quotaVariables.startingCredits = _currentCredits;
                     ES3.Save("GroupCredits", _currentCredits, GameNetworkManager.Instance.currentSaveFileName);
                 }
                 else
                 {
-                    int defaultMoney = Plugin.StartingMoneyPerPlayerVal >= 0 ? Plugin.StartingMoneyPerPlayerVal : Plugin.MinimumStartingMoneyVal;
-                    _currentCredits = ES3.Load("GroupCredits", GameNetworkManager.Instance.currentSaveFileName, defaultMoney);
+                    // Otherwise just load it from the save file, making sure to use our calculated amount as the backup default
+                    _currentCredits = ES3.Load("GroupCredits", GameNetworkManager.Instance.currentSaveFileName, _currentCredits);
                 }
 
                 Instance.groupCredits = Math.Clamp(_currentCredits, 0, _currentCredits);
@@ -413,18 +409,26 @@ namespace GeneralImprovements.Patches
 
         public static void AdjustGroupCredits(bool adding)
         {
-            if (Instance.IsServer && Plugin.StartingMoneyPerPlayerVal >= 0 && StartOfRound.Instance.inShipPhase && StartOfRound.Instance.gameStats.daysSpent == 0)
+            if (Instance.IsServer && Plugin.StartingMoneyVal > 0 && StartOfRound.Instance.inShipPhase && StartOfRound.Instance.gameStats.daysSpent == 0)
             {
-                // Do nothing if the number of current players does not match the num required to go past the minimum starting credits
-                int actualNumPlayers = StartOfRound.Instance.connectedPlayersAmount + (adding ? 2 : 1);
-                int minPlayersToAdjust = (int)MathF.Floor((float)Plugin.MinimumStartingMoneyVal / Plugin.StartingMoneyPerPlayerVal) + (adding ? 1 : 0);
-                if (actualNumPlayers < minPlayersToAdjust)
+                // If there is a minimum, only adjust if the number of current players matches the required amount
+                if (Plugin.StartingMoneyFunction.Value == eStartingMoneyFunction.PerPlayerWithMinimum)
+                {
+                    int actualNumPlayers = StartOfRound.Instance.connectedPlayersAmount + (adding ? 2 : 1);
+                    int minPlayersToAdjust = (int)MathF.Floor((float)Plugin.MinimumStartingMoneyVal / Plugin.StartingMoneyVal) + (adding ? 1 : 0);
+                    if (actualNumPlayers < minPlayersToAdjust)
+                    {
+                        Plugin.MLS.LogInfo($"Player {(adding ? "joined" : "left")} but current number of players ({actualNumPlayers}) is less than minimum required players ({minPlayersToAdjust}) and no credits were adjusted. Minimum starting money: {Plugin.MinimumStartingMoneyVal}");
+                        return;
+                    }
+                }
+                else if (Plugin.StartingMoneyFunction.Value != eStartingMoneyFunction.PerPlayer)
                 {
                     return;
                 }
 
-                _currentCredits += Plugin.StartingMoneyPerPlayerVal * (adding ? 1 : -1);
-                Plugin.MLS.LogInfo($"{(adding ? "Adding" : "Subtracting")} {Plugin.StartingMoneyPerPlayerVal} {(adding ? "to" : "from")} group credits (tracked: ${_currentCredits})");
+                _currentCredits += Plugin.StartingMoneyVal * (adding ? 1 : -1);
+                Plugin.MLS.LogInfo($"{(adding ? "Adding" : "Subtracting")} {Plugin.StartingMoneyVal} {(adding ? "to" : "from")} group credits (tracked: ${_currentCredits})");
                 Instance.groupCredits = Math.Max(_currentCredits, 0);
 
                 // If this is a disconnect, credits will not be synced automatically, so do that here
