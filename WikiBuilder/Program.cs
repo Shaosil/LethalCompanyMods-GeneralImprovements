@@ -12,9 +12,10 @@ foreach (var section in entries.Where(e => e.Value.Any()))
     var curWiki = new StringBuilder();
     curWiki.AppendLine("| Setting | Description | Default |");
     curWiki.AppendLine("| --- | --- | --- |");
+    Func<string, string> replacePipes = s => s.Replace("|", "\\|");
     foreach (var item in section.Value)
     {
-        curWiki.AppendLine($"| {item.Name} | {item.Description} | {item.DefaultValue} |");
+        curWiki.AppendLine($"| {replacePipes(item.Name)} | {replacePipes(item.Description)} | {replacePipes(item.DefaultValue)} |");
     }
 
     string filePath = Path.Combine(Environment.CurrentDirectory, $@"..\..\..\Output\{section.Key}.txt");

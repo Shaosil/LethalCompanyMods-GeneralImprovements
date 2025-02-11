@@ -281,8 +281,8 @@ namespace GeneralImprovements
 
             var validSnapRotations = Enumerable.Range(0, 360 / 15).Select(n => n * 15).Where(n => n == 0 || 360 % n == 0).ToArray();
 
-            var validToolTypes = new List<Type> { typeof(BoomboxItem), typeof(ExtensionLadderItem), typeof(FlashlightItem), typeof(JetpackItem), typeof(LockPicker), typeof(RadarBoosterItem), typeof(KnifeItem),
-                                                typeof(Shovel), typeof(SprayPaintItem), typeof(StunGrenadeItem), typeof(TetraChemicalItem), typeof(WalkieTalkie), typeof(PatcherTool), typeof(BeltBagItem) };
+            var validToolTypes = new List<Type> { typeof(BeltBagItem), typeof(BoomboxItem), typeof(ExtensionLadderItem), typeof(FlashlightItem), typeof(JetpackItem), typeof(LockPicker), typeof(RadarBoosterItem),
+                                                  typeof(KnifeItem), typeof(Shovel), typeof(SprayPaintItem), typeof(StunGrenadeItem), typeof(TetraChemicalItem), typeof(WalkieTalkie), typeof(PatcherTool) };
             var validToolStrings = string.Join(", ", new[] { "All" }.Concat(validToolTypes.Select(t => t.Name)));
 
             // Enemies
@@ -297,7 +297,7 @@ namespace GeneralImprovements
             AddMoreBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(AddMoreBetterMonitors), true, "If set to true and paired with UseBetterMonitors (required), adds 4 more small and 1 large monitor to the left of the main ship monitor group.");
             AlwaysRenderMonitors = Config.Bind(ExtraMonitorsSection, nameof(AlwaysRenderMonitors), false, $"If using better monitors and set to true, text-based monitors will render updates even when you are not in the ship. May slightly affect performance.");
             CenterAlignMonitorText = Config.Bind(ExtraMonitorsSection, nameof(CenterAlignMonitorText), true, "If set to true, all small monitors in the ship will have their text center aligned, instead of left.");
-            CustomTextMonitorValue = Config.Bind(ExtraMonitorsSection, nameof(CustomTextMonitorValue), "SAMPLE TEXT 1|SAMPLE TEXT 2", $"If using any custom text monitors, will display custom text set by {nameof(CustomTextMonitorValue)}. Pipes (|) can be used to set multiple monitor's values, in display order. Each value is limited to 100 characters.");
+            CustomTextMonitorValue = Config.Bind(ExtraMonitorsSection, nameof(CustomTextMonitorValue), "SAMPLE TEXT 1|SAMPLE TEXT 2", $"If using any custom text monitors, will display custom text set by {nameof(CustomTextMonitorValue)}. Pipes (|) can be used to set multiple monitor's values, in display order. Each value is limited to 200 characters.");
             MonitorBackgroundColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorBackgroundColor), "160959", "The hex color code of what the backgrounds of the monitors should be. A recommended value close to black is 050505.");
             MonitorTextColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorTextColor), "00FF2C", "The hex color code of what the text on the monitors should be.");
             ShipExternalCamFPS = Config.Bind(ExtraMonitorsSection, nameof(ShipExternalCamFPS), 0, new ConfigDescription($"Limits the FPS of the external ship cam for performance. 0 = Unrestricted.", new AcceptableValueRange<int>(0, 30)));
