@@ -22,7 +22,7 @@ namespace GeneralImprovements.Patches
         private static int _historyCount;
         private static int _curHistoryIndex = 0;
 
-        private static Terminal _instance;
+        public static Terminal _instance; // Should be erased each time StartOfRound begins, since it usually starts before Terminal
         public static Terminal Instance => _instance ?? (_instance = UnityEngine.Object.FindObjectOfType<Terminal>());
 
         [HarmonyPatch(typeof(Terminal), "Start")]
@@ -30,7 +30,6 @@ namespace GeneralImprovements.Patches
         [HarmonyAfter(OtherModHelper.TwoRadarCamsGUID)]
         private static void StartPre(Terminal __instance)
         {
-            _instance = __instance;
             _historyCount = Math.Clamp(Plugin.TerminalHistoryItemCount.Value, 0, 100);
 
             if (!StartOfRound.Instance.isChallengeFile)

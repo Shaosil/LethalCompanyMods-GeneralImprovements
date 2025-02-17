@@ -99,5 +99,39 @@ namespace GeneralImprovements.Utilities
                 }
             }
         }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void SyncPlayerLifeStatusServerRpc(int playerId, int curHealth, bool isDead)
+        {
+            SyncPlayerLifeStatusClientRpc(playerId, curHealth, isDead);
+        }
+
+        [ClientRpc]
+        public void SyncPlayerLifeStatusClientRpc(int playerId, int curHealth, bool isDead)
+        {
+            if (StartOfRound.Instance.allPlayerScripts.Length > playerId)
+            {
+                var player = StartOfRound.Instance.allPlayerScripts[playerId];
+
+                if (player.IsOwner)
+                {
+                    PlayerControllerBPatch.LastSyncedLifeStatus = new KeyValuePair<int, bool>(player.health, player.isPlayerDead);
+                }
+                else
+                {
+                    // Update the affected player script
+                    Plugin.MLS.LogDebug($"Received life status sync RPC for {player.playerUsername}.");
+                    player.health = isDead ? 0 : curHealth;
+                }
+
+                // Keep any affected monitors up to date
+                MonitorsHelper.UpdatePlayerHealthMonitors();
+                MonitorsHelper.UpdatePlayersAliveMonitors();
+            }
+            else
+            {
+                Plugin.MLS.LogWarning($"Received life status sync RPC for playerID {playerId}, but that is out of range of all known player scripts. No action taken.");
+            }
+        }
     }
 }

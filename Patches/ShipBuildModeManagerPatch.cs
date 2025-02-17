@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using GeneralImprovements.Items;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
 using UnityEngine;
@@ -101,7 +102,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(ShipBuildModeManager), nameof(Update))]
         [HarmonyPostfix]
-        private static void Update(ShipBuildModeManager __instance, PlaceableShipObject ___placingObject)
+        private static void Update(ShipBuildModeManager __instance, PlaceableShipObject ___placingObject, ref Ray ___playerCameraRay, ref int ___placementMask)
         {
             if (__instance.InBuildMode && ___placingObject?.parentObject != null)
             {
@@ -131,57 +132,38 @@ namespace GeneralImprovements.Patches
                     __instance.ghostObject.rotation = Quaternion.Euler(__instance.ghostObject.eulerAngles.x, _curObjectDegrees, __instance.ghostObject.eulerAngles.z);
                 }
 
-                // If this is the medkit, clamp it to a certain height
-                if (ObjectHelper.MedStation != null && ___placingObject.parentObject.gameObject == ObjectHelper.MedStation.gameObject
-                    && (__instance.ghostObject.position.y < 1.75f || __instance.ghostObject.position.y > 3.5f))
+                if ((ObjectHelper.MedStation != null && ___placingObject.parentObject.gameObject == ObjectHelper.MedStation.gameObject)
+                    || (ObjectHelper.ChargeStation != null && ___placingObject.parentObject.gameObject == ObjectHelper.ChargeStation.gameObject))
                 {
-                    float clampedY = Mathf.Clamp(__instance.ghostObject.position.y, 1.75f, 3.5f);
-                    __instance.ghostObject.position = new Vector3(__instance.ghostObject.position.x, clampedY, __instance.ghostObject.position.z);
+                    // If this is the medkit or charging station, clamp it to a certain height
+                    if (__instance.ghostObject.position.y < 1.75f || __instance.ghostObject.position.y > 3.5f)
+                    {
+                        float clampedY = Mathf.Clamp(__instance.ghostObject.position.y, 1.75f, 3.5f);
+                        __instance.ghostObject.position = new Vector3(__instance.ghostObject.position.x, clampedY, __instance.ghostObject.position.z);
+                    }
+
+                    // Automatically force the rotation to be facing the middle of the ship if we're hitting a wall
+                    if (Physics.Raycast(___playerCameraRay, out var hit, 4f, ___placementMask, QueryTriggerInteraction.Ignore))
+                    {
+                        // Custom offset for charger since its model is on its side
+                        var offset = ___placingObject.parentObject.gameObject == ObjectHelper.ChargeStation.gameObject ? Quaternion.Euler(-90, 0, 90) : Quaternion.identity;
+                        __instance.ghostObject.rotation = Quaternion.LookRotation(hit.normal) * offset;
+                    }
                 }
             }
         }
 
-        [HarmonyPatch(typeof(ShipBuildModeManager), nameof(ShipBuildModeManager.PlaceShipObject))]
-        [HarmonyPrefix]
-        private static void PlaceShipObjectPre(PlaceableShipObject placeableObject, ref float __state)
-        {
-            // If this was the med station or charging station, reset the player position node(s) Y
-            if (ObjectHelper.PlaceablesToTriggers.ContainsKey(placeableObject))
-            {
-                // Store the current position offset Y value here to be picked up by the postfix
-                __state = placeableObject.parentObject.positionOffset.y;
-            }
-        }
-
-        [HarmonyPatch(typeof(ShipBuildModeManager), nameof(ShipBuildModeManager.PlaceShipObject))]
+        [HarmonyPatch(typeof(ShipBuildModeManager), nameof(PlaceShipObject))]
         [HarmonyPostfix]
-        private static void PlaceShipObjectPost(PlaceableShipObject placeableObject, ref float __state)
+        private static void PlaceShipObject(PlaceableShipObject placeableObject, Vector3 placementPosition)
         {
-            if (__state != default)
+            // Keep the position nodes at the same Y level as the player by setting the local offset before the next Update() moves the object
+            if ((placeableObject.parentObject?.GetComponent<MedStationItem>() is MedStationItem medstation || placeableObject.parentObject?.GetComponent<CustomChargeStation>() is CustomChargeStation chargeStation)
+                && placeableObject.parentObject.GetComponentInChildren<InteractTrigger>() is InteractTrigger trigger && trigger.transform.childCount > 0)
             {
-                float yDiff = placeableObject.parentObject.positionOffset.y - __state;
-
-                var trigger = ObjectHelper.PlaceablesToTriggers[placeableObject];
-                List<Transform> allNodes = new List<Transform>();
-                for (int i = 0; i < trigger.transform.childCount; i++)
-                {
-                    var child = trigger.transform.GetChild(i);
-                    float newY = child.transform.position.y - yDiff;
-                    child.transform.SetPositionAndRotation(new Vector3(child.transform.position.x, newY, child.transform.position.z), child.transform.rotation);
-                    allNodes.Add(child);
-                }
-
-                // In case there are multiple target nodes, pick the one that is closest to the ship bounds center
-                if (allNodes.Count > 0)
-                {
-                    // Pre-position and rotate the object here so that we can accurately calculate where the closest node should be
-                    placeableObject.parentObject.transform.position = StartOfRound.Instance.elevatorTransform.position;
-                    placeableObject.parentObject.transform.rotation = StartOfRound.Instance.elevatorTransform.rotation;
-                    placeableObject.parentObject.transform.Rotate(placeableObject.parentObject.rotationOffset);
-                    placeableObject.parentObject.transform.position += (StartOfRound.Instance.elevatorTransform.rotation * placeableObject.parentObject.positionOffset);
-
-                    trigger.playerPositionNode = allNodes.OrderBy(n => Vector3.Distance(StartOfRound.Instance.shipInnerRoomBounds.transform.position, n.transform.position)).First();
-                }
+                var child = trigger.transform.GetChild(0);
+                float yDiff = placeableObject.parentObject.transform.position.y - placementPosition.y;
+                child.transform.position = new Vector3(child.transform.position.x, ObjectHelper.OriginalChargeYHeight + yDiff, child.transform.position.z);
             }
         }
 

@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
-using GameNetcodeStuff;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
 using Unity.Netcode;
@@ -27,8 +26,9 @@ namespace GeneralImprovements.Patches
         private static void Start_Pre(StartOfRound __instance)
         {
             // Reset med station reference and other helpers
+            TerminalPatch._instance = null;
             ObjectHelper.MedStation = null;
-            ObjectHelper.PlaceablesToTriggers = new Dictionary<PlaceableShipObject, InteractTrigger>();
+            ObjectHelper.ChargeStation = null;
             ObjectHelper.MedStationUnlockableID = -1;
             ObjectHelper.ChargeStationUnlockableID = -1;
 
@@ -38,10 +38,10 @@ namespace GeneralImprovements.Patches
                 ObjectHelper.MedStationUnlockableID = ObjectHelper.AddUnlockable("Med Station");
             }
 
-            // TODO: If we allow the item charger to be a placeable, make sure it is registered as an unlockable
-            if (Plugin.AllowChargerPlacement)
+            // If we allow the item charger to be a placeable, make sure it is registered as an unlockable
+            if (Plugin.AllowChargerPlacement.Value)
             {
-                //ObjectHelper.ChargeStationUnlockableID = ObjectHelper.AddUnlockable("Item Charger");
+                ObjectHelper.ChargeStationUnlockableID = ObjectHelper.AddUnlockable("Item Charger");
             }
         }
 
@@ -94,9 +94,14 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdateTotalQuotasMonitors();
             MonitorsHelper.UpdateDeathMonitors();
 
-            // Reset charging station and med station player lock positions as needed
+            // Load item charger and store its original position node Y value
             var chargeStation = Object.FindObjectOfType<ItemCharger>().GetComponent<InteractTrigger>();
             ObjectHelper.OriginalChargeYHeight = chargeStation.playerPositionNode.position.y;
+
+            // Adjust interact trigger box for charger
+            var chargeTriggerCollider = chargeStation.GetComponent<BoxCollider>();
+            chargeTriggerCollider.center = Vector3.zero;
+            chargeTriggerCollider.size = new Vector3(0.5f, 0.7f, 0.8f);
 
             // Add medical station
             ObjectHelper.CreateMedStation(chargeStation);
@@ -468,14 +473,9 @@ namespace GeneralImprovements.Patches
 
         private static void FullQuotaReset(StartOfRound instance)
         {
-            // Reset money and health
+            // Reset money and max health
             TerminalPatch.SetStartingMoneyPerPlayer();
-            PlayerControllerBPatch.PlayerMaxHealthValues = new Dictionary<PlayerControllerB, int>();
-            foreach (var player in instance.allPlayerScripts.Where(p => p.isPlayerControlled))
-            {
-                Plugin.MLS.LogInfo($"Resetting player {player.playerUsername}'s health to {player.health}.");
-                PlayerControllerBPatch.PlayerMaxHealthValues[player] = player.health;
-            }
+            PlayerControllerBPatch.CurrentMaxHealth = instance.localPlayerController.health;
 
             // Update monitors that may need it
             DaysSinceLastDeath = -1;

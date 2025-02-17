@@ -11,7 +11,7 @@ namespace GeneralImprovements.Utilities
     {
         private static IReadOnlyList<NetworkPrefab> AllPrefabs => NetworkManager.Singleton.NetworkConfig.Prefabs.Prefabs;
         public static MedStationItem MedStation = null;
-        public static Dictionary<PlaceableShipObject, InteractTrigger> PlaceablesToTriggers = new Dictionary<PlaceableShipObject, InteractTrigger>();
+        public static CustomChargeStation ChargeStation = null;
         public static float OriginalChargeYHeight;
         public static int MedStationUnlockableID = -1;
         public static int ChargeStationUnlockableID = -1;
@@ -42,15 +42,10 @@ namespace GeneralImprovements.Utilities
                 {
                     // If we are the host, spawn it as a network object
                     Plugin.MLS.LogInfo("Adding medical station to ship.");
-                    var position = new Vector3(2.75f, 3.4f, -16.561f);
-                    var rotation = new Vector3(-90, 0, 0);
-                    if (MedStationUnlockableID >= 0)
-                    {
-                        var unlockable = StartOfRound.Instance.unlockablesList.unlockables[MedStationUnlockableID];
-                        bool hasMoved = ES3.KeyExists($"ShipUnlockedMoved_{unlockable.unlockableName}", GameNetworkManager.Instance.currentSaveFileName);
-                        position = ES3.Load($"ShipUnlockPos_{unlockable.unlockableName}", GameNetworkManager.Instance.currentSaveFileName, position);
-                        rotation = ES3.Load($"ShipUnlockRot_{unlockable.unlockableName}", GameNetworkManager.Instance.currentSaveFileName, rotation);
-                    }
+                    var unlockable = StartOfRound.Instance.unlockablesList.unlockables[MedStationUnlockableID];
+                    var position = ES3.Load($"ShipUnlockPos_{unlockable.unlockableName}", GameNetworkManager.Instance.currentSaveFileName, new Vector3(2.75f, 3.4f, -16.561f));
+                    var rotation = ES3.Load($"ShipUnlockRot_{unlockable.unlockableName}", GameNetworkManager.Instance.currentSaveFileName, Vector3.zero);
+
                     var medStationObj = Object.Instantiate(AssetBundleHelper.MedStationPrefab, position, Quaternion.Euler(rotation));
                     MedStation = medStationObj.GetComponent<MedStationItem>();
                     MedStation.NetworkObject.Spawn();
@@ -72,9 +67,6 @@ namespace GeneralImprovements.Utilities
                 MedStation.GetComponent<AudioSource>().outputAudioMixerGroup = chargeStation.GetComponent<AudioSource>().outputAudioMixerGroup;
 
                 // Add interaction trigger
-                var chargeTriggerCollider = chargeStation.GetComponent<BoxCollider>();
-                chargeTriggerCollider.center = Vector3.zero;
-                chargeTriggerCollider.size = new Vector3(1, 0.8f, 0.8f);
                 var medTrigger = MedStation.transform.Find("Trigger");
                 medTrigger.tag = chargeStation.tag;
                 medTrigger.gameObject.layer = chargeStation.gameObject.layer;
@@ -85,7 +77,9 @@ namespace GeneralImprovements.Utilities
                 interactScript.specialCharacterAnimation = true;
                 interactScript.animationString = chargeStation.animationString;
                 interactScript.lockPlayerPosition = true;
-                interactScript.playerPositionNode = medTrigger.transform.GetChild(0);
+                var posNode = medTrigger.transform.GetChild(0);
+                interactScript.playerPositionNode = posNode;
+                posNode.position = chargeStation.playerPositionNode.position;
                 interactScript.onInteract = new InteractEvent();
                 interactScript.onCancelAnimation = new InteractEvent();
                 interactScript.onInteractEarly = new InteractEvent();
@@ -93,8 +87,7 @@ namespace GeneralImprovements.Utilities
 
                 // Depend on the light switch for copying audio
                 var lightSwitchPlaceable = StartOfRound.Instance.elevatorTransform.Find("LightSwitchContainer")?.GetComponentInChildren<PlaceableShipObject>();
-                var placeable = AddPlaceableComponentToGameObject(MedStation.gameObject, MedStationUnlockableID, 0.05f, lightSwitchPlaceable);
-                PlaceablesToTriggers.Add(placeable, interactScript);
+                AddPlaceableComponentToGameObject(MedStation.gameObject, MedStationUnlockableID, 0.1f, lightSwitchPlaceable);
 
                 // Add scan node
                 CreateScanNodeOnObject(MedStation.gameObject, 0, 0, 6, "Med Station", "Fully heal yourself");
@@ -103,23 +96,52 @@ namespace GeneralImprovements.Utilities
 
         public static void MakeChargeStationPlaceable(InteractTrigger chargeStation)
         {
-            if (Plugin.AllowChargerPlacement && chargeStation?.transform.parent?.parent is Transform charger)
+            if (Plugin.AllowChargerPlacement.Value && chargeStation?.transform.parent?.parent is Transform charger)
             {
                 Plugin.MLS.LogInfo("Allowing item charger to be placeable.");
 
+                if (StartOfRound.Instance.IsHost)
+                {
+                    // If we are the host, spawn it as a network object
+                    Plugin.MLS.LogInfo("Adding networked item charger to ship.");
+                    var unlockable = StartOfRound.Instance.unlockablesList.unlockables[ChargeStationUnlockableID];
+                    var position = ES3.Load($"ShipUnlockPos_{unlockable.unlockableName}", GameNetworkManager.Instance.currentSaveFileName, charger.position);
+                    var rotation = ES3.Load($"ShipUnlockRot_{unlockable.unlockableName}", GameNetworkManager.Instance.currentSaveFileName, new Vector3(-90, 0, 90));
+
+                    var chargeStationObject = Object.Instantiate(AssetBundleHelper.ChargeStationPrefab, position, Quaternion.Euler(rotation));
+                    ChargeStation = chargeStationObject.GetComponent<CustomChargeStation>();
+                    ChargeStation.NetworkObject.Spawn();
+                    ChargeStation.NetworkObject.TrySetParent(StartOfRound.Instance.elevatorTransform);
+                }
+                else
+                {
+                    // If we are a client, try to find it in the scene first
+                    Plugin.MLS.LogInfo("Finding networked item charger in ship");
+                    ChargeStation = Object.FindObjectOfType<CustomChargeStation>();
+
+                    if (ChargeStation == null)
+                    {
+                        Plugin.MLS.LogWarning($"Could not find existing networked item charger! Ensure the host has {nameof(Plugin.AllowChargerPlacement)} set to true.");
+                        return;
+                    }
+                }
+
+                // Make the real charger a child of the custom charge station empty object
+                charger.SetParent(ChargeStation.transform);
+                charger.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+
                 // Add a new placeable gameobject with a box collider
                 var placementObject = new GameObject("PlacementCollider");
-                placementObject.transform.SetParent(charger.transform);
-                placementObject.transform.SetLocalPositionAndRotation(new Vector3(0.35f, 0, 0), Quaternion.identity);
+                placementObject.transform.SetParent(ChargeStation.transform, false);
+                placementObject.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
                 placementObject.layer = LayerMask.NameToLayer("PlaceableShipObjects");
                 var collider = placementObject.AddComponent<BoxCollider>();
-                collider.size = new Vector3(1, 2, 2);
+                collider.size = chargeStation.GetComponent<BoxCollider>().size;
                 placementObject.AddComponent<AudioSource>();
 
                 // Add the actual placeable components
                 var terminalPlaceable = TerminalPatch.Instance.transform.parent.parent.GetComponentInChildren<PlaceableShipObject>();
-                var placeable = AddPlaceableComponentToGameObject(charger.gameObject, ChargeStationUnlockableID, 0.75f, terminalPlaceable);
-                PlaceablesToTriggers.Add(placeable, chargeStation);
+                AddPlaceableComponentToGameObject(ChargeStation.gameObject, ChargeStationUnlockableID, 0.25f, terminalPlaceable);
             }
         }
 
@@ -244,7 +266,6 @@ namespace GeneralImprovements.Utilities
                 placeable.placeObjectCollider = placeable.GetComponent<BoxCollider>();
                 placeable.AllowPlacementOnWalls = true;
                 placeable.mainMesh = gameObject.GetComponentInChildren<MeshFilter>();
-                placeable.mainTransform = placeable.mainMesh.transform;
                 placeable.overrideWallOffset = true;
                 placeable.wallOffset = wallOffset;
                 CopyAudioSource(copyAudioFrom.GetComponent<AudioSource>(), placeable.GetComponent<AudioSource>());

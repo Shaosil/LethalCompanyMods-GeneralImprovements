@@ -1101,10 +1101,22 @@ namespace GeneralImprovements.Utilities
 
                         string displayName = new string(curPlayer.playerUsername.Take(12).Concat(new char[] { ':' }).ToArray()).PadRight(20);
                         int healthLevel = curPlayer.isPlayerDead || curPlayer.health < 50 ? 1 : curPlayer.health < 100 ? 2 : 3;
+                        if (Plugin.MaskedPlayersAppearAliveOnMonitors.Value && MaskedPlayerEnemyPatch.GetPlayerIsMasked(curPlayer))
+                        {
+                            // Fake green health for masked players if the option is set
+                            healthLevel = 3;
+                        }
                         string healthColor = healthLevel == 3 ? "00ff00" : healthLevel == 2 ? "ffff00" : "ff0000";
+                        int healthDisplay = curPlayer.health;
+                        if (curPlayer.isPlayerDead)
+                        {
+                            // If the player is masked and we are displaying fake info, show 100. Otherwise if they're dead, they're dead Jim
+                            if (Plugin.MaskedPlayersAppearAliveOnMonitors.Value && MaskedPlayerEnemyPatch.GetPlayerIsMasked(curPlayer)) healthDisplay = 100;
+                            else healthDisplay = 0;
+                        }
 
                         curScreenPlayersSb.AppendLine($" {displayName} {ApplyColorToText(new string('=', healthLevel).PadRight(3), healthColor)}");
-                        curScreenPlayersExactSb.AppendLine($" {displayName} {ApplyColorToText($"{(curPlayer.isPlayerDead ? 0 : curPlayer.health),3}", healthColor)}");
+                        curScreenPlayersExactSb.AppendLine($" {displayName} {ApplyColorToText($"{healthDisplay,3}", healthColor)}");
                     }
 
                     string header = $"{new string(' ', 10)}PLAYER HEALTH:\n\n";
@@ -1128,6 +1140,11 @@ namespace GeneralImprovements.Utilities
             {
                 int totalPlayers = StartOfRound.Instance.connectedPlayersAmount + 1;
                 int numDead = StartOfRound.Instance.allPlayerScripts.Count(p => p.isPlayerDead);
+                if (Plugin.MaskedPlayersAppearAliveOnMonitors.Value)
+                {
+                    // Fake alive count for masked players if option is set
+                    numDead -= MaskedPlayerEnemyPatch.GetNumMaskedPlayers();
+                }
                 int numAlive = totalPlayers - numDead;
                 var colorHexes = new[] { "00ff00", "ffc400", "ff0000" };
                 int curDanger = numAlive >= totalPlayers ? 0 : numAlive > 1 ? 1 : 2;

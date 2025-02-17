@@ -19,6 +19,10 @@ namespace GeneralImprovements
 
         public enum eStartingMoneyFunction { Disabled, Total, PerPlayer, PerPlayerWithMinimum }
 
+        public enum eLadderSprintOption { None, NoDrain, Allow }
+
+        public enum eRadarBoosterTeleport { Disabled, OnlyRegular, OnlyInverse, RegularAndInverse }
+
         public enum eMonitorNames
         {
             None,

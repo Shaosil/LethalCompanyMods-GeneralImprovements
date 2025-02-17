@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using GeneralImprovements.Patches;
 using GeneralImprovements.Utilities;
 using Unity.Netcode;
@@ -11,7 +10,7 @@ namespace GeneralImprovements.Items
     {
         public void HealLocalPlayer()
         {
-            if (StartOfRound.Instance.localPlayerController.health < PlayerControllerBPatch.PlayerMaxHealthValues.GetValueOrDefault(StartOfRound.Instance.localPlayerController))
+            if (StartOfRound.Instance.localPlayerController.health < PlayerControllerBPatch.CurrentMaxHealth)
             {
                 StartOfRound.Instance.localPlayerController.StartCoroutine(HealLocalPlayerCoroutine());
             }
@@ -22,9 +21,8 @@ namespace GeneralImprovements.Items
             PlayHealSoundServerRpc();
             yield return new WaitForSeconds(0.75f);
 
-            int maxHealth = PlayerControllerBPatch.PlayerMaxHealthValues.GetValueOrDefault(StartOfRound.Instance.localPlayerController);
-            HUDManager.Instance.UpdateHealthUI(maxHealth, false);
-            HealPlayerServerRpc(StartOfRound.Instance.localPlayerController.playerClientId, maxHealth);
+            HUDManager.Instance.UpdateHealthUI(PlayerControllerBPatch.CurrentMaxHealth, false);
+            HealPlayerServerRpc(StartOfRound.Instance.localPlayerController.playerClientId, PlayerControllerBPatch.CurrentMaxHealth);
         }
 
         [ServerRpc(RequireOwnership = false)]

@@ -1,11 +1,13 @@
-﻿using GameNetcodeStuff;
-using GeneralImprovements.Utilities;
-using HarmonyLib;
-using System;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using GameNetcodeStuff;
+using GeneralImprovements.Items;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 using UnityEngine;
 using static GeneralImprovements.Enums;
 
@@ -47,13 +49,35 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(ShipTeleporter), "beamUpPlayer", MethodType.Enumerator)]
         [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> PatchRegularTeleporter(IEnumerable<CodeInstruction> instructions)
+        private static IEnumerable<CodeInstruction> beamUpPlayer_Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             var codeList = instructions.ToList();
 
+            // Insert a call to check radar boosters if needed
+            if (new[] { eRadarBoosterTeleport.OnlyRegular, eRadarBoosterTeleport.RegularAndInverse }.Contains(Plugin.RadarBoostersCanBeTeleported.Value))
+            {
+                if (codeList.TryFindInstruction(i => i.opcode == OpCodes.Stloc_1, out var found))
+                {
+                    Plugin.MLS.LogDebug("Patching ShipTeleporter.beamUpPlayer to include radar boosters.");
+                    codeList.InsertRange(found.Index + 1, new[]
+                    {
+                        new CodeInstruction(OpCodes.Ldloc_1),
+                        Transpilers.EmitDelegate<Action<ShipTeleporter>>(t =>
+                        {
+                            // Only the server should broadcast the check for each teleporter
+                            if (StartOfRound.Instance.IsServer) t.StartCoroutine(CheckCanBeamUpRadarBooster(t));
+                        })
+                    });
+                }
+                else
+                {
+                    Plugin.MLS.LogWarning("Could not find a SINGLE STLOC.1 instruction!? Could not patch ShipTeleporter.beamUpPlayer to include radar boosters.");
+                }
+            }
+
+            // Find the code that teleports dead bodies
             if (Plugin.AutomaticallyCollectTeleportedCorpses.Value)
             {
-                // Find the code that teleports dead bodies
                 if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
                 {
                 i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.deadBody))),
@@ -73,8 +97,8 @@ namespace GeneralImprovements.Patches
                         }
                     });
 
+                    Plugin.MLS.LogDebug("Patching ShipTeleporter.beamUpPlayer to drop dead bodies properly.");
                     codeList.Insert(deadBody.Last().Index + 1, collectBodyDelegate);
-                    Plugin.MLS.LogDebug("Patched beamUpPlayer to drop dead bodies properly.");
                 }
                 else
                 {
@@ -93,6 +117,8 @@ namespace GeneralImprovements.Patches
                     i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.DropAllHeldItems)))
                 }, out var dropItems))
                 {
+                    Plugin.MLS.LogDebug($"Patching ShipTeleporter.beamUpPlayer to keep {Plugin.KeepItemsDuringTeleport.Value} items.");
+
                     if (Plugin.KeepItemsDuringTeleport.Value == eItemsToKeep.Held || Plugin.KeepItemsDuringTeleport.Value == eItemsToKeep.NonScrap)
                     {
                         var dropAllExceptHeldDelegate = Transpilers.EmitDelegate<Action<PlayerControllerB>>((player) =>
@@ -115,12 +141,41 @@ namespace GeneralImprovements.Patches
                             codeList[(dropItems.First().Index - 1) + i].opcode = OpCodes.Nop;
                         }
                     }
-
-                    Plugin.MLS.LogDebug($"Patched beamUpPlayer to keep {Plugin.KeepItemsDuringTeleport.Value} items.");
                 }
                 else
                 {
                     Plugin.MLS.LogError("Unexpected code - Could not transpile ShipTeleporter.beamUpPlayer to keep items!");
+                }
+            }
+
+            return codeList;
+        }
+
+        [HarmonyPatch(typeof(ShipTeleporter), "beamOutPlayer", MethodType.Enumerator)]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> beamOutPlayer_Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+
+            // Insert a call to check radar boosters if needed
+            if (new[] { eRadarBoosterTeleport.OnlyInverse, eRadarBoosterTeleport.RegularAndInverse }.Contains(Plugin.RadarBoostersCanBeTeleported.Value))
+            {
+                if (codeList.TryFindInstruction(i => i.opcode == OpCodes.Stloc_1, out var found))
+                {
+                    Plugin.MLS.LogDebug("Patching ShipTeleporter.beamOutPlayer to include radar boosters.");
+                    codeList.InsertRange(found.Index + 1, new[]
+                    {
+                        new CodeInstruction(OpCodes.Ldloc_1),
+                        Transpilers.EmitDelegate<Action<ShipTeleporter>>(t =>
+                        {
+                            // Only the server should broadcast the check for each teleporter
+                            if (StartOfRound.Instance.IsServer) t.StartCoroutine(CheckCanBeamOutRadarBoosters(t));
+                        })
+                    });
+                }
+                else
+                {
+                    Plugin.MLS.LogWarning("Could not find a SINGLE STLOC.1 instruction!? Could not patch ShipTeleporter.beamOutPlayer to include radar boosters.");
                 }
             }
 
@@ -137,6 +192,8 @@ namespace GeneralImprovements.Patches
             {
                 if (codeList.TryFindInstruction(i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.DropAllHeldItems))), out var found))
                 {
+                    Plugin.MLS.LogDebug($"Patching ShipTeleporter.TeleportPlayerOutWithInverseTeleporter to keep {Plugin.KeepItemsDuringTeleport.Value} items.");
+
                     if (Plugin.KeepItemsDuringInverse.Value == eItemsToKeep.Held || Plugin.KeepItemsDuringInverse.Value == eItemsToKeep.NonScrap)
                     {
                         var dropAllExceptHeldDelegate = Transpilers.EmitDelegate<Action<PlayerControllerB>>((player) =>
@@ -160,8 +217,6 @@ namespace GeneralImprovements.Patches
                         }
                     }
                 }
-
-                Plugin.MLS.LogDebug($"Patched TeleportPlayerOutWithInverseTeleporter to keep {Plugin.KeepItemsDuringTeleport.Value} items.");
             }
 
             return codeList;
@@ -180,6 +235,85 @@ namespace GeneralImprovements.Patches
                 if (tipSaysLift == isOpen)
                 {
                     buttonGlass.hoverTip = $"{(isOpen ? "Shut" : "Lift")} glass : [LMB]";
+                }
+            }
+        }
+
+        private static IEnumerator CheckCanBeamUpRadarBooster(ShipTeleporter teleporter)
+        {
+            TeleportableRadarBooster helper = null;
+            Func<bool> validRadarOnMapScreen = () =>
+            {
+                var map = StartOfRound.Instance.mapScreen;
+                var mapTarget = map.radarTargets.ElementAtOrDefault(map.targetTransformIndex);
+                if ((mapTarget?.isNonPlayer ?? false) && mapTarget.transform.TryGetComponent<RadarBoosterItem>(out var radar) && radar.playerHeldBy == null)
+                {
+                    radar.TryGetComponent(out helper);
+                }
+
+                return helper != null;
+            };
+
+            // If the current map target is an unheld radar booster, play its beam up particle system if found
+            if (validRadarOnMapScreen())
+            {
+                Plugin.MLS.LogDebug("Server sending radar booster beam effects RPC");
+                helper.PlayBeamEffectsClientRpc(true);
+            }
+            else
+            {
+                yield break;
+            }
+
+            // Wait 3 seconds to copy vanilla teleporter delays
+            yield return new WaitForSeconds(3);
+
+            // If the current map target is STILL an unheld radar booster, beam it into the ship the same way a player would be
+            if (validRadarOnMapScreen())
+            {
+                Plugin.MLS.LogDebug("Server sending radar booster regular teleport RPC");
+                helper.TeleportRadarBoosterClientRpc(teleporter.NetworkObject, teleporter.transform.position, true);
+            }
+        }
+
+        private static IEnumerator CheckCanBeamOutRadarBoosters(ShipTeleporter teleporter)
+        {
+            List<TeleportableRadarBooster> helpers = null;
+            Func<bool> radarsNearby = () =>
+            {
+                helpers = new List<TeleportableRadarBooster>();
+                var hitProps = Physics.OverlapSphere(teleporter.transform.position, 2, 64);
+                foreach (var collider in hitProps)
+                {
+                    if (collider.TryGetComponent<RadarBoosterItem>(out var radar) && radar.playerHeldBy == null && radar.TryGetComponent<TeleportableRadarBooster>(out var helper))
+                    {
+                        helpers.Add(helper);
+                    }
+                }
+
+                return helpers.Count > 0;
+            };
+
+            // Find all nearby radar boosters not held by players and play beam effets on them
+            if (radarsNearby())
+            {
+                foreach (var helper in helpers)
+                {
+                    Plugin.MLS.LogDebug("Server sending radar booster beam effects RPC");
+                    helper.PlayBeamEffectsClientRpc(false);
+                }
+            }
+
+            // Wait 5 seconds to copy vanilla teleporter delays
+            yield return new WaitForSeconds(5);
+
+            // If we can still use the inverse teleporter, find all nearby radar boosters and teleport them all in
+            if (radarsNearby())
+            {
+                foreach (var helper in helpers)
+                {
+                    Plugin.MLS.LogDebug("Server sending radar booster inverse teleport RPC");
+                    helper.BeamOutClientRpc(teleporter.NetworkObject, UnityEngine.Random.Range(0, int.MaxValue)); // Server sets the random seed
                 }
             }
         }

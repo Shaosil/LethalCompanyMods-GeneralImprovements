@@ -20,11 +20,13 @@ namespace GeneralImprovements.Patches
         private static void Start(MaskedPlayerEnemy __instance)
         {
             // If any mask setting is something other than default, check further logic
-            if (!Plugin.MaskedEntitiesWearMasks.Value || Plugin.MaskedEntitiesShowPlayerNames.Value || Plugin.MaskedEntitiesCopyPlayerLooks.Value > Enums.eMaskedEntityCopyLook.None
-                 || !Plugin.MaskedEntitiesSpinOnRadar.Value || !Plugin.MaskedEntitiesReachTowardsPlayer.Value || Plugin.MaskedEntitiesShowScrapIconChance.Value != 0)
+            if (Plugin.MaskedPlayersAppearAliveOnMonitors.Value || !Plugin.MaskedEntitiesWearMasks.Value || Plugin.MaskedEntitiesShowPlayerNames.Value
+                || Plugin.MaskedEntitiesCopyPlayerLooks.Value > Enums.eMaskedEntityCopyLook.None || !Plugin.MaskedEntitiesSpinOnRadar.Value
+                || !Plugin.MaskedEntitiesReachTowardsPlayer.Value || Plugin.MaskedEntitiesShowScrapIconChance.Value != 0)
             {
                 // Init extra mask data
                 _maskData[__instance] = new ExtraMaskData();
+                _maskData[__instance].KilledPlayer = __instance.mimickingPlayer; // Can be null
 
                 // If the masked spawned from a player, use their name and appearance. Otherwise, use any random player's name and appearance.
                 var rand = new System.Random(StartOfRound.Instance.randomMapSeed + NumSpawnedThisLevel);
@@ -151,8 +153,13 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        public static int GetNumMaskedPlayers() => _maskData.Values.Count(v => v.KilledPlayer != null);
+
+        public static bool GetPlayerIsMasked(PlayerControllerB player) => _maskData.Values.Any(v => v.KilledPlayer == player);
+
         private class ExtraMaskData
         {
+            public PlayerControllerB KilledPlayer;
             public Canvas Canvas;
             public CanvasGroup CanvasGroup;
             public GameObject RadarIcon;

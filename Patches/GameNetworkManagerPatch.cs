@@ -31,10 +31,20 @@ namespace GeneralImprovements.Patches
                 NetworkManager.Singleton.AddNetworkPrefab(AssetBundleHelper.MedStationPrefab);
             }
 
-            //if (Plugin.AllowChargerPlacement.Value)
-            //{
-            // TODO: Add network object component and gameobject to NetworkManager for charger if we're going to be moving it around
-            //}
+            if (Plugin.AllowChargerPlacement.Value && AssetBundleHelper.ChargeStationPrefab != null)
+            {
+                AssetBundleHelper.ChargeStationPrefab.AddComponent<CustomChargeStation>();
+                NetworkManager.Singleton.AddNetworkPrefab(AssetBundleHelper.ChargeStationPrefab);
+            }
+
+            if (Plugin.RadarBoostersCanBeTeleported.Value != Enums.eRadarBoosterTeleport.Disabled)
+            {
+                var boosterPrefab = NetworkManager.Singleton.NetworkConfig.Prefabs.Prefabs.FirstOrDefault(p => p.Prefab.TryGetComponent<RadarBoosterItem>(out _));
+                if (boosterPrefab != null)
+                {
+                    boosterPrefab.Prefab.AddComponent<TeleportableRadarBooster>();
+                }
+            }
 
             if (Plugin.AllowFancyLampToBeToggled.Value)
             {

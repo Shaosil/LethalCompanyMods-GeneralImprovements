@@ -10,12 +10,12 @@ foreach (var section in entries.Where(e => e.Value.Any()))
     Console.Write($"Parsing section [{section.Key}]... ");
 
     var curWiki = new StringBuilder();
-    curWiki.AppendLine("| Setting | Description | Default |");
-    curWiki.AppendLine("| --- | --- | --- |");
+    curWiki.AppendLine("| Setting | Description | Accepted Values | Default |");
+    curWiki.AppendLine("| --- | --- | --- | --- |");
     Func<string, string> replacePipes = s => s.Replace("|", "\\|");
     foreach (var item in section.Value)
     {
-        curWiki.AppendLine($"| {replacePipes(item.Name)} | {replacePipes(item.Description)} | {replacePipes(item.DefaultValue)} |");
+        curWiki.AppendLine($"| {replacePipes(item.Name)} | {replacePipes(item.Description)} | {replacePipes(item.AcceptableValuesDescription)} | {replacePipes(item.DefaultValue)} |");
     }
 
     string filePath = Path.Combine(Environment.CurrentDirectory, $@"..\..\..\Output\{section.Key}.txt");

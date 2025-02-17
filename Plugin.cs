@@ -26,6 +26,7 @@ namespace GeneralImprovements
         public static ManualLogSource MLS { get; private set; }
 
         private const string EnemiesSection = "Enemies";
+        public static ConfigEntry<bool> MaskedPlayersAppearAliveOnMonitors { get; private set; }
         public static ConfigEntry<eMaskedEntityCopyLook> MaskedEntitiesCopyPlayerLooks { get; private set; }
         public static ConfigEntry<bool> MaskedEntitiesReachTowardsPlayer { get; private set; }
         public static ConfigEntry<bool> MaskedEntitiesShowPlayerNames { get; private set; }
@@ -91,6 +92,7 @@ namespace GeneralImprovements
         public static Dictionary<string, float> SanitizedScrapValueWeatherMultipliers { get; private set; }
         public static ConfigEntry<string> ScrapAmountWeatherMultipliers { get; private set; }
         public static Dictionary<string, float> SanitizedScrapAmountWeatherMultipliers { get; private set; }
+        public static ConfigEntry<eLadderSprintOption> SprintOnLadders { get; private set; }
         public static ConfigEntry<int> StartingMoney { get; private set; }
         public static int StartingMoneyVal => Math.Clamp(StartingMoney.Value, 0, 10000);
         public static ConfigEntry<eStartingMoneyFunction> StartingMoneyFunction { get; private set; }
@@ -106,7 +108,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> AllowFancyLampToBeToggled { get; private set; }
 
         private const string ShipSection = "Ship";
-        public static bool AllowChargerPlacement { get; private set; } = false; // TODO
+        public static ConfigEntry<bool> AllowChargerPlacement { get; private set; }
         public static ConfigEntry<eValidKeys> CounterClockwiseKey { get; private set; }
         public static ConfigEntry<bool> DisableShipCamPostProcessing { get; private set; }
         public static ConfigEntry<eValidKeys> FreeRotateKey { get; private set; }
@@ -124,6 +126,7 @@ namespace GeneralImprovements
         public static ConfigEntry<int> InverseTeleporterCooldown { get; private set; }
         public static ConfigEntry<eItemsToKeep> KeepItemsDuringInverse { get; private set; }
         public static ConfigEntry<eItemsToKeep> KeepItemsDuringTeleport { get; private set; }
+        public static ConfigEntry<eRadarBoosterTeleport> RadarBoostersCanBeTeleported { get; private set; }
         public static ConfigEntry<int> RegularTeleporterCooldown { get; private set; }
 
         private const string TerminalSection = "Terminal";
@@ -150,6 +153,7 @@ namespace GeneralImprovements
         public static ConfigEntry<float> ChatFadeDelay { get; private set; }
         public static ConfigEntry<float> ChatOpacity { get; private set; }
         public static ConfigEntry<bool> DisplayKgInsteadOfLb { get; private set; }
+        public static ConfigEntry<bool> DisplayRoundedKg { get; private set; }
         public static ConfigEntry<bool> HideEmptySubtextOfScanNodes { get; private set; }
         public static ConfigEntry<bool> HidePlayerNames { get; private set; }
         public static ConfigEntry<bool> ShowHitPoints { get; private set; }
@@ -232,6 +236,9 @@ namespace GeneralImprovements
             harmony.PatchAll(typeof(PlayerControllerBPatch));
             MLS.LogInfo("PlayerControllerB patched.");
 
+            harmony.PatchAll(typeof(RadarBoosterItemPatch));
+            MLS.LogInfo("RadarBoosterItem patched.");
+
             harmony.PatchAll(typeof(RoundManagerPatch));
             MLS.LogInfo("RoundManager patched.");
 
@@ -286,6 +293,7 @@ namespace GeneralImprovements
             var validToolStrings = string.Join(", ", new[] { "All" }.Concat(validToolTypes.Select(t => t.Name)));
 
             // Enemies
+            MaskedPlayersAppearAliveOnMonitors = Config.Bind(EnemiesSection, nameof(MaskedPlayersAppearAliveOnMonitors), false, "If set to true, when a masked entity kills a player, the player's health and alive status will display false (misleading) info on life status monitors.");
             MaskedEntitiesCopyPlayerLooks = Config.Bind(EnemiesSection, nameof(MaskedEntitiesCopyPlayerLooks), eMaskedEntityCopyLook.None, "How much masked entities should look like a targeted player.");
             MaskedEntitiesReachTowardsPlayer = Config.Bind(EnemiesSection, nameof(MaskedEntitiesReachTowardsPlayer), true, "If set to true, masked entities will reach towards the player they are chasing in a zombie-like way.");
             MaskedEntitiesShowPlayerNames = Config.Bind(EnemiesSection, nameof(MaskedEntitiesShowPlayerNames), false, "If set to true, masked entities will display their targeted player's name above their head, as well as be scannable if ScanPlayers = True.");
@@ -297,7 +305,7 @@ namespace GeneralImprovements
             AddMoreBetterMonitors = Config.Bind(ExtraMonitorsSection, nameof(AddMoreBetterMonitors), true, "If set to true and paired with UseBetterMonitors (required), adds 4 more small and 1 large monitor to the left of the main ship monitor group.");
             AlwaysRenderMonitors = Config.Bind(ExtraMonitorsSection, nameof(AlwaysRenderMonitors), false, $"If using better monitors and set to true, text-based monitors will render updates even when you are not in the ship. May slightly affect performance.");
             CenterAlignMonitorText = Config.Bind(ExtraMonitorsSection, nameof(CenterAlignMonitorText), true, "If set to true, all small monitors in the ship will have their text center aligned, instead of left.");
-            CustomTextMonitorValue = Config.Bind(ExtraMonitorsSection, nameof(CustomTextMonitorValue), "SAMPLE TEXT 1|SAMPLE TEXT 2", $"If using any custom text monitors, will display custom text set by {nameof(CustomTextMonitorValue)}. Pipes (|) can be used to set multiple monitor's values, in display order. Each value is limited to 200 characters.");
+            CustomTextMonitorValue = Config.Bind(ExtraMonitorsSection, nameof(CustomTextMonitorValue), "SAMPLE TEXT 1|SAMPLE TEXT 2", $"If using any custom text monitors, will display this custom text on them. Pipes (|) can be used to set multiple monitor's values, in display order. Each value is limited to 200 characters.");
             MonitorBackgroundColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorBackgroundColor), "160959", "The hex color code of what the backgrounds of the monitors should be. A recommended value close to black is 050505.");
             MonitorTextColor = Config.Bind(ExtraMonitorsSection, nameof(MonitorTextColor), "00FF2C", "The hex color code of what the text on the monitors should be.");
             ShipExternalCamFPS = Config.Bind(ExtraMonitorsSection, nameof(ShipExternalCamFPS), 0, new ConfigDescription($"Limits the FPS of the external ship cam for performance. 0 = Unrestricted.", new AcceptableValueRange<int>(0, 30)));
@@ -339,9 +347,9 @@ namespace GeneralImprovements
             TwoHandedInSlotOne = Config.Bind(InventorySection, nameof(TwoHandedInSlotOne), false, $"When picking up a two handed item, it will always place it in slot 1 and shift things to the right if needed. Makes selling quicker when paired with RearrangeOnDrop.");
 
             // Mechanics
-            AddHealthRechargeStation = Config.Bind(MechanicsSection, nameof(AddHealthRechargeStation), false, $"[Host Only] If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full. {incompatWarning}");
+            AddHealthRechargeStation = Config.Bind(MechanicsSection, nameof(AddHealthRechargeStation), false, $"[ALL USERS] If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full. {incompatWarning}");
             AllowPickupOfAllItemsPreStart = Config.Bind(MechanicsSection, nameof(AllowPickupOfAllItemsPreStart), true, "Allows you to pick up all grabbable items before the game is started.");
-            AllowQuotaRollover = Config.Bind(MechanicsSection, nameof(AllowQuotaRollover), false, "[Host Required] If set to true, will keep the surplus money remaining after selling things to the company, and roll it over to the next quota. If clients do not set this, they will see visual desyncs.");
+            AllowQuotaRollover = Config.Bind(MechanicsSection, nameof(AllowQuotaRollover), false, "[Host Only] If set to true, will keep the surplus money remaining after selling things to the company, and roll it over to the next quota. If clients do not set this, they will see visual desyncs.");
             DestroyKeysAfterOrbiting = Config.Bind(MechanicsSection, nameof(DestroyKeysAfterOrbiting), false, "If set to true, all keys in YOUR inventory (and IF HOSTING, the ship) will be destroyed after orbiting. Works well to nerf KeysHaveInfiniteUses. Players who do not have this enabled will keep keys currently in their inventory.");
             KeysHaveInfiniteUses = Config.Bind(MechanicsSection, nameof(KeysHaveInfiniteUses), false, "If set to true, keys will not despawn when they are used.");
             MinimumStartingMoney = Config.Bind(MechanicsSection, nameof(MinimumStartingMoney), 60, $"[Host Only] If set to a value higher than {nameof(StartingMoney)}'s and using {eStartingMoneyFunction.PerPlayerWithMinimum} for {nameof(StartingMoneyFunction)}, will ensure the group always starts with at least this much money. Internally capped at 10k. {defaultNoChange}");
@@ -351,6 +359,7 @@ namespace GeneralImprovements
             ScanCommandUsesExactAmount = Config.Bind(MechanicsSection, nameof(ScanCommandUsesExactAmount), false, "If set to true, the terminal's scan command (and ScrapLeft monitor) will use display the exact scrap value remaining instead of approximate.");
             ScrapValueWeatherMultipliers = Config.Bind(MechanicsSection, nameof(ScrapValueWeatherMultipliers), string.Empty, "[Host Only] You may specify comma separated weather:multiplier (0.1 - 2.0) for all weather types, including modded weather. Default vanilla scrap value multiplier is 0.4, which will default for any unspecified weather type. A recommended value would be 'None:0.4, DustClouds:0.5, Foggy:0.5, Rainy:0.55, Flooded:0.6, Stormy:0.7, Eclipsed:0.8'.");
             ScrapAmountWeatherMultipliers = Config.Bind(MechanicsSection, nameof(ScrapAmountWeatherMultipliers), string.Empty, "[Host Only] You may specify comma separated weather:multiplier (1.0 - 5.0) for all weather types, including modded weather. Default vanilla scrap amount multiplier is 1.0, which will default for any unspecified weather type. A recommended value would be 'None:1.0, DustClouds:1.2, Foggy:1.2, Rainy:1.3, Flooded:1.4, Stormy:1.5, Eclipsed:1.6'.");
+            SprintOnLadders = Config.Bind(MechanicsSection, nameof(SprintOnLadders), eLadderSprintOption.None, $"If set to {nameof(eLadderSprintOption.NoDrain)}, will prevent sprint meter from draining while using ladders. If set to {eLadderSprintOption.Allow}, allows faster climbing while sprinting.");
             StartingMoney = Config.Bind(MechanicsSection, nameof(StartingMoney), 60, $"[Host Only] How much starting money the group gets when starting a new game. Internally clamped between 0 and 10k. {defaultNoChange}");
             StartingMoneyFunction = Config.Bind(MechanicsSection, nameof(StartingMoneyFunction), eStartingMoneyFunction.Disabled, $"[Host Only] Controls how {nameof(StartingMoney)} behaves. {eStartingMoneyFunction.Total} will set the credits to a single flat amount. {eStartingMoneyFunction.PerPlayer} will adjust the credits by {nameof(StartingMoney)} as players join and leave. {eStartingMoneyFunction.PerPlayerWithMinimum} does the same, with a minimum set by {nameof(MinimumStartingMoney)}. {defaultNoChange}");
             UnlockDoorsFromInventory = Config.Bind(MechanicsSection, nameof(UnlockDoorsFromInventory), false, "If set to true, keys in your inventory do not have to be held when unlocking facility doors.");
@@ -365,7 +374,7 @@ namespace GeneralImprovements
             AllowFancyLampToBeToggled = Config.Bind(ScrapSection, nameof(AllowFancyLampToBeToggled), true, "If set to true, will enable the fancy lamp scrap's light to be turned on and off while being held. Be careful, sound sensitive enemies can hear its click!");
 
             // Ship
-            //AllowChargerPlacement = Config.Bind(ShipSection, nameof(AllowChargerPlacement), false, $"[Host Only] If set to true, the battery charger may be placed via the ship's build mode. May cause temporary desyncs on unmodded clients. {incompatWarning}");
+            AllowChargerPlacement = Config.Bind(ShipSection, nameof(AllowChargerPlacement), false, $"[ALL USERS] If set to true, the battery charger may be placed via the ship's build mode. {incompatWarning}");
             CounterClockwiseKey = Config.Bind(ShipSection, nameof(CounterClockwiseKey), eValidKeys.LeftShift, "If SnapObjectsByDegrees > 0, configures which modifier key spins it CCW.");
             DisableShipCamPostProcessing = Config.Bind(ShipSection, nameof(DisableShipCamPostProcessing), false, "If set to true, the internal and external ship cameras will no longer use post processing. This may improve performance with higher resolution camera settings.");
             FreeRotateKey = Config.Bind(ShipSection, nameof(FreeRotateKey), eValidKeys.LeftAlt, "If SnapObjectsByDegrees > 0, configures which modifer key activates free rotation.");
@@ -383,6 +392,7 @@ namespace GeneralImprovements
             InverseTeleporterCooldown = Config.Bind(TeleportersSection, nameof(InverseTeleporterCooldown), 210, new ConfigDescription("How many seconds to wait in between button presses for the INVERSE teleporter. Vanilla = 210. If using the vanilla value, the teleporter code will not be modified.", new AcceptableValueRange<int>(1, 300)));
             KeepItemsDuringInverse = Config.Bind(TeleportersSection, nameof(KeepItemsDuringInverse), eItemsToKeep.None, "Whether to keep Held, Non Scrap, or All items in inventory when using the inverse teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!");
             KeepItemsDuringTeleport = Config.Bind(TeleportersSection, nameof(KeepItemsDuringTeleport), eItemsToKeep.None, "Whether to keep Held, Non Scrap, or All items in inventory when using the regular teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!");
+            RadarBoostersCanBeTeleported = Config.Bind(TeleportersSection, nameof(RadarBoostersCanBeTeleported), eRadarBoosterTeleport.Disabled, "[Host Only] If enabled, radar boosters can be affected by the specified type of teleporters. If the host has this setting enabled, unmodded clients may experience desyncs with radar boosters and teleporters.");
             RegularTeleporterCooldown = Config.Bind(TeleportersSection, nameof(RegularTeleporterCooldown), 10, new ConfigDescription("How many seconds to wait in between button presses for the REGULAR teleporter. Vanilla = 10. If using the vanilla value, the teleporter code will not be modified.", new AcceptableValueRange<int>(1, 300)));
 
             // Terminal
@@ -408,6 +418,7 @@ namespace GeneralImprovements
             ChatFadeDelay = Config.Bind(UISection, nameof(ChatFadeDelay), 4f, new ConfigDescription("How long to wait before fading chat after a new chat message appears.", new AcceptableValueRange<float>(0f, 10f)));
             ChatOpacity = Config.Bind(UISection, nameof(ChatOpacity), 0.2f, new ConfigDescription("How faded the chat should be after the fade delay. 0 = fully transparent, 1 = solid.", new AcceptableValueRange<float>(0f, 1f)));
             DisplayKgInsteadOfLb = Config.Bind(UISection, nameof(DisplayKgInsteadOfLb), false, "If set to true, your carry weight will be converted from lb to kg.");
+            DisplayRoundedKg = Config.Bind(UISection, nameof(DisplayRoundedKg), false, $"If set to true and using {nameof(DisplayKgInsteadOfLb)}, numeric values will be rounded to the nearest integer.");
             HideEmptySubtextOfScanNodes = Config.Bind(UISection, nameof(HideEmptySubtextOfScanNodes), true, "If set to true, will hide the subtext section of scannables that do not have subtext or scrap value.");
             HidePlayerNames = Config.Bind(UISection, nameof(HidePlayerNames), false, "If set to true, player names will no longer show above players.");
             ShowHitPoints = Config.Bind(UISection, nameof(ShowHitPoints), true, "If set to true, the HUD will display your current remaining hitpoints.");

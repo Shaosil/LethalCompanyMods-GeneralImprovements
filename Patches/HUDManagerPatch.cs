@@ -300,7 +300,7 @@ namespace GeneralImprovements.Patches
                 if (player != null)
                 {
                     curHealth = player.health;
-                    maxHealth = PlayerControllerBPatch.PlayerMaxHealthValues.GetValueOrDefault(player);
+                    maxHealth = 100; // For UI purposes, we don't care if the target is over 100.
                 }
                 else
                 {
@@ -551,13 +551,13 @@ namespace GeneralImprovements.Patches
                 {
                     codeList[found[8].Index].operand = "{0} kg";
 
-                    // Convert UI number to a single decimal point kg
+                    // Convert UI number to either 1 or 0 decimal points in kg
                     codeList.InsertRange(found.Last().Index + 1, new[]
                     {
                         new CodeInstruction(OpCodes.Ldc_R4, 2.205f),
                         new CodeInstruction(OpCodes.Div),
                         new CodeInstruction(OpCodes.Conv_R8),
-                        new CodeInstruction(OpCodes.Ldc_I4_1),
+                        new CodeInstruction(Plugin.DisplayRoundedKg.Value ? OpCodes.Ldc_I4_0 : OpCodes.Ldc_I4_1),
                         new CodeInstruction(OpCodes.Call, typeof(System.Math).GetMethod(nameof(System.Math.Round), new[] { typeof(double), typeof(int) }))
                     });
 

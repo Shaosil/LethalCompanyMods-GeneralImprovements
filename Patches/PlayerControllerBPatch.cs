@@ -22,15 +22,22 @@ namespace GeneralImprovements.Patches
         private static readonly ProfilerMarker _pm_PlayerUpdate = new ProfilerMarker(ProfilerCategory.Scripts, "GeneralImprovements.PlayerControllerB.Update");
         private static readonly ProfilerMarker _pm_PlayerLateUpdate = new ProfilerMarker(ProfilerCategory.Scripts, "GeneralImprovements.PlayerControllerB.LateUpdate");
 
-        public static Dictionary<PlayerControllerB, int> PlayerMaxHealthValues = new Dictionary<PlayerControllerB, int>();
+        public static int CurrentMaxHealth = 100;
 
         private static Func<bool> _flashlightTogglePressed;
         private static float _originalCursorScale = 0;
+        private static float _originalClimbSpeed;
+
+        public static KeyValuePair<int, bool> LastSyncedLifeStatus = new KeyValuePair<int, bool>(100, false); // Health, isDead
+        private static float _healthCheckInterval = 1f;
+        private static float _healthCheckTimer = 0;
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(Awake))]
         [HarmonyPostfix]
-        private static void Awake()
+        private static void Awake(PlayerControllerB __instance)
         {
+            _originalClimbSpeed = __instance.climbSpeed;
+
             bool hasToggleShortcut = Plugin.FlashlightToggleShortcut.Value != eValidKeys.None;
             if (Plugin.FlashlightToggleShortcut.Value >= eValidKeys.MouseLeft)
             {
@@ -95,11 +102,7 @@ namespace GeneralImprovements.Patches
                     var scanNode = player.GetComponentInChildren<ScanNodeProperties>();
                     if (scanNode != null)
                     {
-                        int curHealth = player.health;
-                        int maxHealth = PlayerMaxHealthValues.ContainsKey(player) ? PlayerMaxHealthValues[player] : 100;
-
                         scanNode.headerText = player.playerUsername;
-                        scanNode.subText = ObjectHelper.GetEntityHealthDescription(curHealth, maxHealth);
                     }
                 }
             }
@@ -137,10 +140,16 @@ namespace GeneralImprovements.Patches
         [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.DamagePlayerClientRpc))]
         [HarmonyPatch(typeof(PlayerControllerB), "KillPlayerClientRpc")]
         [HarmonyPostfix]
-        private static void AfterDamage()
+        private static void AfterDamage(PlayerControllerB __instance)
         {
             MonitorsHelper.UpdatePlayerHealthMonitors();
             MonitorsHelper.UpdatePlayersAliveMonitors();
+
+            // If it was the local player taking damage or dying, send a health sync to guarantee values are known
+            if (__instance.IsOwner)
+            {
+                NetworkHelper.Instance.SyncPlayerLifeStatusServerRpc((int)__instance.playerClientId, __instance.health, __instance.isPlayerDead);
+            }
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(ItemTertiaryUse_performed))]
@@ -556,9 +565,13 @@ namespace GeneralImprovements.Patches
                 }
             }
 
-            if (Plugin.AddHealthRechargeStation.Value && ObjectHelper.MedStation != null && __instance.hoveringOverTrigger?.transform.parent == ObjectHelper.MedStation.transform && PlayerMaxHealthValues.ContainsKey(__instance))
+            if (Plugin.AddHealthRechargeStation.Value && ObjectHelper.MedStation != null && __instance.hoveringOverTrigger?.transform.parent == ObjectHelper.MedStation.transform)
             {
-                __instance.hoveringOverTrigger.interactable = __instance.health < PlayerMaxHealthValues[__instance];
+                bool shouldBeInteractable = __instance.health < CurrentMaxHealth;
+                if (__instance.hoveringOverTrigger.interactable != shouldBeInteractable)
+                {
+                    __instance.hoveringOverTrigger.interactable = shouldBeInteractable;
+                }
             }
 
             ProfilerHelper.EndProfilingSafe(_pm_PlayerHovertip);
@@ -633,40 +646,7 @@ namespace GeneralImprovements.Patches
                     continue;
                 }
 
-                var grabbableObject = player.ItemSlots[i];
-                if (grabbableObject != null)
-                {
-                    grabbableObject.parentObject = null;
-                    grabbableObject.heldByPlayerOnServer = false;
-                    if (player.isInElevator)
-                    {
-                        grabbableObject.transform.SetParent(player.playersManager.elevatorTransform, true);
-                    }
-                    else
-                    {
-                        grabbableObject.transform.SetParent(player.playersManager.propsContainer, true);
-                    }
-                    player.SetItemInElevator(player.isInHangarShipRoom, player.isInElevator, grabbableObject);
-                    grabbableObject.EnablePhysics(true);
-                    grabbableObject.EnableItemMeshes(true);
-                    grabbableObject.transform.localScale = grabbableObject.originalScale;
-                    grabbableObject.isHeld = false;
-                    grabbableObject.isPocketed = false;
-                    grabbableObject.startFallingPosition = grabbableObject.transform.parent.InverseTransformPoint(grabbableObject.transform.position);
-                    grabbableObject.FallToGround(true);
-                    grabbableObject.fallTime = UnityEngine.Random.Range(-0.3f, 0.05f);
-                    if (player.IsOwner)
-                    {
-                        grabbableObject.DiscardItemOnClient();
-                    }
-                    else if (!grabbableObject.itemProperties.syncDiscardFunction)
-                    {
-                        grabbableObject.playerHeldBy = null;
-                    }
-
-                    player.ItemSlots[i] = null;
-                    HUDManager.Instance.itemSlotIcons[i].enabled = false;
-                }
+                DropItemAtIndex(player, i);
             }
 
             // Shift whatever necessary and select the new slot
@@ -688,38 +668,143 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        public static void DropItemAtIndex(PlayerControllerB player, int index)
+        {
+            var grabbableObject = player.ItemSlots[index];
+            if (grabbableObject != null)
+            {
+                grabbableObject.parentObject = null;
+                grabbableObject.heldByPlayerOnServer = false;
+                if (player.isInElevator)
+                {
+                    grabbableObject.transform.SetParent(player.playersManager.elevatorTransform, true);
+                }
+                else
+                {
+                    grabbableObject.transform.SetParent(player.playersManager.propsContainer, true);
+                }
+                player.SetItemInElevator(player.isInHangarShipRoom, player.isInElevator, grabbableObject);
+                grabbableObject.EnablePhysics(true);
+                grabbableObject.EnableItemMeshes(true);
+                grabbableObject.transform.localScale = grabbableObject.originalScale;
+                grabbableObject.isHeld = false;
+                grabbableObject.isPocketed = false;
+                grabbableObject.startFallingPosition = grabbableObject.transform.parent.InverseTransformPoint(grabbableObject.transform.position);
+                grabbableObject.FallToGround(true);
+                grabbableObject.fallTime = UnityEngine.Random.Range(-0.3f, 0.05f);
+                if (player.IsOwner)
+                {
+                    grabbableObject.DiscardItemOnClient();
+                    HUDManager.Instance.itemSlotIcons[index].enabled = false;
+                }
+                else if (!grabbableObject.itemProperties.syncDiscardFunction)
+                {
+                    grabbableObject.playerHeldBy = null;
+                }
+
+                player.ItemSlots[index] = null;
+            }
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(Update))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> Update_Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+
+            if (Plugin.SprintOnLadders.Value == eLadderSprintOption.Allow)
+            {
+                // Look for the player body position affected by climbing
+                if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.thisPlayerBody))),
+                    i => i.Calls(typeof(Component).GetMethod("get_transform")),
+                    i => i.opcode == OpCodes.Dup,
+                    i => i.Calls(typeof(Transform).GetMethod("get_position")),
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.thisPlayerBody))),
+                    i => i.Calls(typeof(Transform).GetMethod("get_up")),
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.moveInputVector)), true),
+                    i => i.LoadsField(typeof(Vector2).GetField(nameof(Vector2.y))),
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.climbSpeed))),
+                    i => i.opcode == OpCodes.Mul,
+                    i => i.Calls(typeof(Time).GetMethod("get_deltaTime")),
+                    i => i.opcode == OpCodes.Mul,
+                    i => i.Calls(typeof(Vector3).GetMethod("op_Multiply", new[] { typeof(Vector3), typeof(float) })),
+                    i => i.Calls(typeof(Vector3).GetMethod("op_Addition", new[] { typeof(Vector3), typeof(Vector3) })),
+                    i => i.Calls(typeof(Transform).GetMethod("set_position"))
+                }, out var found))
+                {
+                    Plugin.MLS.LogDebug("Patching PlayerControllerB.Update to utilize sprint speed while climbing ladders.");
+                    codeList.InsertRange(found.First().Index,
+                        new CodeInstruction[] {
+                            new CodeInstruction(OpCodes.Ldarg_0), // Load player onto stack
+                            Transpilers.EmitDelegate<Action<PlayerControllerB>>(player =>
+                            {
+                                // Update the player's sprint speed
+                                if (player.isSprinting) player.climbSpeed = Mathf.Lerp(player.climbSpeed, _originalClimbSpeed * 2.25f, Time.deltaTime * 1f);
+                                else player.climbSpeed = Mathf.Lerp(player.climbSpeed, _originalClimbSpeed, Time.deltaTime * 10f);
+                            })
+                        }
+                    );
+                }
+                else
+                {
+                    Plugin.MLS.LogWarning("Could not find IL code necessary to patch ladder sprinting in PlayerControllerB.Update!");
+                }
+            }
+
+            return codeList;
+        }
+
         [HarmonyPatch(typeof(PlayerControllerB), nameof(Update))]
         [HarmonyPostfix]
         private static void Update(PlayerControllerB __instance)
         {
             ProfilerHelper.BeginProfilingSafe(_pm_PlayerUpdate);
 
-            // Keep max health values up to date
-            if (!PlayerMaxHealthValues.ContainsKey(__instance) || PlayerMaxHealthValues[__instance] < __instance.health)
+            if (__instance.IsOwner)
             {
-                Plugin.MLS.LogInfo($"Storing player {__instance.playerUsername}'s max health as {__instance.health}");
-                PlayerMaxHealthValues[__instance] = __instance.health;
-            }
-
-            if (!__instance.IsOwner || Plugin.FlashlightToggleShortcut.Value == eValidKeys.None || __instance.inTerminalMenu || __instance.isTypingChat || !__instance.isPlayerControlled)
-            {
-                return;
-            }
-
-            if (!OtherModHelper.FlashlightFixActive && _flashlightTogglePressed())
-            {
-                // Get the nearest flashlight with charge, whether it's held or in the inventory
-                var targetFlashlight = __instance.ItemSlots.OfType<FlashlightItem>().Where(f => !f.insertedBattery.empty) // All charged flashlight items
-                    .OrderBy(f => f.CheckForLaser()) // Sort by non-lasers first
-                    .ThenByDescending(f => __instance.currentlyHeldObjectServer == f) // ... then by held items
-                    .ThenByDescending(f => f.isBeingUsed) // ... then by active status
-                    .ThenBy(f => f.flashlightTypeID) // ... then by pro, regular, laser
-                    .FirstOrDefault();
-
-                // Active lasers in hand are toggling OFF first
-                if (targetFlashlight != null)
+                // Keep max health value up to date
+                if (CurrentMaxHealth < __instance.health)
                 {
-                    targetFlashlight.UseItemOnClient();
+                    Plugin.MLS.LogInfo($"Storing local player's max health as {__instance.health}");
+                    CurrentMaxHealth = __instance.health;
+                }
+
+                // Periodically check if our last synced health value or life status is different from our current, and send it across if so
+                _healthCheckTimer += Time.deltaTime;
+                if (_healthCheckTimer >= _healthCheckInterval)
+                {
+                    _healthCheckTimer = 0;
+
+                    if (LastSyncedLifeStatus.Key != __instance.health || LastSyncedLifeStatus.Value != __instance.isPlayerDead)
+                    {
+                        NetworkHelper.Instance.SyncPlayerLifeStatusServerRpc((int)__instance.playerClientId, __instance.health, __instance.isPlayerDead);
+                    }
+                }
+
+                if (Plugin.FlashlightToggleShortcut.Value != eValidKeys.None && !__instance.inTerminalMenu && !__instance.isTypingChat && __instance.isPlayerControlled)
+                {
+                    if (!OtherModHelper.FlashlightFixActive && _flashlightTogglePressed())
+                    {
+                        // Get the nearest flashlight with charge, whether it's held or in the inventory
+                        var targetFlashlight = __instance.ItemSlots.OfType<FlashlightItem>().Where(f => !f.insertedBattery.empty) // All charged flashlight items
+                            .OrderBy(f => f.CheckForLaser()) // Sort by non-lasers first
+                            .ThenByDescending(f => __instance.currentlyHeldObjectServer == f) // ... then by held items
+                            .ThenByDescending(f => f.isBeingUsed) // ... then by active status
+                            .ThenBy(f => f.flashlightTypeID) // ... then by pro, regular, laser
+                            .FirstOrDefault();
+
+                        // Active lasers in hand are toggling OFF first
+                        if (targetFlashlight != null)
+                        {
+                            targetFlashlight.UseItemOnClient();
+                        }
+                    }
                 }
             }
 
@@ -739,6 +824,48 @@ namespace GeneralImprovements.Patches
             }
 
             ProfilerHelper.EndProfilingSafe(_pm_PlayerLateUpdate);
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(LateUpdate))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> LateUpdate_Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+
+            if (Plugin.SprintOnLadders.Value == eLadderSprintOption.NoDrain)
+            {
+                Label? elseLabel = null;
+
+                // Look for the player body position affected by climbing
+                if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.isSprinting))),
+                    i => i.Branches(out elseLabel),
+                    i => i.IsLdarg(0),
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.sprintMeter))),
+                    i => i.Calls(typeof(Time).GetMethod("get_deltaTime")),
+                    i => i.IsLdarg(0),
+                    i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.sprintTime)))
+                }, out var found))
+                {
+                    Plugin.MLS.LogDebug("Patching PlayerControllerB.LateUpdate to prevent sprint drain while climbing ladders.");
+                    codeList.InsertRange(found.ElementAt(3).Index,
+                        new CodeInstruction[] {
+                            new CodeInstruction(OpCodes.Ldarg_0),
+                            new CodeInstruction(OpCodes.Ldfld, typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.isClimbingLadder))),
+                            new CodeInstruction(OpCodes.Brtrue_S, elseLabel)
+                        }
+                    );
+                }
+                else
+                {
+                    Plugin.MLS.LogWarning("Could not find IL code necessary to patch ladder sprint drain in PlayerControllerB.LateUpdate!");
+                }
+            }
+
+            return codeList;
         }
 
         public static void UpdatePlayerSuitToSavedValue(PlayerControllerB player)

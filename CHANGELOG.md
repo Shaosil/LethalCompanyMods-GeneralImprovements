@@ -1,5 +1,20 @@
 # Changelog
 
+### v1.4.7 - More fixes and improvements
+* Added RPC syncing calls for clients to communicate their health and alive status whenever necessary, resulting in much more reliable player status monitors.
+* Added another option for masked: `MaskedPlayersAppearAliveOnMonitors` (default false), which means the player health and life monitors will show false "good" info for players killed by masks.
+* Added an option `SprintOnLadders` that has **None** (Default, vanilla), **NoDrain** (prevents sprint meter from draining while on a ladder), and **Allow** (lets you use sprint to increase speed).
+* Added an option `AllowChargerPlacement` (default false) that, if enabled, will turn the item charger into a placeable ship object.
+	* Similarly to the medkit, **this will prevent connecting to players who do not share the same value!**
+* Added an option `RadarBoostersCanBeTeleported`, which has **Disabled** (Default, vanilla), **OnlyRegular**, **OnlyInverse**, **RegularAndInverse**.
+* Added an option `DisplayRoundedKg` that rounds decimals to whole numbers if using Kg instead of Lb.
+* Simplified the way the medkit keeps track of maximum health.
+* Fixed the medkit's interaction position's Y height being incorrect if it had been moved higher or lower than its default placement.
+* The medkit and charge station, when placeable, will now auto align themselves to face the interior, removing some of the complication of player interaction placement.
+* Fixed a bug where other clients' HUD item icons would disappear when other players teleported, if certain items were kept during teleports.
+
+**NOTE: If you install or update this mod manually, you will need to get the latest version of the assets file with this release.**
+
 ### v1.4.6 - More options, fixes, and improvements
 * Included the belt bag as an option for scannable tools (BeltBagItem)
 * Updated some things about Starting Money:
