@@ -54,7 +54,7 @@ namespace GeneralImprovements.Utilities
                 else
                 {
                     // If we are a client, try to find it in the scene first
-                    Plugin.MLS.LogInfo("Finding medical station in ship");
+                    Plugin.MLS.LogInfo("Finding networked medical station in ship");
                     MedStation = Object.FindObjectOfType<MedStationItem>();
 
                     if (MedStation == null)
@@ -260,9 +260,11 @@ namespace GeneralImprovements.Utilities
             {
                 // Add PlaceableShipObject and AutoParentToShip
                 var placeable = gameObject.transform.Find("PlacementCollider").gameObject.AddComponent<PlaceableShipObject>();
+                placeable.parentObject = gameObject.GetComponent<AutoParentToShip>();
+                placeable.parentObject.positionOffset = StartOfRound.Instance.elevatorTransform.InverseTransformPoint(gameObject.transform.position);
+                placeable.parentObject.rotationOffset = StartOfRound.Instance.elevatorTransform.InverseTransformDirection(gameObject.transform.eulerAngles);
                 placeable.gameObject.tag = "PlaceableObject";
                 placeable.unlockableID = unlockableID;
-                placeable.parentObject = gameObject.AddComponent<AutoParentToShip>();
                 placeable.placeObjectCollider = placeable.GetComponent<BoxCollider>();
                 placeable.AllowPlacementOnWalls = true;
                 placeable.mainMesh = gameObject.GetComponentInChildren<MeshFilter>();

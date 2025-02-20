@@ -16,25 +16,14 @@ namespace GeneralImprovements.Patches
         [HarmonyPatch(typeof(TimeOfDay), nameof(TimeOfDay.SetNewProfitQuota))]
         [HarmonyPrefix]
         [HarmonyPriority(Priority.Low)]
-        private static bool SetNewProfitQuota(TimeOfDay __instance)
+        private static void SetNewProfitQuota(TimeOfDay __instance)
         {
             if (Plugin.AllowQuotaRollover.Value)
             {
-                // This will get called by vanilla code every day it detects you are over the target quota.
-                // If we are over our deadline, or we have sold items today, that's fine. Otherwise, prevent the call.
-                bool shouldSetNewQuota = __instance.timeUntilDeadline <= 0 || DepositItemsDeskPatch.NumItemsSoldToday > 0;
-                if (!shouldSetNewQuota)
-                {
-                    Plugin.MLS.LogInfo($"Skipping SetNewProfitQuota as we are not past the deadline ({__instance.timeUntilDeadline} remaining) and we did not sell any items today.");
-                    return false;
-                }
-
                 // Store the leftover funds on the server before they are overwritten
                 _leftoverFunds = __instance.quotaFulfilled - __instance.profitQuota;
                 Plugin.MLS.LogInfo($"Storing surplus quota on server: ${_leftoverFunds}");
             }
-
-            return true;
         }
 
         [HarmonyPatch(typeof(TimeOfDay), nameof(SetNewProfitQuota))]
@@ -63,13 +52,13 @@ namespace GeneralImprovements.Patches
                             if (Plugin.OvertimeBonusType.Value == Enums.eOvertimeBonusType.Disabled)
                             {
                                 // Replace the subtraction with a simple zero
-                                Plugin.MLS.LogDebug("Patching new profit quota method to remove overtime bonus calculation.");
+                                Plugin.MLS.LogDebug("Patching TimeOfDay.SetNewProfitQuota to remove overtime bonus calculation.");
                                 found.First().Instruction.opcode = OpCodes.Ldc_I4_0;
                             }
                             else
                             {
                                 // Replace the overtime bonus parameter with the amount that we've sold
-                                Plugin.MLS.LogDebug("Patching new profit quota method to use sold scrap only for overtime bonus.");
+                                Plugin.MLS.LogDebug("Patching TimeOfDay.SetNewProfitQuota to use sold scrap only for overtime bonus.");
                                 codeList[found.First().Index] = Transpilers.EmitDelegate<Func<int>>(() => Math.Max(DepositItemsDeskPatch.ProfitThisQuota - TimeOfDay.Instance.profitQuota, 0));
                             }
 

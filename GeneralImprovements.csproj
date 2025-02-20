@@ -126,7 +126,7 @@
         </None>
     </ItemGroup>
 
-    <Target Name="CopyFilesToGamePath" AfterTargets="PostBuildEvent" Condition="$(Configuration) != 'Debug'">
+    <Target Name="CopyFilesToGamePath" AfterTargets="PostBuildEvent">
         <!-- Install the netcode-patcher CLI from here: https://github.com/EvaisaDev/UnityNetcodePatcher -->
         <Message Text="Patching netcode..." Importance="high" />
         <Exec Command="netcode-patch &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" />

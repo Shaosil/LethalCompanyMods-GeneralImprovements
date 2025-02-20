@@ -26,7 +26,6 @@ namespace GeneralImprovements.Patches
             {
                 // Init extra mask data
                 _maskData[__instance] = new ExtraMaskData();
-                _maskData[__instance].KilledPlayer = __instance.mimickingPlayer; // Can be null
 
                 // If the masked spawned from a player, use their name and appearance. Otherwise, use any random player's name and appearance.
                 var rand = new System.Random(StartOfRound.Instance.randomMapSeed + NumSpawnedThisLevel);
@@ -153,13 +152,12 @@ namespace GeneralImprovements.Patches
             }
         }
 
-        public static int GetNumMaskedPlayers() => _maskData.Values.Count(v => v.KilledPlayer != null);
+        public static int GetNumMaskedPlayers() => StartOfRound.Instance.allPlayerScripts.Count(p => GetPlayerIsMasked(p));
 
-        public static bool GetPlayerIsMasked(PlayerControllerB player) => _maskData.Values.Any(v => v.KilledPlayer == player);
+        public static bool GetPlayerIsMasked(PlayerControllerB player) => player.redirectToEnemy?.GetComponent<MaskedPlayerEnemy>() != null;
 
         private class ExtraMaskData
         {
-            public PlayerControllerB KilledPlayer;
             public Canvas Canvas;
             public CanvasGroup CanvasGroup;
             public GameObject RadarIcon;

@@ -131,5 +131,26 @@ namespace GeneralImprovements.Patches
                 _gotShipNode = false;
             }
         }
+
+        // Uncomment to force a specific enemy to spawn
+        //[HarmonyPatch(typeof(RoundManager), "GetRandomWeightedIndex")]
+        //[HarmonyPostfix]
+        //private static int GetRandomWeightedIndex(int __result, RoundManager __instance)
+        //{
+        //    if (new StackTrace().GetFrame(2).GetMethod().Name != "AssignRandomEnemyToVent")
+        //    {
+        //        Plugin.MLS.LogError($"Skipping random index - current method name: {new StackTrace().GetFrame(2).GetMethod().Name}");
+        //        return __result;
+        //    }
+
+        //    var masked = __instance.currentLevel?.Enemies?.FirstOrDefault(e => e.enemyType?.enemyName == "Masked");
+        //    if (masked != null)
+        //    {
+        //        Plugin.MLS.LogWarning("FORCING A MASK SPAWN");
+        //        return __instance.currentLevel.Enemies.IndexOf(masked);
+        //    }
+
+        //    return __result;
+        //}
     }
 }

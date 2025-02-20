@@ -449,6 +449,44 @@ namespace GeneralImprovements.Patches
             return codeList;
         }
 
+        [HarmonyPatch(typeof(StartOfRound), "EndOfGame", MethodType.Enumerator)]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> EndOfGame_Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+
+            // Prevent the call to set a new profit quota every day if we are over
+            if (Plugin.AllowQuotaRollover.Value)
+            {
+                Label? outsideBlock = null;
+
+                if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+                {
+                    i => i.opcode == OpCodes.Ldloc_1,
+                    i => i.LoadsField(typeof(StartOfRound).GetField(nameof(StartOfRound.isChallengeFile))),
+                    i => i.Branches(out outsideBlock),
+                    i => i.Calls(typeof(TimeOfDay).GetMethod("get_Instance")),
+                    i => i.Calls(typeof(TimeOfDay).GetMethod(nameof(TimeOfDay.SetNewProfitQuota)))
+                }, out var found))
+                {
+                    Plugin.MLS.LogDebug("Patching StartOfRound.EndOfGame to prevent a new quota from being set every day if there is rollover profit.");
+                    codeList.InsertRange(found[3].Index, new CodeInstruction[]
+                    {
+                        new CodeInstruction(OpCodes.Call, typeof(TimeOfDay).GetMethod("get_Instance")),
+                        // Return true (should call) if we are either over our deadline or have sold items today
+                        Transpilers.EmitDelegate<System.Func<TimeOfDay, bool>>(tod => tod.timeUntilDeadline <= 0 || DepositItemsDeskPatch.NumItemsSoldToday > 0),
+                        new CodeInstruction(OpCodes.Brfalse_S, outsideBlock)
+                    });
+                }
+                else
+                {
+                    Plugin.MLS.LogWarning("Unexpected IL Code - Could not patch StartOfRound.EndOfGame to support quota rollover!");
+                }
+            }
+
+            return codeList;
+        }
+
         [HarmonyPatch(typeof(StartOfRound), nameof(PassTimeToNextDay))]
         [HarmonyPrefix]
         private static void PassTimeToNextDay(StartOfRound __instance)

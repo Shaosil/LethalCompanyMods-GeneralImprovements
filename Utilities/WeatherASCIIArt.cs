@@ -107,6 +107,21 @@
   |         |\
    -----"
         };
+        public static string[] UnknownAnimations = new string[]
+        {
+@"  ?       ?
+?     ?
+    ?     ?
+?  ?        ?",
+@"?   ?       ?
+   ?    ?
+?      ?   
+    ?   ?    ?",
+@"      ?
+?   ?      ?
+  ?     ?
+ ?         ?"
+        };
         public static string[] LightningOverlays = new string[]
         {
 @"  \

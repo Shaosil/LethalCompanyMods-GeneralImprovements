@@ -1,5 +1,14 @@
 # Changelog
 
+### v1.4.8 - Fixes and compatibility improvements
+* Fixed a bug that would spam errors when placing the medkit if the item charger placement was disabled.
+* Fixed a compatibility issue with [FurnitureLock](https://thunderstore.io/c/lethal-company/p/mattymatty/FurnitureLock/) where the medkit and item charger could not be placed properly.
+* Fixed a bug with the PlayersAlive monitor where it would display too many alive players when using certain masked enemy mods.
+* Fixed a bug where using Held or NonScrap for the keep items during teleport would cause two handed scrap to float or disappear when the player was teleported.
+* Potentially fixed a bug where masked players would be incorrectly counted when using other masked mods with MaskedPlayersAppearAliveOnMonitors set to true.
+* Potentially improved compatibility with [LethalMoonUnlocks](https://thunderstore.io/c/lethal-company/p/explodingMods/LethalMoonUnlocks/) and other mods that hook into the SetNewProfitQuota function from vanilla code.
+* The weather monitors now show "unknown" statuses when there is unsupported weather, such as from another mod, instead of showing a blank screen.
+
 ### v1.4.7 - More fixes and improvements
 * Added RPC syncing calls for clients to communicate their health and alive status whenever necessary, resulting in much more reliable player status monitors.
 * Added another option for masked: `MaskedPlayersAppearAliveOnMonitors` (default false), which means the player health and life monitors will show false "good" info for players killed by masks.

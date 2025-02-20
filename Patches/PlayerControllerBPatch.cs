@@ -303,6 +303,11 @@ namespace GeneralImprovements.Patches
                 }
             }
 
+            RefreshCurrentHeldItem(__instance);
+        }
+
+        private static void RefreshCurrentHeldItem(PlayerControllerB __instance)
+        {
             // Refresh the current item slot if the player is holding something new
             var newHeldItem = __instance.ItemSlots[__instance.currentItemSlot];
             if (__instance.currentlyHeldObjectServer != newHeldItem)
@@ -311,8 +316,8 @@ namespace GeneralImprovements.Patches
                 {
                     newHeldItem.EquipItem();
                 }
-                __instance.twoHanded = false;
-                __instance.twoHandedAnimation = false;
+                __instance.twoHanded = newHeldItem?.itemProperties.twoHanded ?? false;
+                __instance.twoHandedAnimation = newHeldItem?.itemProperties.twoHandedAnimation ?? false;
                 __instance.playerBodyAnimator.ResetTrigger("Throw");
                 __instance.playerBodyAnimator.SetBool("Grab", true);
                 if (!string.IsNullOrEmpty(newHeldItem?.itemProperties.grabAnim))
@@ -328,9 +333,13 @@ namespace GeneralImprovements.Patches
                 __instance.playerBodyAnimator.SetTrigger("SwitchHoldAnimation");
                 __instance.playerBodyAnimator.SetBool("GrabValidated", true);
                 __instance.playerBodyAnimator.SetBool("cancelHolding", false);
-                __instance.twoHandedAnimation = newHeldItem?.itemProperties.twoHandedAnimation ?? false;
                 __instance.isHoldingObject = newHeldItem != null;
                 __instance.currentlyHeldObjectServer = newHeldItem;
+
+                if (__instance.IsOwner)
+                {
+                    HUDManager.Instance.holdingTwoHandedItem.enabled = __instance.twoHanded;
+                }
             }
         }
 
@@ -660,12 +669,9 @@ namespace GeneralImprovements.Patches
                 }
             }
 
+            RefreshCurrentHeldItem(player);
+
             player.carryWeight = 1 + player.ItemSlots.Sum(i => (i?.itemProperties.weight ?? 1) - 1);
-            player.twoHanded = oldHeldSlot > -1 && (player.ItemSlots[oldHeldSlot]?.itemProperties.twoHanded ?? false);
-            if (player.IsOwner)
-            {
-                HUDManager.Instance.holdingTwoHandedItem.enabled = player.twoHanded;
-            }
         }
 
         public static void DropItemAtIndex(PlayerControllerB player, int index)

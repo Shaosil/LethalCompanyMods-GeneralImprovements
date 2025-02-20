@@ -146,7 +146,7 @@ namespace GeneralImprovements.Patches
                     if (Physics.Raycast(___playerCameraRay, out var hit, 4f, ___placementMask, QueryTriggerInteraction.Ignore))
                     {
                         // Custom offset for charger since its model is on its side
-                        var offset = ___placingObject.parentObject.gameObject == ObjectHelper.ChargeStation.gameObject ? Quaternion.Euler(-90, 0, 90) : Quaternion.identity;
+                        var offset = ___placingObject.parentObject.gameObject == ObjectHelper.ChargeStation?.gameObject ? Quaternion.Euler(-90, 0, 90) : Quaternion.identity;
                         __instance.ghostObject.rotation = Quaternion.LookRotation(hit.normal) * offset;
                     }
                 }

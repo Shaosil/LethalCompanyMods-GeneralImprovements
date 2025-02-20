@@ -28,12 +28,14 @@ namespace GeneralImprovements.Patches
             if (Plugin.AddHealthRechargeStation.Value && AssetBundleHelper.MedStationPrefab != null)
             {
                 AssetBundleHelper.MedStationPrefab.AddComponent<MedStationItem>();
+                AssetBundleHelper.MedStationPrefab.AddComponent<AutoParentToShip>();
                 NetworkManager.Singleton.AddNetworkPrefab(AssetBundleHelper.MedStationPrefab);
             }
 
             if (Plugin.AllowChargerPlacement.Value && AssetBundleHelper.ChargeStationPrefab != null)
             {
                 AssetBundleHelper.ChargeStationPrefab.AddComponent<CustomChargeStation>();
+                AssetBundleHelper.ChargeStationPrefab.AddComponent<AutoParentToShip>();
                 NetworkManager.Singleton.AddNetworkPrefab(AssetBundleHelper.ChargeStationPrefab);
             }
 

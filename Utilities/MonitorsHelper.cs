@@ -777,7 +777,7 @@ namespace GeneralImprovements.Utilities
             {
                 if (_weatherMonitorTexts.Count > 0)
                 {
-                    if (UpdateGenericTextList(_weatherMonitorTexts, $"WEATHER:\n{(StartOfRound.Instance.currentLevel?.currentWeather.ToString() ?? string.Empty)}"))
+                    if (UpdateGenericTextList(_weatherMonitorTexts, $"WEATHER:\n{(StartOfRound.Instance.currentLevel?.currentWeather.ToString() ?? "???")}"))
                     {
                         Plugin.MLS.LogInfo("Updated basic weather monitors");
                     }
@@ -794,7 +794,7 @@ namespace GeneralImprovements.Utilities
                         LevelWeatherType.Foggy => WeatherASCIIArt.FoggyAnimations,
                         LevelWeatherType.Flooded => WeatherASCIIArt.FloodedAnimations,
                         LevelWeatherType.Eclipsed => WeatherASCIIArt.EclipsedAnimations,
-                        _ => new string[] { string.Empty }
+                        _ => WeatherASCIIArt.UnknownAnimations
                     };
 
                     _weatherHasOverlays = StartOfRound.Instance.currentLevel?.currentWeather == LevelWeatherType.Stormy;
