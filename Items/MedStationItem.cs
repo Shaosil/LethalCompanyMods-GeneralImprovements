@@ -49,6 +49,8 @@ namespace GeneralImprovements.Items
         [ClientRpc]
         private void HealPlayerClientRpc(ulong playerID, int targetHealth)
         {
+            if (TryGetComponent<Animation>(out var anim)) anim.Play();
+
             var player = StartOfRound.Instance.allPlayerScripts[playerID];
 
             Plugin.MLS.LogInfo($"Healing {player.playerUsername} back to {targetHealth}...");

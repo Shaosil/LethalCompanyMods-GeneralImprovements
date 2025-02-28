@@ -21,9 +21,10 @@ namespace GeneralImprovements.Patches
         public static HashSet<string> FlownToHiddenMoons = new HashSet<string>();
         public static Dictionary<int, int> DailyScrapCollected = new Dictionary<int, int>(); // Each day's scrap collected
 
-        [HarmonyPatch(typeof(StartOfRound), nameof(Start))]
+        [HarmonyPatch(typeof(StartOfRound), "Awake")]
         [HarmonyPrefix]
-        private static void Start_Pre(StartOfRound __instance)
+        [HarmonyPriority(Priority.First)]
+        private static void Awake_Pre(StartOfRound __instance)
         {
             // Reset med station reference and other helpers
             TerminalPatch._instance = null;
@@ -35,13 +36,15 @@ namespace GeneralImprovements.Patches
             // If we will be creating the med station, make sure it is registered as an unlockable
             if (Plugin.AddHealthRechargeStation.Value)
             {
-                ObjectHelper.MedStationUnlockableID = ObjectHelper.AddUnlockable("Med Station");
+                ObjectHelper.MedStationUnlockableID = ObjectHelper.AddUnlockable(__instance, "Med Station");
+                AssetBundleHelper.MedStationPrefab.GetComponentInChildren<PlaceableShipObject>().unlockableID = ObjectHelper.MedStationUnlockableID;
             }
 
             // If we allow the item charger to be a placeable, make sure it is registered as an unlockable
             if (Plugin.AllowChargerPlacement.Value)
             {
-                ObjectHelper.ChargeStationUnlockableID = ObjectHelper.AddUnlockable("Item Charger");
+                ObjectHelper.ChargeStationUnlockableID = ObjectHelper.AddUnlockable(__instance, "Item Charger");
+                AssetBundleHelper.ChargeStationPrefab.GetComponentInChildren<PlaceableShipObject>().unlockableID = ObjectHelper.ChargeStationUnlockableID;
             }
         }
 

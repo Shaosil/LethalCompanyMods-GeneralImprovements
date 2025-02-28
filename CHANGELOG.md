@@ -1,9 +1,19 @@
 # Changelog
 
+### v1.4.9 - Yo dawg I heard you like fixes. So I made fixes for my fixes so you could see me fix what I fixed.
+* Lightly overhauled the medkit and charge station in the assets bundle.
+	* This fixes another compatibility with [FurnitureLock](https://thunderstore.io/c/lethal-company/p/mattymatty/FurnitureLock/) where the medkit and item charger could not be locked at all.
+	* This also fixes a compatibility with [ShipColors](https://thunderstore.io/c/lethal-company/p/darmuh/ShipColors/) where the medkit and item charger would not show up in the config.
+* Added a small animation to the medkit when used.
+* Fixed errors that would occur when checking if players were masked when using Alive monitors.
+* Fixed the medkit's interaction position always being in the charger's position when loading a save.
+* Fixed the placeable charger's interaction position height being incorrect when loading a save.
+
+**NOTE: If you install or update this mod manually, you will need to get the latest version of the assets file with this release.**
+
 ### v1.4.8 - Fixes and compatibility improvements
 * Fixed a bug that would spam errors when placing the medkit if the item charger placement was disabled.
 * Fixed a compatibility issue with [FurnitureLock](https://thunderstore.io/c/lethal-company/p/mattymatty/FurnitureLock/) where the medkit and item charger could not be placed properly.
-* Fixed a bug with the PlayersAlive monitor where it would display too many alive players when using certain masked enemy mods.
 * Fixed a bug where using Held or NonScrap for the keep items during teleport would cause two handed scrap to float or disappear when the player was teleported.
 * Potentially fixed a bug where masked players would be incorrectly counted when using other masked mods with MaskedPlayersAppearAliveOnMonitors set to true.
 * Potentially improved compatibility with [LethalMoonUnlocks](https://thunderstore.io/c/lethal-company/p/explodingMods/LethalMoonUnlocks/) and other mods that hook into the SetNewProfitQuota function from vanilla code.

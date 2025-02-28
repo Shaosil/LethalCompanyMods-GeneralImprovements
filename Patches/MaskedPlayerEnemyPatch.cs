@@ -152,9 +152,9 @@ namespace GeneralImprovements.Patches
             }
         }
 
-        public static int GetNumMaskedPlayers() => StartOfRound.Instance.allPlayerScripts.Count(p => GetPlayerIsMasked(p));
+        public static int GetNumMaskedPlayers() => StartOfRound.Instance.allPlayerScripts.Count(p => p != null && GetPlayerIsMasked(p));
 
-        public static bool GetPlayerIsMasked(PlayerControllerB player) => player.redirectToEnemy?.GetComponent<MaskedPlayerEnemy>() != null;
+        public static bool GetPlayerIsMasked(PlayerControllerB player) => player?.redirectToEnemy?.GetComponent<MaskedPlayerEnemy>() != null;
 
         private class ExtraMaskData
         {

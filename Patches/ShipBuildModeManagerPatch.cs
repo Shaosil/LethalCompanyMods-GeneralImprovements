@@ -145,8 +145,8 @@ namespace GeneralImprovements.Patches
                     // Automatically force the rotation to be facing the middle of the ship if we're hitting a wall
                     if (Physics.Raycast(___playerCameraRay, out var hit, 4f, ___placementMask, QueryTriggerInteraction.Ignore))
                     {
-                        // Custom offset for charger since its model is on its side
-                        var offset = ___placingObject.parentObject.gameObject == ObjectHelper.ChargeStation?.gameObject ? Quaternion.Euler(-90, 0, 90) : Quaternion.identity;
+                        // If any future placeable is rotated, this is the place to define an offset
+                        var offset = Quaternion.identity;
                         __instance.ghostObject.rotation = Quaternion.LookRotation(hit.normal) * offset;
                     }
                 }
