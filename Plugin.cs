@@ -20,7 +20,7 @@ namespace GeneralImprovements
     [BepInDependency(OtherModHelper.CodeRebirthGUID, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(OtherModHelper.MimicsGUID, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(OtherModHelper.TwoRadarCamsGUID, BepInDependency.DependencyFlags.SoftDependency)]
-    [BepInDependency(OtherModHelper.WeatherTweaksGUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(OtherModHelper.WeatherRegistryGUID, BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
         public static ManualLogSource MLS { get; private set; }
