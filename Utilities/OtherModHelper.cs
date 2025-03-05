@@ -18,7 +18,7 @@ namespace GeneralImprovements.Utilities
         public const string CodeRebirthGUID = "CodeRebirth";
         public const string MimicsGUID = "x753.Mimics";
         public const string TwoRadarCamsGUID = "Zaggy1024.TwoRadarMaps";
-        public const string WeatherTweaksGUID = "WeatherTweaks";
+        public const string WeatherRegistryGUID = "mrov.WeatherRegistry";
 
         public static bool AdvancedCompanyActive { get; private set; }
         public static bool CodeRebirthActive { get; private set; }
@@ -27,7 +27,7 @@ namespace GeneralImprovements.Utilities
         public static bool MimicsActive { get; private set; }
         public static bool ReservedItemSlotCoreActive { get; private set; }
         public static bool TwoRadarCamsActive { get; private set; }
-        public static bool WeatherTweaksActive { get; private set; }
+        public static bool WeatherRegistryActive { get; private set; }
 
         public static ManualCameraRenderer TwoRadarCamsMapRenderer { get; set; }
 
@@ -38,6 +38,10 @@ namespace GeneralImprovements.Utilities
         private static FieldInfo PlayerData => _reservedPlayerData ?? (_reservedPlayerData = _reservedPlayerPatcherType.GetField("allPlayerData", BindingFlags.NonPublic | BindingFlags.Static));
         private static MethodInfo _isReservedSlot;
         private static MethodInfo IsReservedSlot => _isReservedSlot ?? (_isReservedSlot = _reservedPlayerDataType.GetMethod("IsReservedItemSlot"));
+
+        // Reflection information for WeatherRegistry
+        private static Type _weatherManager;
+        private static MethodInfo WeatherGetCurrentName => _weatherManager.GetMethod("GetCurrentWeatherName");
 
         public static void Initialize()
         {
@@ -55,6 +59,12 @@ namespace GeneralImprovements.Utilities
                 _reservedPlayerDataType = reservedItemSlotCoreAssembly.GetType("ReservedItemSlotCore.ReservedPlayerData");
             }
 
+            var WeatherRegistryAssembly = allAssemblies.FirstOrDefault(a => a.FullName.Contains("WeatherRegistry,"));
+            if (WeatherRegistryAssembly != null)
+            {
+                _weatherManager = WeatherRegistryAssembly.GetType("WeatherRegistry.WeatherManager");
+            }
+
             // Set active statuses
             AdvancedCompanyActive = AppDomain.CurrentDomain.GetAssemblies().Any(a => a.FullName.Contains("AdvancedCompany,"));
             BuyRateSettingsActive = Chainloader.PluginInfos.ContainsKey(BuyRateSettingsGUID);
@@ -66,7 +76,7 @@ namespace GeneralImprovements.Utilities
             MimicsActive = Chainloader.PluginInfos.ContainsKey(MimicsGUID);
             ReservedItemSlotCoreActive = reservedItemSlotCoreAssembly != null;
             TwoRadarCamsActive = Chainloader.PluginInfos.ContainsKey(TwoRadarCamsGUID);
-            WeatherTweaksActive = Chainloader.PluginInfos.ContainsKey(WeatherTweaksGUID);
+            WeatherRegistryActive = Chainloader.PluginInfos.ContainsKey(WeatherRegistryGUID);
 
             // Print which were found to be active
             if (AdvancedCompanyActive) Plugin.MLS.LogDebug("Advanced Company Detected");
@@ -75,7 +85,7 @@ namespace GeneralImprovements.Utilities
             if (MimicsActive) Plugin.MLS.LogDebug("Mimics Detected");
             if (ReservedItemSlotCoreActive) Plugin.MLS.LogDebug("Reserved Item Slot Core Detected");
             if (TwoRadarCamsActive) Plugin.MLS.LogDebug("Two Radar Cams Detected");
-            if (WeatherTweaksActive) Plugin.MLS.LogDebug("Weather Tweaks Detected");
+            if (WeatherRegistryActive) Plugin.MLS.LogDebug("WeatherRegistry Detected");
 
             _initialized = true;
         }
@@ -147,6 +157,16 @@ namespace GeneralImprovements.Utilities
                 if (patched) Plugin.MLS.LogDebug("Patched MoonJuice.BuyRateSettings.Refresh() and BuyRateSetterPatch() to work with company buy rate monitor (if needed).");
                 else Plugin.MLS.LogWarning("BuyRateSettings detected but could not patch MoonJuice.BuyRateSettings.Refresh() and BuyRateSetterPatch() to work with company buy rate monitor (if needed)! Did a signature change?");
             }
+        }
+
+        internal static string GetWeatherRegistryWeatherName(SelectableLevel level){
+
+            if (!WeatherRegistryActive)
+            {
+                return string.Empty;
+            }
+
+            return (string)WeatherGetCurrentName.Invoke(null, new object[] { level, false });
         }
     }
 }

@@ -236,7 +236,7 @@ namespace GeneralImprovements.Patches
                     // Now handle weather and optional price manually
                     for (int i = 0; i < allmoons.Count; i++)
                     {
-                        string weather = OtherModHelper.WeatherTweaksActive || allmoons[i].currentWeather == LevelWeatherType.None ? string.Empty : $"({allmoons[i].currentWeather}) ";
+                        string weather = OtherModHelper.WeatherRegistryActive ? $"({OtherModHelper.GetWeatherRegistryWeatherName(allmoons[i])})" : allmoons[i].currentWeather == LevelWeatherType.None ? string.Empty : $"({allmoons[i].currentWeather}) ";
                         var matchingMoonNode = routeNode.compatibleNouns.FirstOrDefault(n => allmoons[i].PlanetName.Contains(n.noun.word, StringComparison.OrdinalIgnoreCase));
                         if (matchingMoonNode != null)
                         {
