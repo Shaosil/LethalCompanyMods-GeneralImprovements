@@ -1149,7 +1149,7 @@ namespace GeneralImprovements.Utilities
                 var colorHexes = new[] { "00ff00", "ffc400", "ff0000" };
                 int curDanger = numAlive >= totalPlayers ? 0 : numAlive > 1 ? 1 : 2;
 
-                if (UpdateGenericTextList(_playersAliveMonitorTexts, $"Players Alive:\n{ApplyColorToText($"{numAlive}/{totalPlayers}", colorHexes[curDanger])}"))
+                if (UpdateGenericTextList(_playersAliveMonitorTexts, $"PLAYERS ALIVE:\n{ApplyColorToText($"{numAlive}/{totalPlayers}", colorHexes[curDanger])}"))
                 {
                     Plugin.MLS.LogDebug("Updated players alive display.");
                 }

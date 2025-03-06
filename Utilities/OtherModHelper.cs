@@ -16,6 +16,7 @@ namespace GeneralImprovements.Utilities
 
         public const string BuyRateSettingsGUID = "MoonJuice.BuyRateSettings";
         public const string CodeRebirthGUID = "CodeRebirth";
+        public const string MattyFixesGUID = "mattymatty.MattyFixes";
         public const string MimicsGUID = "x753.Mimics";
         public const string TwoRadarCamsGUID = "Zaggy1024.TwoRadarMaps";
         public const string WeatherRegistryGUID = "mrov.WeatherRegistry";
@@ -24,6 +25,7 @@ namespace GeneralImprovements.Utilities
         public static bool CodeRebirthActive { get; private set; }
         public static bool BuyRateSettingsActive { get; private set; }
         public static bool FlashlightFixActive { get; private set; }
+        public static bool MattyFixesActive { get; private set; }
         public static bool MimicsActive { get; private set; }
         public static bool ReservedItemSlotCoreActive { get; private set; }
         public static bool TwoRadarCamsActive { get; private set; }
@@ -73,6 +75,7 @@ namespace GeneralImprovements.Utilities
             var flashlightFixPlugin = TypeLoader.FindPluginTypes(Paths.PluginPath, Chainloader.ToPluginInfo)
                 .FirstOrDefault(p => p.Value.FirstOrDefault()?.Metadata.GUID == "ShaosilGaming.FlashlightFix").Value?.FirstOrDefault();
             FlashlightFixActive = flashlightFixPlugin != null && flashlightFixPlugin.Metadata.Version.Minor < 2;
+            MattyFixesActive = Chainloader.PluginInfos.ContainsKey(MattyFixesGUID);
             MimicsActive = Chainloader.PluginInfos.ContainsKey(MimicsGUID);
             ReservedItemSlotCoreActive = reservedItemSlotCoreAssembly != null;
             TwoRadarCamsActive = Chainloader.PluginInfos.ContainsKey(TwoRadarCamsGUID);
@@ -82,6 +85,7 @@ namespace GeneralImprovements.Utilities
             if (AdvancedCompanyActive) Plugin.MLS.LogDebug("Advanced Company Detected");
             if (BuyRateSettingsActive) Plugin.MLS.LogDebug("BuyRateSettings Detected");
             if (CodeRebirthActive) Plugin.MLS.LogDebug("CodeRebirth Detected");
+            if (MattyFixesActive) Plugin.MLS.LogDebug("Matty Fixes Detected");
             if (MimicsActive) Plugin.MLS.LogDebug("Mimics Detected");
             if (ReservedItemSlotCoreActive) Plugin.MLS.LogDebug("Reserved Item Slot Core Detected");
             if (TwoRadarCamsActive) Plugin.MLS.LogDebug("Two Radar Cams Detected");

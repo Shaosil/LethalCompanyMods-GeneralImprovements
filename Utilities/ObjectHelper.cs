@@ -127,9 +127,6 @@ namespace GeneralImprovements.Utilities
 
                 // Copy over the things from the real charger that we couldn't set in our prefab, and lock position node height to the ship floor
                 ourTrigger.hoverIcon = existingChargeTrigger.hoverIcon;
-                ChargeStation.transform.Find("Model").GetComponent<MeshRenderer>().sharedMaterials = charger.GetComponent<MeshRenderer>().sharedMaterials   // Base 7 materials
-                    .Concat(charger.Find("ChargeInductiveCoil").GetComponent<MeshRenderer>().sharedMaterials)                                               // Coil material
-                    .Concat(charger.Find("ChargeProng1").GetComponent<MeshRenderer>().sharedMaterials).ToArray();                                           // Prongs material
                 chargeComponent.triggerScript = ourTrigger;
                 chargeComponent.zapAudio = CopyAudioSource(existingChargeTrigger.GetComponent<AudioSource>(), ourTrigger.GetComponent<AudioSource>());
                 ourTrigger.onInteractEarly.AddListener(_ => chargeComponent.ChargeItem());

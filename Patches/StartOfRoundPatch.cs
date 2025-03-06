@@ -129,6 +129,36 @@ namespace GeneralImprovements.Patches
             }
         }
 
+        [HarmonyPatch(typeof(StartOfRound), nameof(LoadUnlockables))]
+        [HarmonyPostfix]
+        private static void LoadUnlockables(StartOfRound __instance)
+        {
+            // If saving furniture places, and starting a new lobby, there may be leftover saved positions that wouldn't have loaded yet. Fix that here
+            if (__instance.IsServer && Plugin.SaveShipFurniturePlaces.Value != eSaveFurniturePlacement.None && !ES3.KeyExists("UnlockedShipObjects", GameNetworkManager.Instance.currentSaveFileName))
+            {
+                for (int i = 0; i < __instance.unlockablesList.unlockables.Count; i++)
+                {
+                    var unlockable = __instance.unlockablesList.unlockables[i];
+
+                    // Only starting furniture
+                    if (!unlockable.spawnPrefab && Object.FindObjectsByType<PlaceableShipObject>(FindObjectsSortMode.None).FirstOrDefault(p => p.unlockableID == i) is PlaceableShipObject placeable)
+                    {
+                        if (unlockable.hasBeenMoved)
+                        {
+                            Plugin.MLS.LogInfo($"{unlockable.unlockableName} is detected as having been moved. Syncing position.");
+                            ShipBuildModeManager.Instance.PlaceShipObject(unlockable.placedPosition, unlockable.placedRotation, placeable, false);
+                        }
+
+                        if (unlockable.inStorage)
+                        {
+                            Plugin.MLS.LogInfo($"{unlockable.unlockableName} is detected as having been stored. Storing locally.");
+                            placeable.parentObject.disableObject = true;
+                        }
+                    }
+                }
+            }
+        }
+
         [HarmonyPatch(typeof(StartOfRound), nameof(SetTimeAndPlanetToSavedSettings))]
         [HarmonyTranspiler]
         private static IEnumerable<CodeInstruction> SetTimeAndPlanetToSavedSettings(IEnumerable<CodeInstruction> instructions)
@@ -421,7 +451,7 @@ namespace GeneralImprovements.Patches
         {
             var codeList = instructions.ToList();
 
-            if (Plugin.SaveShipFurniturePlaces.Value != Enums.eSaveFurniturePlacement.None)
+            if (Plugin.SaveShipFurniturePlaces.Value != eSaveFurniturePlacement.None)
             {
                 Label? elseLabel = null;
                 if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]

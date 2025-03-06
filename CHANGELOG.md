@@ -4,10 +4,15 @@
 * Lightly overhauled the medkit and charge station in the assets bundle.
 	* This fixes another compatibility with [FurnitureLock](https://thunderstore.io/c/lethal-company/p/mattymatty/FurnitureLock/) where the medkit and item charger could not be locked at all.
 	* This also fixes a compatibility with [ShipColors](https://thunderstore.io/c/lethal-company/p/darmuh/ShipColors/) where the medkit and item charger would not show up in the config.
+* Fixed compatibility with [Matty Fixes](https://thunderstore.io/c/lethal-company/p/mattymatty/Matty_Fixes/) where having `FixItemsLoadingSameRotation` enabled would cause issues with item rotation.
+* Merged a PR from [AndreyMrovol](https://github.com/AndreyMrovol) (Thanks!) that fixes issue a bug with weather not showing when [LethalWeatherTweaks](https://thunderstore.io/c/lethal-company/p/mrov/WeatherTweaks/) is installed.
 * Added a small animation to the medkit when used.
 * Fixed errors that would occur when checking if players were masked when using Alive monitors.
 * Fixed the medkit's interaction position always being in the charger's position when loading a save.
 * Fixed the placeable charger's interaction position height being incorrect when loading a save.
+* Fixed a few things about `SaveShipFurniturePlaces`, including it not showing the host the persisted furniture positions when starting a new game in a slot that previously had saved positions.
+* Potentially fixed errors being logged in rare cases when a flashlight was discarded.
+* Updated the alive monitor text to be uppercase.
 
 **NOTE: If you install or update this mod manually, you will need to get the latest version of the assets file with this release.**
 

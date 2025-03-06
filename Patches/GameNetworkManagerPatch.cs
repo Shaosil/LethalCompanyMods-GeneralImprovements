@@ -110,6 +110,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(GameNetworkManager), nameof(SaveItemsInShip))]
         [HarmonyTranspiler]
+        [HarmonyBefore(OtherModHelper.MattyFixesGUID)]
         private static IEnumerable<CodeInstruction> SaveItemsInShipTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
             if (!Plugin.FixItemsLoadingSameRotation.Value)
@@ -238,70 +239,37 @@ namespace GeneralImprovements.Patches
             }
         }
 
-        [HarmonyPatch(typeof(GameNetworkManager), nameof(SaveGameValues))]
-        [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> SaveGameValues(IEnumerable<CodeInstruction> instructions)
-        {
-            if (Plugin.SaveShipFurniturePlaces.Value == Enums.eSaveFurniturePlacement.All)
-            {
-                Label? outsideBlockLabel = null;
-                if (instructions.TryFindInstructions(new Func<CodeInstruction, bool>[]
-                {
-                    i => i.LoadsField(typeof(UnlockableItem).GetField(nameof(UnlockableItem.hasBeenUnlockedByPlayer))),
-                    i => i.Branches(out _),
-                    null, null, null, null, null, // Unlockables array stuff
-                    i => i.LoadsField(typeof(UnlockableItem).GetField(nameof(UnlockableItem.hasBeenMoved))),
-                    i => i.Branches(out _),
-                    null, null, null, null, null, // Unlockables array stuff
-                    i => i.LoadsField(typeof(UnlockableItem).GetField(nameof(UnlockableItem.inStorage))),
-                    i => i.Branches(out outsideBlockLabel)
-                }, out var found))
-                {
-                    // Update the 2nd check to be alreadyUnlocked
-                    found[7].Instruction.operand = typeof(UnlockableItem).GetField(nameof(UnlockableItem.alreadyUnlocked));
-
-                    // NOP out the 3rd check
-                    for (int i = 9; i < found.Length; i++)
-                    {
-                        found[i].Instruction.opcode = OpCodes.Nop;
-                        found[i].Instruction.operand = null;
-                    }
-
-                    // Update the second branch
-                    found[8].Instruction.opcode = OpCodes.Brfalse_S;
-                    found[8].Instruction.operand = outsideBlockLabel;
-
-                    Plugin.MLS.LogDebug("Patching GameNetworkManager.SaveGameValues to remove bought ship items after being fired.");
-                }
-                else
-                {
-                    Plugin.MLS.LogError("Unexpected IL code - Could not patch GameNetworkManager.SaveGameValues to fully remove bought ship items after being fired!");
-                }
-            }
-
-            return instructions;
-        }
-
         [HarmonyPatch(typeof(GameNetworkManager), nameof(ResetSavedGameValues))]
         [HarmonyTranspiler]
-        [Harmony]
         private static IEnumerable<CodeInstruction> ResetSavedGameValues(IEnumerable<CodeInstruction> instructions)
         {
             var codeList = instructions.ToList();
 
-            if (Plugin.SaveShipFurniturePlaces.Value == Enums.eSaveFurniturePlacement.All)
+            if (Plugin.SaveShipFurniturePlaces.Value != Enums.eSaveFurniturePlacement.None)
             {
                 Label? forLabelEnd = null;
+                Label? innerFor = null;
                 if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
                 {
                     i => i.Is(OpCodes.Ldstr, "UnlockedShipObjects"),
                     i => i.Calls(typeof(GameNetworkManager).GetMethod("get_Instance")),
                     i => i.LoadsField(typeof(GameNetworkManager).GetField(nameof(GameNetworkManager.currentSaveFileName))),
-                    i => i.Calls(typeof(ES3).GetMethod(nameof(ES3.DeleteKey), new[] { typeof(string), typeof(string) })),
+                    i => i.Calls(typeof(ES3).GetMethod(nameof(ES3.DeleteKey), new Type[] { typeof(string), typeof(string) }))
+                }, out var unlockedCode)
+
+                && codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
                     i => i.LoadsConstant(0),
                     i => i.IsStloc(),
-                    i => i.Branches(out forLabelEnd)
+                    i => i.Branches(out forLabelEnd),
+                    i => i.IsLdloc(),
+                    i => i.LoadsField(typeof(StartOfRound).GetField(nameof(StartOfRound.unlockablesList))),
+                    i => i.LoadsField(typeof(UnlockablesList).GetField(nameof(UnlockablesList.unlockables))),
+                    i => i.IsLdloc(),
+                    null, null, null,
+                    i => i.Branches(out innerFor)
                 }, out var forBlockStart)
+
                 && codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
                 {
                     i => i.labels.Contains(forLabelEnd.Value),
@@ -309,17 +277,54 @@ namespace GeneralImprovements.Patches
                     i => i.Branches(out _)
                 }, out var forBlockEnd))
                 {
-                    Plugin.MLS.LogDebug("Patching GameNetworkManager.ResetSavedGameValues to keep bought ship decor positions.");
+                    Plugin.MLS.LogDebug("Patching GameNetworkManager.ResetSavedGameValues to keep ship unlockable positions.");
 
-                    // NOP out entire for loop
-                    for (int i = forBlockStart[4].Index; i <= forBlockEnd.Last().Index; i++)
+                    // Replace the UnlockedShipObjects key deletion with a custom method that strips out non starting furniture items
+                    for (int i = unlockedCode.First().Index; i < unlockedCode.Last().Index; i++)
                     {
                         codeList[i] = new CodeInstruction(OpCodes.Nop);
+                    }
+                    codeList[unlockedCode.Last().Index] = Transpilers.EmitDelegate<Action>(() =>
+                    {
+                        List<int> movedStartingFurnitures = new List<int>();
+                        for (int i = 0; i < (StartOfRound.Instance?.unlockablesList?.unlockables?.Count ?? 0); i++)
+                        {
+                            var unlockable = StartOfRound.Instance.unlockablesList.unlockables[i];
+                            if ((unlockable.hasBeenMoved || unlockable.inStorage) && !unlockable.spawnPrefab)
+                            {
+                                movedStartingFurnitures.Add(i);
+                            }
+                        }
+
+                        ES3.Save("UnlockedShipObjects", movedStartingFurnitures.ToArray(), GameNetworkManager.Instance.currentSaveFileName);
+                    });
+
+                    // If keeping everything, remove the loop that deletes the saved positions and rotations
+                    if (Plugin.SaveShipFurniturePlaces.Value == Enums.eSaveFurniturePlacement.All)
+                    {
+                        for (int i = forBlockStart.First().Index; i <= forBlockEnd.Last().Index; i++)
+                        {
+                            codeList[i] = new CodeInstruction(OpCodes.Nop);
+                        }
+                    }
+                    else
+                    {
+                        // Otherwise, add an extra check to skip the starting furniture
+                        codeList.InsertRange(forBlockStart.Last().Index + 1, new CodeInstruction[]
+                        {
+                            new CodeInstruction(OpCodes.Ldloc_1),
+                            CodeInstruction.LoadField(typeof(StartOfRound), nameof(StartOfRound.unlockablesList)),
+                            CodeInstruction.LoadField(typeof(UnlockablesList), nameof(UnlockablesList.unlockables)),
+                            new CodeInstruction(OpCodes.Ldloc_3),
+                            CodeInstruction.Call(typeof(List<UnlockableItem>), "get_Item"),
+                            CodeInstruction.LoadField(typeof(UnlockableItem), nameof(UnlockableItem.spawnPrefab)),
+                            new CodeInstruction(OpCodes.Brfalse_S, innerFor)
+                        });
                     }
                 }
                 else
                 {
-                    Plugin.MLS.LogError("Unexpected IL code - Could not patch GameNetworkManager.ResetSavedGameValues to keep bought ship decor positions!");
+                    Plugin.MLS.LogError("Unexpected IL code - Could not patch GameNetworkManager.ResetSavedGameValues to keep ship unlockable positions!");
                 }
             }
 
