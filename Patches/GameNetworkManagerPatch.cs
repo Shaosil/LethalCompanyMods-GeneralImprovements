@@ -97,7 +97,7 @@ namespace GeneralImprovements.Patches
         private static void Disconnect()
         {
             // If we are about to disconnect as a host, first "drop" all held items so they don't save in mid air
-            if (StartOfRound.Instance?.IsHost ?? false)
+            if (StartOfRound.Instance && StartOfRound.Instance.IsHost)
             {
                 var allHeldItems = UnityEngine.Object.FindObjectsOfType<GrabbableObject>().Where(g => g.isHeld).ToList();
                 foreach (var heldItem in allHeldItems)
@@ -287,12 +287,16 @@ namespace GeneralImprovements.Patches
                     codeList[unlockedCode.Last().Index] = Transpilers.EmitDelegate<Action>(() =>
                     {
                         List<int> movedStartingFurnitures = new List<int>();
-                        for (int i = 0; i < (StartOfRound.Instance?.unlockablesList?.unlockables?.Count ?? 0); i++)
+
+                        if (StartOfRound.Instance && StartOfRound.Instance.unlockablesList && StartOfRound.Instance.unlockablesList.unlockables != null)
                         {
-                            var unlockable = StartOfRound.Instance.unlockablesList.unlockables[i];
-                            if ((unlockable.hasBeenMoved || unlockable.inStorage) && !unlockable.spawnPrefab)
+                            for (int i = 0; i < StartOfRound.Instance.unlockablesList.unlockables.Count; i++)
                             {
-                                movedStartingFurnitures.Add(i);
+                                var unlockable = StartOfRound.Instance.unlockablesList.unlockables[i];
+                                if ((unlockable.hasBeenMoved || unlockable.inStorage) && !unlockable.spawnPrefab)
+                                {
+                                    movedStartingFurnitures.Add(i);
+                                }
                             }
                         }
 
@@ -340,7 +344,7 @@ namespace GeneralImprovements.Patches
                 // Make sure not to reset default furniture if specified
                 onlyResetPrefabItems = true;
             }
-            else if (Plugin.SaveShipFurniturePlaces.Value == Enums.eSaveFurniturePlacement.All && StartOfRound.Instance?.unlockablesList?.unlockables != null)
+            else if (Plugin.SaveShipFurniturePlaces.Value == Enums.eSaveFurniturePlacement.All && StartOfRound.Instance && StartOfRound.Instance.unlockablesList && StartOfRound.Instance.unlockablesList.unlockables != null)
             {
                 // If we want to save everything, just manually reset their unlocked state but keep everything else
                 StartOfRound.Instance.unlockablesList.unlockables.ForEach(u => u.hasBeenUnlockedByPlayer = false);

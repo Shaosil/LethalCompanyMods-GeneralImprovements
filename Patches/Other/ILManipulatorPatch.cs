@@ -11,7 +11,7 @@ namespace GeneralImprovements.Patches.Other
     {
         [HarmonyPatch("HarmonyLib.Internal.Patching.ILManipulator", "WriteTo")]
         [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> WriteToTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+        private static IEnumerable<CodeInstruction> WriteToTranspiler(IEnumerable<CodeInstruction> instructions)
         {
             var codeList = instructions.ToList();
 

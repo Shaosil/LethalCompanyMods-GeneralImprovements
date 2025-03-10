@@ -70,8 +70,9 @@ namespace GeneralImprovements.Patches
             {
                 Plugin.MLS.LogInfo("Removing ship cabinet doors.");
                 var cabinet = GameObject.Find("StorageCloset");
-                if (cabinet?.transform.GetChild(0)?.GetChild(0)?.GetComponent<InteractTrigger>() != null
-                    && cabinet?.transform.GetChild(1)?.GetChild(0)?.GetComponent<InteractTrigger>() != null)
+                if (cabinet && cabinet.transform.childCount > 1 && cabinet.transform.GetChild(0).childCount > 0 && cabinet.transform.GetChild(1).childCount > 0
+                    && cabinet.transform.GetChild(0).GetChild(0).GetComponent<InteractTrigger>()
+                    && cabinet.transform.GetChild(1).GetChild(0).GetComponent<InteractTrigger>())
                 {
                     Object.Destroy(cabinet.transform.GetChild(0).gameObject);
                     Object.Destroy(cabinet.transform.GetChild(1).gameObject);
@@ -226,7 +227,7 @@ namespace GeneralImprovements.Patches
             // Auto charge owned batteries
             if (Plugin.AutoChargeOnOrbit.Value)
             {
-                var itemsToCharge = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.IsOwner && (o.itemProperties?.requiresBattery ?? false) && o.insertedBattery.charge < 1).ToList();
+                var itemsToCharge = Object.FindObjectsOfType<GrabbableObject>().Where(o => o.IsOwner && o.itemProperties && o.itemProperties.requiresBattery && o.insertedBattery.charge < 1).ToList();
                 foreach (var batteryItem in itemsToCharge)
                 {
                     batteryItem.insertedBattery = new Battery(false, 1);
@@ -235,10 +236,10 @@ namespace GeneralImprovements.Patches
                 if (itemsToCharge.Any() && StartOfRound.Instance.localPlayerController != null)
                 {
                     Plugin.MLS.LogInfo($"Auto charged {itemsToCharge.Count} owned item{(itemsToCharge.Count == 1 ? string.Empty : "s")}.");
-                    var zapAudio = Object.FindObjectOfType<ItemCharger>()?.zapAudio?.clip;
-                    if (zapAudio != null)
+                    var charger = Object.FindObjectOfType<ItemCharger>();
+                    if (charger && charger.zapAudio && charger.zapAudio.clip)
                     {
-                        StartOfRound.Instance.localPlayerController.itemAudio.PlayOneShot(zapAudio);
+                        StartOfRound.Instance.localPlayerController.itemAudio.PlayOneShot(charger.zapAudio.clip);
                     }
                 }
             }
@@ -328,7 +329,8 @@ namespace GeneralImprovements.Patches
         {
             var map = __instance.mapScreen;
 
-            if (!displayInfo && !string.IsNullOrWhiteSpace(map?.radarTargets[map.targetTransformIndex]?.name))
+            if (!displayInfo && map && map.radarTargets.Count > map.targetTransformIndex && map.radarTargets[map.targetTransformIndex] != null
+                && !string.IsNullOrWhiteSpace(map.radarTargets[map.targetTransformIndex].name))
             {
                 __instance.mapScreenPlayerName.text = $"MONITORING: {__instance.mapScreen.radarTargets[__instance.mapScreen.targetTransformIndex].name}";
             }
@@ -378,7 +380,7 @@ namespace GeneralImprovements.Patches
                         Plugin.ShipMonitorAssignments[11].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[12].Value.ToString() ?? null, Plugin.ShipMonitorAssignments[13].Value.ToString() ?? null, clientParams);
 
                     // Send over the extra info about this quota to this client
-                    if (__instance?.gameStats != null)
+                    if (__instance && __instance.gameStats != null)
                     {
                         var stats = __instance.gameStats;
                         string foundMoons = string.Join(',', FlownToHiddenMoons);

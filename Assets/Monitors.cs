@@ -12,7 +12,7 @@ namespace GeneralImprovements.Assets
     {
         private MeshRenderer _mapRenderer;
         private Material _blankScreenMaterial;
-        private Queue<MonitorsAPI.MonitorInfo> _queuedMonitorTextUpdates = new Queue<MonitorsAPI.MonitorInfo>();
+        private readonly Queue<MonitorsAPI.MonitorInfo> _queuedMonitorTextUpdates = new Queue<MonitorsAPI.MonitorInfo>();
         private bool _renderedLastFrame = false;
 
         public void Initialize(Material hullMaterial, Material startingMapMaterial, Material blankScreenMaterial)

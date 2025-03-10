@@ -56,7 +56,7 @@ namespace GeneralImprovements.Utilities
         private static int _lastUpdatedCredits = -1;
         private static float _lastUpdatedDoorPower = -1, _updateDoorPowerTimer = 0;
         private static Monitors _newMonitors;
-        private static Dictionary<TextMeshProUGUI, Action> _queuedMonitorRefreshes = new Dictionary<TextMeshProUGUI, Action>();
+        private static readonly Dictionary<TextMeshProUGUI, Action> _queuedMonitorRefreshes = new Dictionary<TextMeshProUGUI, Action>();
 
         // Weather animation
         private static int _curWeatherAnimIndex = 0;
@@ -64,7 +64,7 @@ namespace GeneralImprovements.Utilities
         private static string[] _curWeatherAnimations = new string[0];
         private static string[] _curWeatherOverlays = new string[0];
         private static float _weatherAnimTimer = 0;
-        private static float _weatherAnimCycle = 0.25f; // In seconds
+        private static readonly float _weatherAnimCycle = 0.25f; // In seconds
         private static bool _weatherHasOverlays = false;
         private static float _weatherOverlayTimer = 0;
         private static bool _weatherShowingOverlay = false;
@@ -74,14 +74,14 @@ namespace GeneralImprovements.Utilities
         private static int _curSalesAnimIndex = 0;
         private static List<string> _curSalesAnimations = new List<string>();
         private static float _salesAnimTimer = 0;
-        private static float _salesAnimCycle = 2f; // In seconds
+        private static readonly float _salesAnimCycle = 2f; // In seconds
 
         // Player health animation
         private static int _curPlayerHealthAnimIndex = 0;
         private static List<string> _curPlayerHealthAnimations = new List<string>();
         private static List<string> _curPlayerExactHealthAnimations = new List<string>();
         private static float _playerHealthAnimTimer = 0;
-        private static float _playerHealthAnimCycle = 3f; // In seconds
+        private static readonly float _playerHealthAnimCycle = 3f; // In seconds
 
         // Monitors on simple timers
         private static float _curCreditsUpdateCounter = 0;
@@ -99,7 +99,7 @@ namespace GeneralImprovements.Utilities
             _originalDeadlineBG = StartOfRound.Instance.deadlineMonitorBGImage;
             _originalDeadlineText = StartOfRound.Instance.deadlineMonitorText;
             _originalFontSize = _originalProfitQuotaText.fontSize;
-            _UIContainer = _originalProfitQuotaBG?.transform.parent;
+            _UIContainer = _originalProfitQuotaBG.transform.parent;
 
             if (Plugin.CenterAlignMonitorText.Value)
             {
@@ -107,8 +107,10 @@ namespace GeneralImprovements.Utilities
                 _originalDeadlineText.alignment = TextAlignmentOptions.Center;
             }
 
-            var internalShipCamObj = StartOfRound.Instance.elevatorTransform.Find("Cameras/ShipCamera")?.GetComponent<Camera>();
-            var externalShipCamObj = StartOfRound.Instance.elevatorTransform.Find("Cameras/FrontDoorSecurityCam/SecurityCamera")?.GetComponent<Camera>();
+            var shipCam = StartOfRound.Instance.elevatorTransform.Find("Cameras/ShipCamera");
+            var secCam = StartOfRound.Instance.elevatorTransform.Find("Cameras/FrontDoorSecurityCam/SecurityCamera");
+            var internalShipCamObj = shipCam ? shipCam.GetComponent<Camera>() : null;
+            var externalShipCamObj = secCam ? secCam.GetComponent<Camera>() : null;
             if (Plugin.DisableShipCamPostProcessing.Value)
             {
                 if (internalShipCamObj != null) internalShipCamObj.GetComponent<HDAdditionalCameraData>().volumeLayerMask = 0;
@@ -539,7 +541,8 @@ namespace GeneralImprovements.Utilities
             StartOfRound.Instance.mapScreen.mesh = newMesh;
 
             // If we are not displaying the external cam anywhere but it's still over the door, use that as the mesh instead
-            var doorCamMesh = StartOfRound.Instance.elevatorTransform.Find("ShipModels2b/MonitorWall/SingleScreen")?.GetComponent<MeshRenderer>();
+            var doorScreen = StartOfRound.Instance.elevatorTransform.Find("ShipModels2b/MonitorWall/SingleScreen");
+            var doorCamMesh = doorScreen ? doorScreen.GetComponent<MeshRenderer>() : null;
             if (!MonitorsAPI.AllMonitors.Values.Any(m => m.AssignedMaterial == externalCamMat) && doorCamMesh != null && doorCamMesh.sharedMaterials.Any(m => m.name.StartsWith("ShipScreen2")))
             {
                 StartOfRound.Instance.elevatorTransform.Find("Cameras/FrontDoorSecurityCam/SecurityCamera").GetComponent<ManualCameraRenderer>().mesh = doorCamMesh;
@@ -576,7 +579,7 @@ namespace GeneralImprovements.Utilities
             if (_profitQuotaTexts.Count > 0 || _deadlineTexts.Count > 0)
             {
                 // Apply color to deadline text if possible
-                string deadlineText = StartOfRound.Instance.deadlineMonitorText?.text;
+                string deadlineText = StartOfRound.Instance.deadlineMonitorText ? StartOfRound.Instance.deadlineMonitorText.text : null;
                 if (!string.IsNullOrWhiteSpace(deadlineText) && Plugin.UseMoreMonitorTextColors.Value)
                 {
                     // Just read the days remaining from the text to be sure the applied color makes sense
@@ -589,8 +592,8 @@ namespace GeneralImprovements.Utilities
                     }
                 }
 
-                if (UpdateGenericTextList(_profitQuotaTexts, StartOfRound.Instance.profitQuotaMonitorText?.text)
-                    & UpdateGenericTextList(_deadlineTexts, deadlineText))
+                string profitQuotaText = StartOfRound.Instance.profitQuotaMonitorText ? StartOfRound.Instance.profitQuotaMonitorText.text : null;
+                if (UpdateGenericTextList(_profitQuotaTexts, profitQuotaText) & UpdateGenericTextList(_deadlineTexts, deadlineText))
                 {
                     Plugin.MLS.LogInfo("Updated profit quota and deadline monitors");
                 }
@@ -682,7 +685,8 @@ namespace GeneralImprovements.Utilities
                 if (TimeOfDay.Instance != null && Plugin.OvertimeBonusType.Value != eOvertimeBonusType.Disabled)
                 {
                     // Count all scrap if we are at the company, only ship scrap otherwise
-                    var scrapValue = (RoundManager.Instance?.currentLevel?.PlanetName == "71 Gordion" ? allScrap : shipScrap).Sum(s => s.scrapValue);
+                    var scrapValue = (RoundManager.Instance && RoundManager.Instance.currentLevel && RoundManager.Instance.currentLevel.PlanetName == "71 Gordion" ? allScrap : shipScrap)
+                        .Sum(s => s.scrapValue);
 
                     profit = scrapValue
                         + Plugin.OvertimeBonusType.Value switch
@@ -755,7 +759,7 @@ namespace GeneralImprovements.Utilities
             {
                 string time;
 
-                if (TimeOfDay.Instance.movingGlobalTimeForward && HUDManager.Instance?.clockNumber != null)
+                if (TimeOfDay.Instance.movingGlobalTimeForward && HUDManager.Instance && HUDManager.Instance.clockNumber)
                 {
                     time = $"TIME:\n{HUDManager.Instance.clockNumber.text.Replace('\n', ' ')}";
                 }
@@ -777,16 +781,16 @@ namespace GeneralImprovements.Utilities
             {
                 if (_weatherMonitorTexts.Count > 0)
                 {
-                    if (UpdateGenericTextList(_weatherMonitorTexts, $"WEATHER:\n{(StartOfRound.Instance.currentLevel?.currentWeather.ToString() ?? "???")}"))
+                    if (UpdateGenericTextList(_weatherMonitorTexts, $"WEATHER:\n{(StartOfRound.Instance.currentLevel ? StartOfRound.Instance.currentLevel.currentWeather.ToString() : "???")}"))
                     {
                         Plugin.MLS.LogInfo("Updated basic weather monitors");
                     }
                 }
 
-                if (_fancyWeatherMonitorTexts.Count > 0)
+                if (_fancyWeatherMonitorTexts.Count > 0 && StartOfRound.Instance.currentLevel)
                 {
                     // Change the animation we are currently referencing
-                    _curWeatherAnimations = StartOfRound.Instance.currentLevel?.currentWeather switch
+                    _curWeatherAnimations = StartOfRound.Instance.currentLevel.currentWeather switch
                     {
                         LevelWeatherType.None => WeatherASCIIArt.ClearAnimations,
                         LevelWeatherType.Rainy => WeatherASCIIArt.RainAnimations,
@@ -797,7 +801,7 @@ namespace GeneralImprovements.Utilities
                         _ => WeatherASCIIArt.UnknownAnimations
                     };
 
-                    _weatherHasOverlays = StartOfRound.Instance.currentLevel?.currentWeather == LevelWeatherType.Stormy;
+                    _weatherHasOverlays = StartOfRound.Instance.currentLevel.currentWeather == LevelWeatherType.Stormy;
                     if (_weatherHasOverlays)
                     {
                         _weatherOverlayTimer = 0;
@@ -822,7 +826,7 @@ namespace GeneralImprovements.Utilities
         {
             if (_fancyWeatherMonitorTexts.Count > 0 && _curWeatherAnimations.Length >= 2)
             {
-                Action drawWeather = () =>
+                static void drawWeather()
                 {
                     var sb = new StringBuilder();
                     string[] animLines = _curWeatherAnimations[_curWeatherAnimIndex].Split(Environment.NewLine);
@@ -843,7 +847,7 @@ namespace GeneralImprovements.Utilities
                     }
 
                     UpdateGenericTextList(_fancyWeatherMonitorTexts, sb.ToString());
-                };
+                }
 
                 // Cycle through our current animation pattern 'sprites'
                 _weatherAnimTimer += Time.deltaTime;
@@ -917,7 +921,7 @@ namespace GeneralImprovements.Utilities
                     {
                         if (instance.itemSalesPercentages[i] < 100 && instance.buyableItemsList.Length > i)
                         {
-                            string item = instance.buyableItemsList[i]?.itemName ?? "???";
+                            string item = instance.buyableItemsList[i] ? instance.buyableItemsList[i].itemName : "???";
                             _curSalesAnimations.Add(ApplyColorToText($"{100 - instance.itemSalesPercentages[i]}% OFF {item}", "00ff00"));
                         }
                     }
@@ -949,7 +953,7 @@ namespace GeneralImprovements.Utilities
                 _curCreditsUpdateCounter = 0.25f;
 
                 // Only update if there is a change
-                var groupCredits = TerminalPatch.Instance?.groupCredits ?? -1;
+                var groupCredits = TerminalPatch.Instance ? TerminalPatch.Instance.groupCredits : -1;
                 if (_creditsMonitorTexts.Count > 0 && groupCredits != _lastUpdatedCredits)
                 {
                     _lastUpdatedCredits = groupCredits;
@@ -970,7 +974,7 @@ namespace GeneralImprovements.Utilities
             }
 
             // Only update if there is a change
-            float doorPower = HangarShipDoorPatch.Instance?.doorPower ?? 1;
+            float doorPower = HangarShipDoorPatch.Instance ? HangarShipDoorPatch.Instance.doorPower : 1;
             if (_doorPowerMonitorTexts.Count > 0 && (force || (_lastUpdatedDoorPower != doorPower && _updateDoorPowerTimer <= 0)))
             {
                 _lastUpdatedDoorPower = doorPower;
@@ -1005,7 +1009,7 @@ namespace GeneralImprovements.Utilities
 
         public static void UpdateDeathMonitors(bool? playersDied = null)
         {
-            if (_totalDeathsMonitorTexts.Count > 0 && StartOfRound.Instance?.gameStats != null)
+            if (_totalDeathsMonitorTexts.Count > 0 && StartOfRound.Instance && StartOfRound.Instance.gameStats != null)
             {
                 int totalDeaths = StartOfRound.Instance.gameStats.deaths;
                 if (UpdateGenericTextList(_totalDeathsMonitorTexts, $"TOTAL DEATHS:\n{ApplyColorToText($"{totalDeaths}", totalDeaths <= 0 ? "00ff00" : "ff0000")}"))
@@ -1030,7 +1034,7 @@ namespace GeneralImprovements.Utilities
                     }
                 }
 
-                bool updatedText = false;
+                bool updatedText;
                 if (StartOfRoundPatch.DaysSinceLastDeath >= 0)
                 {
                     updatedText = UpdateGenericTextList(_daysSinceDeathMonitorTexts, $"{StartOfRoundPatch.DaysSinceLastDeath} DAY{(StartOfRoundPatch.DaysSinceLastDeath == 1 ? string.Empty : "S")} WITHOUT DEATHS");
@@ -1169,10 +1173,11 @@ namespace GeneralImprovements.Utilities
             foreach (var t in textList)
             {
                 t.text = text;
-                if (_newMonitors != null && MonitorsAPI.AllMonitors.FirstOrDefault(m => m.Value.TextCanvas == t).Value is MonitorsAPI.MonitorInfo monitor)
+                if (_newMonitors != null && MonitorsAPI.AllMonitors.FirstOrDefault(m => m.Value.TextCanvas == t).Value is MonitorsAPI.MonitorInfo monitor && StartOfRound.Instance && StartOfRound.Instance.localPlayerController)
                 {
                     // If we are orbiting, in the ship (or spectating someone in it), or set to always render, immediately update. Otherwise, add it to the refresh queue (most recent will always override any old data)
-                    bool targetPlayerInShip = (StartOfRound.Instance.localPlayerController?.spectatedPlayerScript ?? StartOfRound.Instance.localPlayerController)?.isInElevator ?? false;
+                    bool targetPlayerInShip = (StartOfRound.Instance.localPlayerController.spectatedPlayerScript ? StartOfRound.Instance.localPlayerController.spectatedPlayerScript
+                        : StartOfRound.Instance.localPlayerController).isInElevator;
                     if (StartOfRound.Instance.inShipPhase || Plugin.AlwaysRenderMonitors.Value || targetPlayerInShip)
                     {
                         if (_newMonitors.RefreshMonitorAfterTextChange(monitor))

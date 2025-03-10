@@ -1,9 +1,9 @@
-﻿using GameNetcodeStuff;
-using GeneralImprovements.Utilities;
-using HarmonyLib;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using GameNetcodeStuff;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 
 namespace GeneralImprovements.Patches
 {
@@ -13,10 +13,10 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void SwitchSuitServerRpc(UnlockableSuit __instance, int playerID)
         {
-            var player = StartOfRound.Instance?.allPlayerScripts.ElementAtOrDefault(playerID);
+            var player = StartOfRound.Instance && StartOfRound.Instance.allPlayerScripts != null ? StartOfRound.Instance.allPlayerScripts.ElementAtOrDefault(playerID) : null;
 
             // As the host, keep track of each player's suit ID as they manually put one on
-            if (Plugin.SavePlayerSuits.Value && __instance.IsHost && player != null && player.playerSteamId != default && StartOfRoundPatch.SteamIDsToSuits.GetValueOrDefault(player.playerSteamId) != __instance.suitID)
+            if (Plugin.SavePlayerSuits.Value && __instance.IsHost && player && player.playerSteamId != default && StartOfRoundPatch.SteamIDsToSuits.GetValueOrDefault(player.playerSteamId) != __instance.suitID)
             {
                 StartOfRoundPatch.SteamIDsToSuits[player.playerSteamId] = __instance.suitID;
                 Plugin.MLS.LogDebug($"Player {player.playerUsername} switched to suit ID {__instance.suitID}.");

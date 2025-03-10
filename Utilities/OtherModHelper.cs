@@ -37,9 +37,9 @@ namespace GeneralImprovements.Utilities
         private static Type _reservedPlayerPatcherType;
         private static Type _reservedPlayerDataType;
         private static FieldInfo _reservedPlayerData;
-        private static FieldInfo PlayerData => _reservedPlayerData ?? (_reservedPlayerData = _reservedPlayerPatcherType.GetField("allPlayerData", BindingFlags.NonPublic | BindingFlags.Static));
+        private static FieldInfo PlayerData => _reservedPlayerData ??= _reservedPlayerPatcherType.GetField("allPlayerData", BindingFlags.NonPublic | BindingFlags.Static);
         private static MethodInfo _isReservedSlot;
-        private static MethodInfo IsReservedSlot => _isReservedSlot ?? (_isReservedSlot = _reservedPlayerDataType.GetMethod("IsReservedItemSlot"));
+        private static MethodInfo IsReservedSlot => _isReservedSlot ??= _reservedPlayerDataType.GetMethod("IsReservedItemSlot");
 
         // Reflection information for WeatherRegistry
         private static Type _weatherManager;
@@ -163,7 +163,8 @@ namespace GeneralImprovements.Utilities
             }
         }
 
-        internal static string GetWeatherRegistryWeatherName(SelectableLevel level){
+        internal static string GetWeatherRegistryWeatherName(SelectableLevel level)
+        {
 
             if (!WeatherRegistryActive)
             {

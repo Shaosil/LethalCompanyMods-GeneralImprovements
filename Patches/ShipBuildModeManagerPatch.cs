@@ -67,7 +67,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void CreateGhostObjectAndHighlight(ShipBuildModeManager __instance, PlaceableShipObject ___placingObject)
         {
-            if (!__instance.InBuildMode || _snapObjectsByDegrees == 0 || ___placingObject?.parentObject == null)
+            if (!__instance.InBuildMode || _snapObjectsByDegrees == 0 || !___placingObject || !___placingObject.parentObject)
             {
                 return;
             }
@@ -104,7 +104,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void Update(ShipBuildModeManager __instance, PlaceableShipObject ___placingObject, ref Ray ___playerCameraRay, ref int ___placementMask)
         {
-            if (__instance.InBuildMode && ___placingObject?.parentObject != null)
+            if (__instance.InBuildMode && ___placingObject && ___placingObject.parentObject)
             {
                 // Handle rotation hotkeys
                 if (_snapObjectsByDegrees != 0 && _rotateAction.IsPressed())
@@ -157,8 +157,13 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void PlaceShipObject(PlaceableShipObject placeableObject, Vector3 placementPosition)
         {
+            if (!placeableObject || !placeableObject.parentObject)
+            {
+                return;
+            }
+
             // Keep the position nodes at the same Y level as the player by setting the local offset before the next Update() moves the object
-            if ((placeableObject.parentObject?.GetComponent<MedStationItem>() is MedStationItem medstation || placeableObject.parentObject?.GetComponent<CustomChargeStation>() is CustomChargeStation chargeStation)
+            if ((placeableObject.parentObject.GetComponent<MedStationItem>() is MedStationItem || placeableObject.parentObject.GetComponent<CustomChargeStation>() is CustomChargeStation)
                 && placeableObject.parentObject.GetComponentInChildren<InteractTrigger>() is InteractTrigger trigger && trigger.transform.childCount > 0)
             {
                 var child = trigger.transform.GetChild(0);

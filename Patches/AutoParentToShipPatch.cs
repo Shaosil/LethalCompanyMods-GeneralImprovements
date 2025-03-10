@@ -7,12 +7,12 @@ namespace GeneralImprovements.Patches
 {
     internal static class AutoParentToShipPatch
     {
-        private static IReadOnlyDictionary<string, int> _definedOffsets = new Dictionary<string, int>
+        private static readonly IReadOnlyDictionary<string, int> _definedOffsets = new Dictionary<string, int>
         {
             { "RomanticTable", 7 }
         };
 
-        private static Dictionary<AutoParentToShip, float> _offsets = new Dictionary<AutoParentToShip, float>();
+        private static readonly Dictionary<AutoParentToShip, float> _offsets = new Dictionary<AutoParentToShip, float>();
         public static IReadOnlyDictionary<AutoParentToShip, float> Offsets => _offsets;
 
         [HarmonyPatch(typeof(AutoParentToShip), nameof(Awake))]

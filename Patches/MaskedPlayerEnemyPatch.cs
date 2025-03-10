@@ -10,7 +10,7 @@ namespace GeneralImprovements.Patches
 {
     internal static class MaskedPlayerEnemyPatch
     {
-        private static Dictionary<MaskedPlayerEnemy, ExtraMaskData> _maskData = new Dictionary<MaskedPlayerEnemy, ExtraMaskData>();
+        private static readonly Dictionary<MaskedPlayerEnemy, ExtraMaskData> _maskData = new Dictionary<MaskedPlayerEnemy, ExtraMaskData>();
 
         public static int NumSpawnedThisLevel = 0;
         public static int MaxHealth { get; private set; }
@@ -30,7 +30,7 @@ namespace GeneralImprovements.Patches
                 // If the masked spawned from a player, use their name and appearance. Otherwise, use any random player's name and appearance.
                 var rand = new System.Random(StartOfRound.Instance.randomMapSeed + NumSpawnedThisLevel);
                 var allPlayers = StartOfRound.Instance.allPlayerScripts.Where(p => p.isPlayerDead || p.isPlayerControlled).ToList();
-                PlayerControllerB playerToTarget = __instance.mimickingPlayer ?? allPlayers[rand.Next(allPlayers.Count)];
+                PlayerControllerB playerToTarget = __instance.mimickingPlayer ? __instance.mimickingPlayer : allPlayers[rand.Next(allPlayers.Count)];
 
                 if (Plugin.MaskedEntitiesShowPlayerNames.Value)
                 {
@@ -44,8 +44,8 @@ namespace GeneralImprovements.Patches
                     // Set username billboard text and add it to our tracked items
                     if (!Plugin.HidePlayerNames.Value)
                     {
-                        var tmp = __instance.transform.Find("PlayerUsernameCanvas")?.GetComponentInChildren<TextMeshProUGUI>();
-                        if (tmp != null)
+                        var canvas = __instance.transform.Find("PlayerUsernameCanvas");
+                        if (canvas && canvas.GetComponentInChildren<TextMeshProUGUI>() is TextMeshProUGUI tmp)
                         {
                             tmp.text = playerToTarget.usernameBillboardText.text;
                             _maskData[__instance].Canvas = tmp.transform.parent.GetComponent<Canvas>();
@@ -57,8 +57,10 @@ namespace GeneralImprovements.Patches
                 if (!Plugin.MaskedEntitiesWearMasks.Value)
                 {
                     // Hide the mesh renderer of their masks and set the suit to the targeted player's ID
-                    var masks1 = __instance.transform.Find("ScavengerModel/metarig/spine/spine.001/spine.002/spine.003/spine.004/HeadMaskComedy")?.GetComponentsInChildren<MeshRenderer>();
-                    var masks2 = __instance.transform.Find("ScavengerModel/metarig/spine/spine.001/spine.002/spine.003/spine.004/HeadMaskTragedy")?.GetComponentsInChildren<MeshRenderer>();
+                    var comedy = __instance.transform.Find("ScavengerModel/metarig/spine/spine.001/spine.002/spine.003/spine.004/HeadMaskComedy");
+                    var tragedy = __instance.transform.Find("ScavengerModel/metarig/spine/spine.001/spine.002/spine.003/spine.004/HeadMaskTragedy");
+                    var masks1 = comedy ? comedy.GetComponentsInChildren<MeshRenderer>() : null;
+                    var masks2 = tragedy ? tragedy.GetComponentsInChildren<MeshRenderer>() : null;
                     foreach (var mask in (masks1 ?? new MeshRenderer[0]).Concat(masks2 ?? new MeshRenderer[0]))
                     {
                         mask.enabled = false;
@@ -81,8 +83,8 @@ namespace GeneralImprovements.Patches
                 if (!Plugin.MaskedEntitiesSpinOnRadar.Value)
                 {
                     // Remove map dot animation if needed
-                    var animator = __instance.transform.Find("Misc/MapDot")?.GetComponent<Animator>();
-                    if (animator != null)
+                    var dot = __instance.transform.Find("Misc/MapDot");
+                    if (dot && dot.GetComponent<Animator>() is Animator animator)
                     {
                         animator.enabled = false;
                     }
@@ -105,7 +107,8 @@ namespace GeneralImprovements.Patches
         private static void LateUpdate(MaskedPlayerEnemy __instance)
         {
             // Decrease username billboard alpha if needed
-            if (Plugin.MaskedEntitiesShowPlayerNames.Value && _maskData.ContainsKey(__instance) && _maskData[__instance].CanvasGroup?.alpha > 0 && StartOfRound.Instance.localPlayerController != null)
+            if (Plugin.MaskedEntitiesShowPlayerNames.Value && _maskData.ContainsKey(__instance) && _maskData[__instance].CanvasGroup
+                && _maskData[__instance].CanvasGroup.alpha > 0 && StartOfRound.Instance.localPlayerController != null)
             {
                 _maskData[__instance].CanvasGroup.alpha -= Time.deltaTime;
                 _maskData[__instance].Canvas.transform.LookAt(StartOfRound.Instance.localPlayerController.localVisorTargetPoint);
@@ -154,7 +157,7 @@ namespace GeneralImprovements.Patches
 
         public static int GetNumMaskedPlayers() => StartOfRound.Instance.allPlayerScripts.Count(p => p != null && GetPlayerIsMasked(p));
 
-        public static bool GetPlayerIsMasked(PlayerControllerB player) => player?.redirectToEnemy?.GetComponent<MaskedPlayerEnemy>() != null;
+        public static bool GetPlayerIsMasked(PlayerControllerB player) => (player && player.redirectToEnemy ? player.redirectToEnemy.GetComponent<MaskedPlayerEnemy>() : null) != null;
 
         private class ExtraMaskData
         {

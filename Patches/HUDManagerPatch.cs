@@ -119,7 +119,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPrefix]
         private static bool AssignNewNodes(HUDManager __instance, PlayerControllerB playerScript, ref int ___scannedScrapNum, List<ScanNodeProperties> ___nodesOnScreen)
         {
-            if (!Plugin.FixPersonalScanner.Value || playerScript?.gameplayCamera == null)
+            if (!Plugin.FixPersonalScanner.Value || !playerScript || !playerScript.gameplayCamera)
             {
                 return true;
             }
@@ -133,11 +133,15 @@ namespace GeneralImprovements.Patches
             var camPlanes = GeometryUtility.CalculateFrustumPlanes(playerScript.gameplayCamera);
 
             // Cast a giant sphere 100f around ourself to get scan nodes we collided with, ordered by distance
-            var nearbyScanNodes = Physics.OverlapSphere(playerScript.gameplayCamera.transform.position, 100f, 0x400000)
+            var hitScanNodes = new Collider[100];
+            Physics.OverlapSphereNonAlloc(playerScript.gameplayCamera.transform.position, 100f, hitScanNodes, 0x400000);
+
+            var nearbyScanNodes = hitScanNodes
                 .Select(n => new KeyValuePair<float, ScanNodeProperties>(Vector3.Distance(n.transform.position, playerScript.transform.position), n.transform.GetComponent<ScanNodeProperties>()))
                 .Where(s => s.Value != null && s.Key >= s.Value.minRange && s.Key <= s.Value.maxRange                   // In range
                     && GeometryUtility.TestPlanesAABB(camPlanes, new Bounds(s.Value.transform.position, Vector3.one)))  // In camera view
-                .OrderBy(n => n.Key);
+                .OrderBy(n => n.Key)
+                .ToArray();
 
             // Now attempt to scan each of them, stopping when we fill the number of UI elements
             foreach (var scannable in nearbyScanNodes.Select(s => s.Value))
@@ -178,7 +182,7 @@ namespace GeneralImprovements.Patches
                     // Change the simple linecast bool call to only return true if the collision is with a room
                     codeList[scanCode.Last().Index] = Transpilers.EmitDelegate<System.Func<Vector3, Vector3, int, QueryTriggerInteraction, bool>>((start, end, mask, interaction) =>
                     {
-                        return Physics.Linecast(start, end, out var hitInfo, mask, interaction) && hitInfo.transform?.gameObject.layer == 8;
+                        return Physics.Linecast(start, end, out var hitInfo, mask, interaction) && hitInfo.transform && hitInfo.transform.gameObject.layer == 8;
                     });
                 }
                 else
@@ -192,7 +196,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(HUDManager), "UpdateScanNodes")]
         [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> UpdateScanNodesTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+        private static IEnumerable<CodeInstruction> UpdateScanNodesTranspiler(IEnumerable<CodeInstruction> instructions)
         {
             var codeList = instructions.ToList();
 
@@ -292,9 +296,8 @@ namespace GeneralImprovements.Patches
             ProfilerHelper.BeginProfilingSafe(_pm_HUDAssignNodeToUI);
 
             // If we have scanned a player or a masked entity, make sure their health subtext is up to date
-            PlayerControllerB player = null;
             MaskedPlayerEnemy masked = null;
-            if (Plugin.ScanPlayers.Value && ((node.transform.parent?.TryGetComponent(out player) ?? false) || (node.transform.parent?.TryGetComponent(out masked) ?? false)))
+            if (Plugin.ScanPlayers.Value && node.transform.parent && (node.transform.parent.TryGetComponent(out PlayerControllerB player) || node.transform.parent.TryGetComponent(out masked)))
             {
                 int curHealth, maxHealth;
                 if (player != null)
@@ -487,7 +490,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void CanPlayerScan(ref bool __result)
         {
-            __result = __result && !(ShipBuildModeManager.Instance?.InBuildMode ?? false);
+            __result = __result && (!ShipBuildModeManager.Instance || !ShipBuildModeManager.Instance.InBuildMode);
         }
 
         [HarmonyPatch(typeof(HUDManager), nameof(HUDManager.DisplayCreditsEarning))]
@@ -499,16 +502,16 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(HUDManager), nameof(Update))]
         [HarmonyPostfix]
-        private static void Update(HUDManager __instance)
+        private static void Update()
         {
             ProfilerHelper.BeginProfilingSafe(_pm_HUDUpdate);
 
-            if (_hpText != null && StartOfRound.Instance?.localPlayerController != null)
+            if (_hpText != null && StartOfRound.Instance && StartOfRound.Instance.localPlayerController)
             {
                 _hpText.text = $"{StartOfRound.Instance.localPlayerController.health} HP";
             }
 
-            if ((StormyWeatherPatch.Instance?.isActiveAndEnabled ?? false) && Plugin.ShowLightningWarnings.Value)
+            if (StormyWeatherPatch.Instance && StormyWeatherPatch.Instance.isActiveAndEnabled && Plugin.ShowLightningWarnings.Value)
             {
                 // Toggle lightning overlays on item slots when needed
                 if (_lightningOverlays.Count > 0 && HUDManager.Instance != null && StartOfRound.Instance.localPlayerController != null)

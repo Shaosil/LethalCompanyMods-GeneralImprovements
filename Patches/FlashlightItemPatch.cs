@@ -65,14 +65,14 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void DiscardItem(FlashlightItem __instance, PlayerControllerB ___previousPlayerHeldBy)
         {
-            if (!Plugin.OnlyAllowOneActiveFlashlight.Value || ___previousPlayerHeldBy == null)
+            if (!Plugin.OnlyAllowOneActiveFlashlight.Value || !___previousPlayerHeldBy || ___previousPlayerHeldBy.ItemSlots == null)
             {
                 return;
             }
 
             // If there is an active flashlight in the players inventory (prioritize non lasers), turn on its helemet light. This can happen if a helmet light was on last frame.
-            var otherFlashlights = ___previousPlayerHeldBy.ItemSlots?.OfType<FlashlightItem>().Where(f => f != __instance);
-            var activeFlashlight = otherFlashlights?.Where(f => f != null && f.isBeingUsed).OrderBy(f => f.CheckForLaser()).FirstOrDefault();
+            var otherFlashlights = ___previousPlayerHeldBy.ItemSlots.OfType<FlashlightItem>().Where(f => f != __instance);
+            var activeFlashlight = otherFlashlights.Where(f => f != null && f.isBeingUsed).OrderBy(f => f.CheckForLaser()).FirstOrDefault();
 
             if (activeFlashlight != null)
             {

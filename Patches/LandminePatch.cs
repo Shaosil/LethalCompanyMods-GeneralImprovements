@@ -11,7 +11,7 @@ namespace GeneralImprovements.Patches
         {
             // Remove the terminal accessible object script so it stops showing up on the map screen
             Object.Destroy(__instance.GetComponent<TerminalAccessibleObject>());
-            var scanNode = __instance.transform.parent?.GetComponentInChildren<ScanNodeProperties>();
+            var scanNode = __instance.transform.parent ? __instance.transform.parent.GetComponentInChildren<ScanNodeProperties>() : null;
             if (scanNode != null)
             {
                 Object.Destroy(scanNode);

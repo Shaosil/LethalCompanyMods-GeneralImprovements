@@ -127,7 +127,8 @@ namespace GeneralImprovements.Patches
         private static void UpdateProfitQuotaCurrentTime()
         {
             // Always make sure the two quota numbers are on separate lines if nothing else modified them
-            var match = new Regex(@"PROFIT QUOTA:\n(.+\d+) / (.+\d+)").Match(StartOfRound.Instance?.profitQuotaMonitorText?.text ?? string.Empty);
+            string text = StartOfRound.Instance && StartOfRound.Instance.profitQuotaMonitorText ? StartOfRound.Instance.profitQuotaMonitorText.text : string.Empty;
+            var match = new Regex(@"PROFIT QUOTA:\n(.+\d+) / (.+\d+)").Match(text);
             if (match.Success)
             {
                 // Keep it as vanilla as possible and just use whatever we found

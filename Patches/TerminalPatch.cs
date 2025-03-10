@@ -18,12 +18,12 @@ namespace GeneralImprovements.Patches
     internal static class TerminalPatch
     {
         private static int _currentCredits = 0;
-        private static List<string> _commandHistory = new List<string>();
+        private static readonly List<string> _commandHistory = new List<string>();
         private static int _historyCount;
         private static int _curHistoryIndex = 0;
 
         public static Terminal _instance; // Should be erased each time StartOfRound begins, since it usually starts before Terminal
-        public static Terminal Instance => _instance ?? (_instance = UnityEngine.Object.FindObjectOfType<Terminal>());
+        public static Terminal Instance => _instance ? _instance : (_instance = UnityEngine.Object.FindObjectOfType<Terminal>());
 
         [HarmonyPatch(typeof(Terminal), "Start")]
         [HarmonyPrefix]
@@ -38,7 +38,9 @@ namespace GeneralImprovements.Patches
             }
 
             // Clear out the plain "Switched to player" text from the switch node
-            var switchNodes = __instance.terminalNodes?.specialNodes?.Where(n => n.displayText.Contains("Switched radar to player.") || n.terminalEvent == "switchCamera");
+            var switchNodes = __instance.terminalNodes && __instance.terminalNodes.specialNodes != null
+                ? __instance.terminalNodes.specialNodes.Where(n => n.displayText.Contains("Switched radar to player.") || n.terminalEvent == "switchCamera")
+                : null;
             if (switchNodes != null)
             {
                 foreach (var switchNode in switchNodes)
@@ -66,7 +68,7 @@ namespace GeneralImprovements.Patches
             if (Plugin.FitCreditsInBackgroundImage.Value)
             {
                 // If the last sibling has an Image component, resize it, change the text parent to that, stretch to its bounds, and enable autosizing
-                int siblingIndex = (__instance.topRightText?.rectTransform?.GetSiblingIndex() ?? 0) - 1;
+                int siblingIndex = (__instance.topRightText && __instance.topRightText.rectTransform ? __instance.topRightText.rectTransform.GetSiblingIndex() : 0) - 1;
                 if (siblingIndex >= 0 && __instance.topRightText.rectTransform.parent.GetChild(siblingIndex).GetComponent<Image>() is Image background)
                 {
                     background.rectTransform.anchoredPosition = new Vector2(-170, background.rectTransform.anchoredPosition.y);
@@ -136,7 +138,7 @@ namespace GeneralImprovements.Patches
             }
 
             // If this command isn't the same as the last one, queue it in the history and trim if needed
-            string command = __instance.screenText.text.Substring(__instance.screenText.text.Length - __instance.textAdded).Trim();
+            string command = __instance.screenText.text[^__instance.textAdded..].Trim();
 
             if (!_commandHistory.Any() || _commandHistory.Last().ToUpper() != command.ToUpper())
             {
@@ -296,7 +298,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(Terminal), nameof(SetItemSales))]
         [HarmonyPostfix]
-        private static void SetItemSales(Terminal __instance)
+        private static void SetItemSales()
         {
             MonitorsHelper.UpdateSalesMonitors();
         }
@@ -313,7 +315,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPostfix]
         private static void Update(Terminal __instance)
         {
-            if (GameNetworkManager.Instance?.localPlayerController?.inTerminalMenu ?? false)
+            if (GameNetworkManager.Instance && GameNetworkManager.Instance.localPlayerController && GameNetworkManager.Instance.localPlayerController.inTerminalMenu)
             {
                 bool upPressed = Keyboard.current[Key.UpArrow].wasPressedThisFrame;
                 bool rightPressed = Keyboard.current[Key.RightArrow].wasPressedThisFrame;
@@ -329,14 +331,14 @@ namespace GeneralImprovements.Patches
 
                     string curCommand = _commandHistory.ElementAt(_curHistoryIndex);
 
-                    __instance.screenText.text = $"{__instance.screenText.text.Substring(0, __instance.screenText.text.Length - __instance.textAdded)}{curCommand}";
+                    __instance.screenText.text = $"{__instance.screenText.text[..^__instance.textAdded]}{curCommand}";
                     __instance.screenText.caretPosition = __instance.screenText.text.Length;
                     __instance.textAdded = curCommand.Length;
                 }
                 else if (Plugin.TerminalFastCamSwitch.Value && (leftPressed || rightPressed))
                 {
                     // Cycle through cameras
-                    ManualCameraRenderer mapRenderer = OtherModHelper.TwoRadarCamsMapRenderer ?? StartOfRound.Instance.mapScreen;
+                    ManualCameraRenderer mapRenderer = OtherModHelper.TwoRadarCamsMapRenderer ? OtherModHelper.TwoRadarCamsMapRenderer : StartOfRound.Instance.mapScreen;
                     int originalIndex = mapRenderer.targetTransformIndex;
                     int nextIndex = originalIndex;
                     bool isInactivePlayer;

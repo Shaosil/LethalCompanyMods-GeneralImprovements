@@ -17,6 +17,7 @@ namespace GeneralImprovements.Utilities
         }
 
         [ClientRpc]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Used by netcode patcher")]
         public void SyncMonitorsFromHostClientRpc(bool usingMoreMonitors, string monitor1, string monitor2, string monitor3, string monitor4, string monitor5, string monitor6,
             string monitor7, string monitor8, string monitor9, string monitor10, string monitor11, string monitor12, string monitor13, string monitor14, ClientRpcParams clientParams)
         {
@@ -52,6 +53,7 @@ namespace GeneralImprovements.Utilities
         }
 
         [ClientRpc]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Used by netcode patcher")]
         public void SyncExtraDataOnConnectClientRpc(int quotaNum, int totalDays, int totalDeaths, int daysSinceLastDeath, string foundMoons, int[] dailyScrapDays, int[] dailyScrapValues, ClientRpcParams clientParams)
         {
             if (!IsServer && StartOfRound.Instance != null)

@@ -55,7 +55,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(RoundManager), nameof(FinishGeneratingNewLevelClientRpc))]
         [HarmonyPostfix]
-        private static void FinishGeneratingNewLevelClientRpc(RoundManager __instance)
+        private static void FinishGeneratingNewLevelClientRpc()
         {
             if (!_gotShipNode)
             {
@@ -73,7 +73,7 @@ namespace GeneralImprovements.Patches
             // If mimics are active and we want scan nodes on fire exits, create them here
             if (Plugin.ShowDoorsOnScanner.Value && OtherModHelper.MimicsActive)
             {
-                var mimics = Object.FindObjectsOfType<InteractTrigger>().Where(g => g.transform.parent?.name.StartsWith("MimicDoor") ?? false).ToList();
+                var mimics = Object.FindObjectsOfType<InteractTrigger>().Where(g => g.transform.parent && g.transform.parent.name.StartsWith("MimicDoor")).ToList();
                 foreach (var mimic in mimics)
                 {
                     // Manually move the scan node's position, or it will be in a noticeably different spot than real exits
@@ -143,7 +143,7 @@ namespace GeneralImprovements.Patches
         //        return __result;
         //    }
 
-        //    var masked = __instance.currentLevel?.Enemies?.FirstOrDefault(e => e.enemyType?.enemyName == "Masked");
+        //    var masked = __instance.currentLevel && __instance.currentLevel.Enemies != null ? __instance.currentLevel.Enemies.FirstOrDefault(e => e.enemyType && e.enemyType.enemyName == "Masked") : null;
         //    if (masked != null)
         //    {
         //        Plugin.MLS.LogWarning("FORCING A MASK SPAWN");

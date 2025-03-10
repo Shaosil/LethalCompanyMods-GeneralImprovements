@@ -1,25 +1,14 @@
 ﻿using System.Text.RegularExpressions;
 
-internal class InternalConfigDef
+internal class InternalConfigDef(string section, string description, string settingType, string defaultValue, string acceptedValues, string name, string value)
 {
-    public readonly string Section;
-    public readonly string Description;
-    public readonly string SettingType;
-    public readonly string DefaultValue;
-    public readonly string AcceptableValuesDescription;
-    public readonly string Name;
-    public readonly string Value;
-
-    public InternalConfigDef(string section, string description, string settingType, string defaultValue, string acceptedValues, string name, string value)
-    {
-        Section = section;
-        Description = description;
-        SettingType = settingType;
-        DefaultValue = defaultValue;
-        AcceptableValuesDescription = acceptedValues;
-        Name = name;
-        Value = value;
-    }
+    public string Section => section;
+    public string Description => description;
+    public string SettingType => settingType;
+    public string DefaultValue => defaultValue;
+    public string AcceptableValuesDescription => acceptedValues;
+    public string Name => name;
+    public string Value => value;
 
     internal static Dictionary<string, List<InternalConfigDef>> GetConfigSectionsAndItems(string filePath)
     {
@@ -35,7 +24,7 @@ internal class InternalConfigDef
         {
             if (line.StartsWith('#'))
             {
-                if (line.StartsWith("##")) curDescription = line.Substring(2);
+                if (line.StartsWith("##")) curDescription = line[2..];
                 else
                 {
                     var settingTypeMatch = Regex.Match(line, "# Setting type: (.+)");
@@ -64,8 +53,8 @@ internal class InternalConfigDef
 
             if (line.StartsWith('[') && line.EndsWith(']'))
             {
-                curSection = line.Substring(1, line.Length - 2);
-                ourEntries.TryAdd(curSection, new List<InternalConfigDef>());
+                curSection = line[1..^1];
+                ourEntries.TryAdd(curSection, []);
                 continue;
             }
 

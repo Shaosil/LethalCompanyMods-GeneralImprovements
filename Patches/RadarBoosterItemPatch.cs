@@ -1,5 +1,4 @@
-﻿using System;
-using HarmonyLib;
+﻿using HarmonyLib;
 using UnityEngine;
 
 namespace GeneralImprovements.Patches
@@ -12,7 +11,7 @@ namespace GeneralImprovements.Patches
         {
             if (Plugin.RadarBoostersCanBeTeleported.Value != Enums.eRadarBoosterTeleport.Disabled)
             {
-                Action<ParticleSystem> commonParameterSet = ps =>
+                static void commonParameterSet(ParticleSystem ps)
                 {
                     var shape = ps.shape;
                     var emission = ps.emission;
@@ -20,7 +19,7 @@ namespace GeneralImprovements.Patches
                     shape.shapeType = ParticleSystemShapeType.Sphere;
                     shape.radius = 0.5f;
                     emission.rateOverTimeMultiplier = 300;
-                };
+                }
 
                 // Add beam up and out particle effects by copying them from the local player
                 var newPs = UnityEngine.Object.Instantiate(StartOfRound.Instance.allPlayerScripts[0].beamUpParticle, __instance.transform);

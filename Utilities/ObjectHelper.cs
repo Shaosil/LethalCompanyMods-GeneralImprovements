@@ -77,14 +77,16 @@ namespace GeneralImprovements.Utilities
                 posNode.position = new Vector3(posNode.position.x, OriginalChargeYHeight, posNode.position.z);
 
                 // Depend on the light switch for copying audio
-                var lightSwitchPlaceable = StartOfRound.Instance.elevatorTransform.Find("LightSwitchContainer")?.GetComponentInChildren<PlaceableShipObject>();
+                var lightSwitchContainer = StartOfRound.Instance.elevatorTransform.Find("LightSwitchContainer");
+                var lightSwitchPlaceable = lightSwitchContainer ? lightSwitchContainer.GetComponentInChildren<PlaceableShipObject>() : null;
                 CopyPlaceableAudio(MedStation.gameObject, lightSwitchPlaceable);
             }
         }
 
         public static void MakeChargeStationPlaceable(InteractTrigger existingChargeTrigger)
         {
-            if (Plugin.AllowChargerPlacement.Value && AssetBundleHelper.ChargeStationPrefab != null && existingChargeTrigger?.transform.parent?.parent is Transform charger)
+            if (Plugin.AllowChargerPlacement.Value && AssetBundleHelper.ChargeStationPrefab != null && existingChargeTrigger && existingChargeTrigger.transform.parent
+                && existingChargeTrigger.transform.parent.parent is Transform charger)
             {
                 Plugin.MLS.LogInfo("Allowing item charger to be placeable.");
 

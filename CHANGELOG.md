@@ -1,5 +1,8 @@
 # Changelog
 
+### v1.4.10 - Unity analyzer refactor hotfix
+* Analyzed my code for potential invalid syntax and null checks and refactored 100+ areas that could have caused problems.
+
 ### v1.4.9 - Yo dawg I heard you like fixes. So I made fixes for my fixes so you could see me fix what I fixed.
 * Lightly overhauled the medkit and charge station in the assets bundle.
 	* This fixes another compatibility with [FurnitureLock](https://thunderstore.io/c/lethal-company/p/mattymatty/FurnitureLock/) where the medkit and item charger could not be locked at all.

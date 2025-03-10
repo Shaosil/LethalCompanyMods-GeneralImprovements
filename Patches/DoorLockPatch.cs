@@ -1,9 +1,9 @@
-﻿using GeneralImprovements.Utilities;
-using HarmonyLib;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 
 namespace GeneralImprovements.Patches
 {
@@ -36,11 +36,14 @@ namespace GeneralImprovements.Patches
                     var injectedFunction = Transpilers.EmitDelegate<Func<bool>>(() =>
                     {
                         // Return true if the player has a key in their inventory
-                        for (int i = 0; i < (StartOfRound.Instance?.localPlayerController?.ItemSlots.Length ?? 0); i++)
+                        if (StartOfRound.Instance && StartOfRound.Instance.localPlayerController && StartOfRound.Instance.localPlayerController.ItemSlots != null)
                         {
-                            if (StartOfRound.Instance.localPlayerController.ItemSlots[i] is KeyItem)
+                            for (int i = 0; i < StartOfRound.Instance.localPlayerController.ItemSlots.Length; i++)
                             {
-                                return true;
+                                if (StartOfRound.Instance.localPlayerController.ItemSlots[i] is KeyItem)
+                                {
+                                    return true;
+                                }
                             }
                         }
 

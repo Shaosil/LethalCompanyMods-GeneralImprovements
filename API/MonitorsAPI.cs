@@ -41,7 +41,7 @@ namespace GeneralImprovements.API
 
             // Helper properties for internal use
             internal Material OverwrittenMaterial { get; set; } // If another mod overwrites the renderer's shared material, it will be stored here when detected
-            internal Material TargetMaterial => OverwrittenMaterial ?? AssignedMaterial; // What material the monitor should be using at any given time. Prioritize overrides.
+            internal Material TargetMaterial => OverwrittenMaterial ? OverwrittenMaterial : AssignedMaterial; // What material the monitor should be using at any given time. Prioritize overrides.
 
             public void QueueRender()
             {

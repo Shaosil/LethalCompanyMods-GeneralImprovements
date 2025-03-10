@@ -15,7 +15,7 @@ namespace GeneralImprovements.Patches
 {
     internal static class ShipTeleporterPatch
     {
-        private static Dictionary<ShipTeleporter, InteractTrigger> _buttonGlasses = new Dictionary<ShipTeleporter, InteractTrigger>();
+        private static readonly Dictionary<ShipTeleporter, InteractTrigger> _buttonGlasses = new Dictionary<ShipTeleporter, InteractTrigger>();
 
         [HarmonyPatch(typeof(ShipTeleporter), "Awake")]
         [HarmonyPrefix]
@@ -40,10 +40,10 @@ namespace GeneralImprovements.Patches
                 __instance.GetComponentInChildren<InteractTrigger>().hoverTip = "Beam out : [E]";
             }
 
-            var buttonGlass = __instance.transform.Find("ButtonContainer/ButtonAnimContainer/ButtonGlass")?.GetComponent<InteractTrigger>();
-            if (buttonGlass != null)
+            var buttonGlass = __instance.transform.Find("ButtonContainer/ButtonAnimContainer/ButtonGlass");
+            if (buttonGlass && buttonGlass.GetComponent<InteractTrigger>() is InteractTrigger trigger)
             {
-                _buttonGlasses[__instance] = buttonGlass;
+                _buttonGlasses[__instance] = trigger;
             }
         }
 
@@ -90,8 +90,10 @@ namespace GeneralImprovements.Patches
                 {
                     var collectBodyDelegate = Transpilers.EmitDelegate<Action>(() =>
                     {
-                        var deadBodyObj = StartOfRound.Instance?.mapScreen?.targetedPlayer?.deadBody?.grabBodyObject;
-                        if (deadBodyObj != null && !deadBodyObj.isInShipRoom)
+                        var deadBodyObj = StartOfRound.Instance && StartOfRound.Instance.mapScreen && StartOfRound.Instance.mapScreen.targetedPlayer && StartOfRound.Instance.mapScreen.targetedPlayer.deadBody
+                            ? StartOfRound.Instance.mapScreen.targetedPlayer.deadBody.grabBodyObject : null;
+
+                        if (deadBodyObj && !deadBodyObj.isInShipRoom)
                         {
                             StartOfRound.Instance.mapScreen.targetedPlayer.SetItemInElevator(true, true, deadBodyObj);
                         }
@@ -242,7 +244,7 @@ namespace GeneralImprovements.Patches
         private static IEnumerator CheckCanBeamUpRadarBooster(ShipTeleporter teleporter)
         {
             TeleportableRadarBooster helper = null;
-            Func<bool> validRadarOnMapScreen = () =>
+            bool validRadarOnMapScreen()
             {
                 var map = StartOfRound.Instance.mapScreen;
                 var mapTarget = map.radarTargets.ElementAtOrDefault(map.targetTransformIndex);
@@ -252,7 +254,7 @@ namespace GeneralImprovements.Patches
                 }
 
                 return helper != null;
-            };
+            }
 
             // If the current map target is an unheld radar booster, play its beam up particle system if found
             if (validRadarOnMapScreen())
@@ -278,21 +280,22 @@ namespace GeneralImprovements.Patches
 
         private static IEnumerator CheckCanBeamOutRadarBoosters(ShipTeleporter teleporter)
         {
-            List<TeleportableRadarBooster> helpers = null;
-            Func<bool> radarsNearby = () =>
+            List<TeleportableRadarBooster> helpers;
+            bool radarsNearby()
             {
                 helpers = new List<TeleportableRadarBooster>();
-                var hitProps = Physics.OverlapSphere(teleporter.transform.position, 2, 64);
-                foreach (var collider in hitProps)
+                var colliders = new Collider[100];
+                int hits = Physics.OverlapSphereNonAlloc(teleporter.transform.position, 2, colliders, 64);
+                for (int i = 0; i < hits; i++)
                 {
-                    if (collider.TryGetComponent<RadarBoosterItem>(out var radar) && radar.playerHeldBy == null && radar.TryGetComponent<TeleportableRadarBooster>(out var helper))
+                    if (colliders[i].TryGetComponent<RadarBoosterItem>(out var radar) && radar.playerHeldBy == null && radar.TryGetComponent<TeleportableRadarBooster>(out var helper))
                     {
                         helpers.Add(helper);
                     }
                 }
 
                 return helpers.Count > 0;
-            };
+            }
 
             // Find all nearby radar boosters not held by players and play beam effets on them
             if (radarsNearby())

@@ -12,7 +12,7 @@ namespace GeneralImprovements.Patches
 {
     internal static class GrabbableObjectsPatch
     {
-        private static HashSet<GrabbableObject> _itemsToKeepInPlace = new HashSet<GrabbableObject>();
+        private static readonly HashSet<GrabbableObject> _itemsToKeepInPlace = new HashSet<GrabbableObject>();
 
         [HarmonyPatch(typeof(GrabbableObject), "Start")]
         [HarmonyPrefix]
@@ -92,7 +92,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPatch(typeof(GrabbableObject), "OnPlaceObject")]
         [HarmonyPatch(typeof(StunGrenadeItem), "ExplodeStunGrenade")]
         [HarmonyPostfix]
-        private static void OnPlaceFallOrExplode(GrabbableObject __instance)
+        private static void OnPlaceFallOrExplode()
         {
             MonitorsHelper.UpdateCalculatedScrapMonitors();
         }
@@ -163,7 +163,7 @@ namespace GeneralImprovements.Patches
                         found[1].Instruction.opcode = OpCodes.Nop;
 
                         // Insert a new instruction delegate at the current new index
-                        Action<KeyItem> callDestroy = k =>
+                        static void callDestroy(KeyItem k)
                         {
                             for (int i = 0; i < StartOfRound.Instance.localPlayerController.ItemSlots.Length; i++)
                             {
@@ -173,8 +173,8 @@ namespace GeneralImprovements.Patches
                                     return;
                                 }
                             }
-                        };
-                        codeList[found.Last().Index] = Transpilers.EmitDelegate(callDestroy);
+                        }
+                        codeList[found.Last().Index] = Transpilers.EmitDelegate((Action<KeyItem>)callDestroy);
                     }
                 }
             }

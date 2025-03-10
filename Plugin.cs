@@ -492,7 +492,7 @@ namespace GeneralImprovements
 
         private static Color HexToColor(string hex)
         {
-            float r = int.Parse(hex.Substring(0, 2), NumberStyles.HexNumber) / 255f;
+            float r = int.Parse(hex[..2], NumberStyles.HexNumber) / 255f;
             float g = int.Parse(hex.Substring(2, 2), NumberStyles.HexNumber) / 255f;
             float b = int.Parse(hex.Substring(4, 2), NumberStyles.HexNumber) / 255f;
 
@@ -525,14 +525,14 @@ namespace GeneralImprovements
         {
             MLS.LogMessage($"Found unused config value: {entry.Key.Key}. Migrating and removing if possible...");
 
-            Action<eMonitorNames> convertMonitor = s =>
+            void convertMonitor(eMonitorNames s)
             {
                 if (int.TryParse(entry.Value, out var num) && num >= 1 && num <= ShipMonitorAssignments.Length)
                 {
                     MLS.LogInfo($"Migrating {s} to monitor position {num}.");
                     ShipMonitorAssignments[num - 1].Value = s;
                 }
-            };
+            }
 
             switch (entry.Key.Key)
             {

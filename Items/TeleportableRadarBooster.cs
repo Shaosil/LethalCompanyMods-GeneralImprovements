@@ -16,7 +16,8 @@ namespace GeneralImprovements.Items
         public void PlayBeamEffectsClientRpc(bool isRegular)
         {
             Plugin.MLS.LogDebug("Received radar booster beam effects RPC");
-            var particles = transform.Find(isRegular ? "BeamUpEffects" : "BeamOutBuildupEffects")?.GetComponent<ParticleSystem>();
+            var effectsTransform = transform.Find(isRegular ? "BeamUpEffects" : "BeamOutBuildupEffects");
+            var particles = effectsTransform ? effectsTransform.GetComponent<ParticleSystem>() : null;
             if (particles != null) particles.Play();
         }
 
@@ -43,7 +44,8 @@ namespace GeneralImprovements.Items
                 var dest = RoundManager.Instance.insideAINodes[rndIndex].transform.position;
 
                 // Play final effects and teleport inside
-                var particles = transform.Find("BeamOutEffects")?.GetComponent<ParticleSystem>();
+                var effectsTransform = transform.Find("BeamOutEffects");
+                var particles = effectsTransform ? effectsTransform.GetComponent<ParticleSystem>() : null;
                 if (particles != null) particles.Play();
                 TeleportRadarBooster(teleporter, dest, false);
             }

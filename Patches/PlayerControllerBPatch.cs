@@ -29,7 +29,7 @@ namespace GeneralImprovements.Patches
         private static float _originalClimbSpeed;
 
         public static KeyValuePair<int, bool> LastSyncedLifeStatus = new KeyValuePair<int, bool>(100, false); // Health, isDead
-        private static float _healthCheckInterval = 1f;
+        private static readonly float _healthCheckInterval = 1f;
         private static float _healthCheckTimer = 0;
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(Awake))]
@@ -61,7 +61,7 @@ namespace GeneralImprovements.Patches
         [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
         [HarmonyPriority(Priority.Low)]
         [HarmonyFinalizer] // Need a finalizer because CorporateRestructure sometimes has an exception before this, stopping our hide code
-        private static void ConnectClientToPlayerObjectPost(PlayerControllerB __instance)
+        private static void ConnectClientToPlayerObjectPost()
         {
             // If using the new monitors, hide the old text objects HERE in order to let other mods utilize them first
             if (Plugin.UseBetterMonitors.Value)
@@ -146,7 +146,7 @@ namespace GeneralImprovements.Patches
             MonitorsHelper.UpdatePlayersAliveMonitors();
 
             // If it was the local player taking damage or dying, send a health sync to guarantee values are known
-            if (__instance.IsOwner)
+            if (__instance && __instance.IsOwner)
             {
                 NetworkHelper.Instance.SyncPlayerLifeStatusServerRpc((int)__instance.playerClientId, __instance.health, __instance.isPlayerDead);
             }
@@ -257,7 +257,7 @@ namespace GeneralImprovements.Patches
 
             // Make sure this is a two handed object and we aren't currently processing it
             var grabbableObject = networkObject.gameObject.GetComponentInChildren<GrabbableObject>();
-            if (!grabbableObject?.itemProperties.twoHanded ?? false)
+            if (!grabbableObject || !grabbableObject.itemProperties || !grabbableObject.itemProperties.twoHanded)
             {
                 return;
             }
@@ -316,15 +316,15 @@ namespace GeneralImprovements.Patches
                 {
                     newHeldItem.EquipItem();
                 }
-                __instance.twoHanded = newHeldItem?.itemProperties.twoHanded ?? false;
-                __instance.twoHandedAnimation = newHeldItem?.itemProperties.twoHandedAnimation ?? false;
+                __instance.twoHanded = newHeldItem ? newHeldItem.itemProperties.twoHanded : false;
+                __instance.twoHandedAnimation = newHeldItem ? newHeldItem.itemProperties.twoHandedAnimation : false;
                 __instance.playerBodyAnimator.ResetTrigger("Throw");
                 __instance.playerBodyAnimator.SetBool("Grab", true);
-                if (!string.IsNullOrEmpty(newHeldItem?.itemProperties.grabAnim))
+                if (!string.IsNullOrEmpty(newHeldItem ? newHeldItem.itemProperties.grabAnim : string.Empty))
                 {
                     __instance.playerBodyAnimator.SetBool(newHeldItem.itemProperties.grabAnim, true);
                 }
-                if (__instance.twoHandedAnimation != newHeldItem?.itemProperties.twoHandedAnimation)
+                if (__instance.twoHandedAnimation != (newHeldItem ? newHeldItem.itemProperties.twoHandedAnimation : false))
                 {
                     __instance.playerBodyAnimator.ResetTrigger("SwitchHoldAnimationTwoHanded");
                     __instance.playerBodyAnimator.SetTrigger("SwitchHoldAnimationTwoHanded");
@@ -357,9 +357,9 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(QuickMenuManager), nameof(OpenQuickMenu))]
         [HarmonyPrefix]
-        private static bool OpenQuickMenu(QuickMenuManager __instance)
+        private static bool OpenQuickMenu()
         {
-            if (ShipBuildModeManager.Instance?.InBuildMode ?? false)
+            if (ShipBuildModeManager.Instance && ShipBuildModeManager.Instance.InBuildMode)
             {
                 // Cancel out of build mode instead
                 Plugin.MLS.LogInfo("Cancelling build mode and returning false!");
@@ -512,8 +512,7 @@ namespace GeneralImprovements.Patches
                     var newIfLabel = generator.DefineLabel();
                     var newDelegate = Transpilers.EmitDelegate<Action<GameObject>>(d =>
                     {
-                        var mask = d?.transform.parent?.GetComponent<MaskedPlayerEnemy>();
-                        if (mask != null)
+                        if (d && d.transform.parent && d.transform.parent.GetComponent<MaskedPlayerEnemy>() is MaskedPlayerEnemy mask)
                         {
                             MaskedPlayerEnemyPatch.ShowNameBillboard(mask);
                         }
@@ -546,7 +545,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SetHoverTipAndCurrentInteractTrigger))]
         [HarmonyPostfix]
-        private static void SetHoverTipAndCurrentInteractTrigger(PlayerControllerB __instance, Ray ___interactRay, RaycastHit ___hit)
+        private static void SetHoverTipAndCurrentInteractTrigger(PlayerControllerB __instance)
         {
             ProfilerHelper.BeginProfilingSafe(_pm_PlayerHovertip);
 
@@ -565,7 +564,7 @@ namespace GeneralImprovements.Patches
                     // Make sure we reset/turn back off when needed
                     __instance.cursorIcon.transform.localScale = Vector3.one * _originalCursorScale;
                     __instance.cursorIcon.color = Color.white;
-                    __instance.cursorIcon.sprite = __instance.hoveringOverTrigger?.hoverIcon ?? __instance.cursorIcon.sprite;
+                    __instance.cursorIcon.sprite = __instance.hoveringOverTrigger ? __instance.hoveringOverTrigger.hoverIcon : __instance.cursorIcon.sprite;
 
                     if (__instance.cursorIcon.sprite == AssetBundleHelper.Reticle)
                     {
@@ -574,7 +573,7 @@ namespace GeneralImprovements.Patches
                 }
             }
 
-            if (Plugin.AddHealthRechargeStation.Value && ObjectHelper.MedStation != null && __instance.hoveringOverTrigger?.transform.parent == ObjectHelper.MedStation.transform)
+            if (Plugin.AddHealthRechargeStation.Value && ObjectHelper.MedStation && __instance.hoveringOverTrigger && __instance.hoveringOverTrigger.transform.parent == ObjectHelper.MedStation.transform)
             {
                 bool shouldBeInteractable = __instance.health < CurrentMaxHealth;
                 if (__instance.hoveringOverTrigger.interactable != shouldBeInteractable)
@@ -591,7 +590,7 @@ namespace GeneralImprovements.Patches
         private static bool ShowNameBillboard()
         {
             // Do not show player names if we are hiding them, unless we are orbiting
-            return !(Plugin.HidePlayerNames.Value && !(StartOfRound.Instance?.inShipPhase ?? true));
+            return !(Plugin.HidePlayerNames.Value && !(StartOfRound.Instance && StartOfRound.Instance.inShipPhase));
         }
 
         private static void ShiftRightFromSlot(PlayerControllerB player, int slot)
@@ -671,7 +670,7 @@ namespace GeneralImprovements.Patches
 
             RefreshCurrentHeldItem(player);
 
-            player.carryWeight = 1 + player.ItemSlots.Sum(i => (i?.itemProperties.weight ?? 1) - 1);
+            player.carryWeight = 1 + player.ItemSlots.Sum(i => (i && i.itemProperties ? i.itemProperties.weight : 1) - 1);
         }
 
         public static void DropItemAtIndex(PlayerControllerB player, int index)
@@ -772,7 +771,7 @@ namespace GeneralImprovements.Patches
         {
             ProfilerHelper.BeginProfilingSafe(_pm_PlayerUpdate);
 
-            if (__instance.IsOwner)
+            if (__instance && __instance.IsOwner)
             {
                 // Keep max health value up to date
                 if (CurrentMaxHealth < __instance.health)
