@@ -1,7 +1,12 @@
 # Changelog
 
-### v1.4.10 - Unity analyzer refactor hotfix
+### v1.4.10 - Unity analyzer refactor, compatibility, and API improvements
 * Analyzed my code for potential invalid syntax and null checks and refactored 100+ areas that could have caused problems.
+* Fixed another compatability with [FurnitureLock](https://thunderstore.io/c/lethal-company/p/mattymatty/FurnitureLock/) where assigning a position/rotation would not work with GI placeables.
+* Added another monitor option: `CurrentMoon`, which displays the currently orbited/landed moon.
+* Split `DisableShipCamPostProcessing` into two options, one for internal and one for external.
+* Updated the `MonitorsApi.MonitorInfo.QueueRender()` function to take an optional string value and return a boolean if the monitor was refreshed. The new customText argument allows modders to display their own text.
+	* Keep in mind that if the monitor has an active GI assignment, updates to it will overwrite calls to `QueueRender` that used custom text. Setting the monitor to `None` would be the safest bet.
 
 ### v1.4.9 - Yo dawg I heard you like fixes. So I made fixes for my fixes so you could see me fix what I fixed.
 * Lightly overhauled the medkit and charge station in the assets bundle.

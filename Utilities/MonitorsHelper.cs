@@ -30,6 +30,7 @@ namespace GeneralImprovements.Utilities
         private static List<TextMeshProUGUI> _deadlineTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _averageDailyScrapMonitorTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _companyBuyRateMonitorTexts = new List<TextMeshProUGUI>();
+        private static List<TextMeshProUGUI> _currentMoonTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _customMonitorTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _dailyProfitMonitorTexts = new List<TextMeshProUGUI>();
         private static List<TextMeshProUGUI> _shipScrapMonitorTexts = new List<TextMeshProUGUI>();
@@ -111,10 +112,13 @@ namespace GeneralImprovements.Utilities
             var secCam = StartOfRound.Instance.elevatorTransform.Find("Cameras/FrontDoorSecurityCam/SecurityCamera");
             var internalShipCamObj = shipCam ? shipCam.GetComponent<Camera>() : null;
             var externalShipCamObj = secCam ? secCam.GetComponent<Camera>() : null;
-            if (Plugin.DisableShipCamPostProcessing.Value)
+            if (Plugin.DisableInternalShipCamPostProcessing.Value && internalShipCamObj != null)
             {
-                if (internalShipCamObj != null) internalShipCamObj.GetComponent<HDAdditionalCameraData>().volumeLayerMask = 0;
-                if (externalShipCamObj != null) externalShipCamObj.GetComponent<HDAdditionalCameraData>().volumeLayerMask = 0;
+                internalShipCamObj.GetComponent<HDAdditionalCameraData>().volumeLayerMask = 0;
+            }
+            if (Plugin.DisableExternalShipCamPostProcessing.Value && externalShipCamObj != null)
+            {
+                externalShipCamObj.GetComponent<HDAdditionalCameraData>().volumeLayerMask = 0;
             }
 
             // Do nothing else if none of these are true - that means the user basically hasn't changed any of the default monitor config options
@@ -239,6 +243,7 @@ namespace GeneralImprovements.Utilities
                 _deadlineTexts.ForEach(g => Object.Destroy(g));
                 _averageDailyScrapMonitorTexts.ForEach(g => Object.Destroy(g));
                 _companyBuyRateMonitorTexts.ForEach(g => Object.Destroy(g));
+                _currentMoonTexts.ForEach(g => Object.Destroy(g));
                 _customMonitorTexts.ForEach(g => Object.Destroy(g));
                 _dailyProfitMonitorTexts.ForEach(g => Object.Destroy(g));
                 _shipScrapMonitorTexts.ForEach(g => Object.Destroy(g));
@@ -277,6 +282,7 @@ namespace GeneralImprovements.Utilities
             _deadlineTexts = new List<TextMeshProUGUI>();
             _averageDailyScrapMonitorTexts = new List<TextMeshProUGUI>();
             _companyBuyRateMonitorTexts = new List<TextMeshProUGUI>();
+            _currentMoonTexts = new List<TextMeshProUGUI>();
             _customMonitorTexts = new List<TextMeshProUGUI>();
             _dailyProfitMonitorTexts = new List<TextMeshProUGUI>();
             _shipScrapMonitorTexts = new List<TextMeshProUGUI>();
@@ -345,6 +351,7 @@ namespace GeneralImprovements.Utilities
                 {
                     case eMonitorNames.AverageDailyScrap: curTexts = _averageDailyScrapMonitorTexts; break;
                     case eMonitorNames.CompanyBuyRate: curTexts = _companyBuyRateMonitorTexts; break;
+                    case eMonitorNames.CurrentMoon: curTexts = _currentMoonTexts; break;
                     case eMonitorNames.CustomText: curTexts = _customMonitorTexts; break;
                     case eMonitorNames.DailyProfit: curTexts = _dailyProfitMonitorTexts; break;
                     case eMonitorNames.Credits: curTexts = _creditsMonitorTexts; break;
@@ -460,6 +467,7 @@ namespace GeneralImprovements.Utilities
                 {
                     case eMonitorNames.AverageDailyScrap: _averageDailyScrapMonitorTexts.Add(curMonitor.TextCanvas); break;
                     case eMonitorNames.CompanyBuyRate: _companyBuyRateMonitorTexts.Add(curMonitor.TextCanvas); break;
+                    case eMonitorNames.CurrentMoon: _currentMoonTexts.Add(curMonitor.TextCanvas); break;
                     case eMonitorNames.CustomText:
                         curMonitor.TextCanvas.enableAutoSizing = true;
                         curMonitor.TextCanvas.margin = Vector4.one * 20;
@@ -614,7 +622,7 @@ namespace GeneralImprovements.Utilities
 
         public static void UpdateCompanyBuyRateMonitors()
         {
-            if (_companyBuyRateMonitorTexts.Count > 0 && StartOfRound.Instance != null)
+            if (_companyBuyRateMonitorTexts.Count > 0 && StartOfRound.Instance)
             {
                 string color = StartOfRound.Instance.companyBuyingRate > 1 ? "0080ff"
                     : StartOfRound.Instance.companyBuyingRate == 1 ? "00ff00"
@@ -625,6 +633,20 @@ namespace GeneralImprovements.Utilities
                 if (UpdateGenericTextList(_companyBuyRateMonitorTexts, $"COMPANY RATE:\n{ApplyColorToText($"{(int)Mathf.Round(StartOfRound.Instance.companyBuyingRate * 100f)}%", color)}"))
                 {
                     Plugin.MLS.LogInfo($"Updated company buy rate monitors.");
+                }
+            }
+        }
+
+        public static void UpdateCurrentMoonMonitors()
+        {
+            if (_currentMoonTexts.Count > 0 && StartOfRound.Instance && StartOfRound.Instance.currentLevel)
+            {
+                string orbitingOrLanded = StartOfRound.Instance.inShipPhase ? "ORBITING" : "LANDED ON";
+                string currentMoon = StartOfRound.Instance.currentLevel.PlanetName.ToUpper();
+
+                if (UpdateGenericTextList(_currentMoonTexts, $"{orbitingOrLanded}:\n{currentMoon}"))
+                {
+                    Plugin.MLS.LogInfo("Updated current moon monitors.");
                 }
             }
         }
@@ -1173,11 +1195,14 @@ namespace GeneralImprovements.Utilities
             foreach (var t in textList)
             {
                 t.text = text;
-                if (_newMonitors != null && MonitorsAPI.AllMonitors.FirstOrDefault(m => m.Value.TextCanvas == t).Value is MonitorsAPI.MonitorInfo monitor && StartOfRound.Instance && StartOfRound.Instance.localPlayerController)
+
+                if (_newMonitors != null && MonitorsAPI.AllMonitors.FirstOrDefault(m => m.Value.TextCanvas == t).Value is MonitorsAPI.MonitorInfo monitor && StartOfRound.Instance)
                 {
                     // If we are orbiting, in the ship (or spectating someone in it), or set to always render, immediately update. Otherwise, add it to the refresh queue (most recent will always override any old data)
-                    bool targetPlayerInShip = (StartOfRound.Instance.localPlayerController.spectatedPlayerScript ? StartOfRound.Instance.localPlayerController.spectatedPlayerScript
-                        : StartOfRound.Instance.localPlayerController).isInElevator;
+                    bool targetPlayerInShip = StartOfRound.Instance.localPlayerController
+                        ? (StartOfRound.Instance.localPlayerController.spectatedPlayerScript ? StartOfRound.Instance.localPlayerController.spectatedPlayerScript : StartOfRound.Instance.localPlayerController).isInElevator
+                        : true;
+
                     if (StartOfRound.Instance.inShipPhase || Plugin.AlwaysRenderMonitors.Value || targetPlayerInShip)
                     {
                         if (_newMonitors.RefreshMonitorAfterTextChange(monitor))

@@ -49,7 +49,7 @@ namespace GeneralImprovements.Patches
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(Start))]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         [HarmonyPriority(Priority.High)]
         private static void Start(StartOfRound __instance)
         {
@@ -201,6 +201,7 @@ namespace GeneralImprovements.Patches
         {
             RoundManagerPatch.EnableAndAttachShipScanNode();
             MonitorsHelper.UpdateCalculatedScrapMonitors();
+            MonitorsHelper.UpdateCurrentMoonMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(ShipLeave))]
@@ -268,6 +269,8 @@ namespace GeneralImprovements.Patches
                     }
                 }
             }
+
+            MonitorsHelper.UpdateCurrentMoonMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.ChangeLevel))]
@@ -279,6 +282,8 @@ namespace GeneralImprovements.Patches
             {
                 FlownToHiddenMoons.Add(__instance.currentLevel.PlanetName);
             }
+
+            MonitorsHelper.UpdateCurrentMoonMonitors();
         }
 
         [HarmonyPatch(typeof(StartOfRound), "TravelToLevelEffects", MethodType.Enumerator)]

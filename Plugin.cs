@@ -110,7 +110,8 @@ namespace GeneralImprovements
         private const string ShipSection = "Ship";
         public static ConfigEntry<bool> AllowChargerPlacement { get; private set; }
         public static ConfigEntry<eValidKeys> CounterClockwiseKey { get; private set; }
-        public static ConfigEntry<bool> DisableShipCamPostProcessing { get; private set; }
+        public static ConfigEntry<bool> DisableInternalShipCamPostProcessing { get; private set; }
+        public static ConfigEntry<bool> DisableExternalShipCamPostProcessing { get; private set; }
         public static ConfigEntry<eValidKeys> FreeRotateKey { get; private set; }
         public static ConfigEntry<bool> HideClipboardAndStickyNote { get; private set; }
         public static ConfigEntry<bool> HideShipCabinetDoors { get; private set; }
@@ -376,7 +377,8 @@ namespace GeneralImprovements
             // Ship
             AllowChargerPlacement = Config.Bind(ShipSection, nameof(AllowChargerPlacement), false, $"[ALL USERS] If set to true, the battery charger may be placed via the ship's build mode. {incompatWarning}");
             CounterClockwiseKey = Config.Bind(ShipSection, nameof(CounterClockwiseKey), eValidKeys.LeftShift, "If SnapObjectsByDegrees > 0, configures which modifier key spins it CCW.");
-            DisableShipCamPostProcessing = Config.Bind(ShipSection, nameof(DisableShipCamPostProcessing), false, "If set to true, the internal and external ship cameras will no longer use post processing. This may improve performance with higher resolution camera settings.");
+            DisableInternalShipCamPostProcessing = Config.Bind(ShipSection, nameof(DisableInternalShipCamPostProcessing), false, "If set to true, the internal ship camera will no longer use post processing. This may improve performance with higher resolution camera settings.");
+            DisableExternalShipCamPostProcessing = Config.Bind(ShipSection, nameof(DisableExternalShipCamPostProcessing), false, "If set to true, the external ship camera will no longer use post processing. This may improve performance with higher resolution camera settings.");
             FreeRotateKey = Config.Bind(ShipSection, nameof(FreeRotateKey), eValidKeys.LeftAlt, "If SnapObjectsByDegrees > 0, configures which modifer key activates free rotation.");
             HideClipboardAndStickyNote = Config.Bind(ShipSection, nameof(HideClipboardAndStickyNote), false, "If set to true, the game will not show the clipboard or sticky note when the game loads.");
             HideShipCabinetDoors = Config.Bind(ShipSection, nameof(HideShipCabinetDoors), false, "If set to true, the storage shelves in the ship will not have doors.");
@@ -560,7 +562,7 @@ namespace GeneralImprovements
 
                 // Indecisive masked entity renaming and reorganizing
                 case "MaskedLookLikePlayers":
-                    bool maskedLookLikePlayers = bool.TryParse(entry.Value, out _);
+                    bool.TryParse(entry.Value, out var maskedLookLikePlayers);
                     MaskedEntitiesWearMasks.Value = !maskedLookLikePlayers;
                     MaskedEntitiesShowPlayerNames.Value = maskedLookLikePlayers;
                     MaskedEntitiesCopyPlayerLooks.Value = maskedLookLikePlayers ? eMaskedEntityCopyLook.SuitAndCosmetics : eMaskedEntityCopyLook.None;
@@ -597,6 +599,12 @@ namespace GeneralImprovements
                         (startingMoneyPerPlayerVal >= 0 ? eStartingMoneyFunction.PerPlayerWithMinimum : eStartingMoneyFunction.Total)
                         : startingMoneyPerPlayerVal >= 0 ? eStartingMoneyFunction.PerPlayer
                         : eStartingMoneyFunction.Disabled;
+                    break;
+
+                case "DisableShipCamPostProcessing":
+                    bool.TryParse(entry.Value, out var oldShipCamPostProcessing);
+                    DisableInternalShipCamPostProcessing.Value = oldShipCamPostProcessing;
+                    DisableExternalShipCamPostProcessing.Value = oldShipCamPostProcessing;
                     break;
 
                 default:

@@ -31,6 +31,7 @@ namespace GeneralImprovements
             AverageDailyScrap,
             CompanyBuyRate,
             Credits,
+            CurrentMoon,
             CustomText,
             DailyProfit,
             DangerLevel,

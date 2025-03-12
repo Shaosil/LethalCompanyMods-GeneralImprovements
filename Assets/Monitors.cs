@@ -99,7 +99,7 @@ namespace GeneralImprovements.Assets
                 {
                     Camera = screenText.GetComponentInChildren<Camera>(),
                     MeshRenderer = renderer,
-                    TextCanvas = (Plugin.ShowBackgroundOnAllScreens.Value || curAssignment > Enums.eMonitorNames.None) && curAssignment < Enums.eMonitorNames.ExternalCam ? screenText : null,
+                    TextCanvas = curAssignment < Enums.eMonitorNames.ExternalCam ? screenText : null,
                     ScreenMaterialIndex = 0, // Our screen meshes are separate from the surrounding meshes and always only have one material
                     AssignedMaterial = renderer.sharedMaterial,
                     OverwrittenMaterial = overwrittenMaterials.GetValueOrDefault(i)
@@ -118,7 +118,7 @@ namespace GeneralImprovements.Assets
         private void Start()
         {
             // Render all text based monitors that do not have overrides
-            foreach (var monitor in MonitorsAPI.AllMonitors.Values.Where(m => m.TextCanvas != null && m.MeshRenderer.sharedMaterial == m.AssignedMaterial))
+            foreach (var monitor in MonitorsAPI.AllMonitors.Values.Where(m => m.TextCanvas && m.MeshRenderer.sharedMaterial == m.AssignedMaterial))
             {
                 RefreshMonitorAfterTextChange(monitor);
             }
@@ -151,7 +151,7 @@ namespace GeneralImprovements.Assets
         public bool RefreshMonitorAfterTextChange(MonitorsAPI.MonitorInfo monitor)
         {
             // Only render if this monitor has a text canvas associated with it and is not overwritten
-            if (monitor.TextCanvas != null && monitor.MeshRenderer.sharedMaterial == monitor.AssignedMaterial)
+            if (monitor.TextCanvas && monitor.MeshRenderer.sharedMaterial == monitor.AssignedMaterial)
             {
                 // Add the change to the queue and let the next Update() handle one per frame
                 _queuedMonitorTextUpdates.Enqueue(monitor);
