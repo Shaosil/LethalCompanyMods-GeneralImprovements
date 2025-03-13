@@ -134,14 +134,22 @@ namespace GeneralImprovements.Patches
 
             // Cast a giant sphere 100f around ourself to get scan nodes we collided with, ordered by distance
             var hitScanNodes = new Collider[100];
-            Physics.OverlapSphereNonAlloc(playerScript.gameplayCamera.transform.position, 100f, hitScanNodes, 0x400000);
+            int hits = Physics.OverlapSphereNonAlloc(playerScript.gameplayCamera.transform.position, 100f, hitScanNodes, 0x400000);
 
-            var nearbyScanNodes = hitScanNodes
-                .Select(n => new KeyValuePair<float, ScanNodeProperties>(Vector3.Distance(n.transform.position, playerScript.transform.position), n.transform.GetComponent<ScanNodeProperties>()))
-                .Where(s => s.Value != null && s.Key >= s.Value.minRange && s.Key <= s.Value.maxRange                   // In range
-                    && GeometryUtility.TestPlanesAABB(camPlanes, new Bounds(s.Value.transform.position, Vector3.one)))  // In camera view
-                .OrderBy(n => n.Key)
-                .ToArray();
+            var nearbyScanNodes = new List<KeyValuePair<float, ScanNodeProperties>>();
+            for (int i = 0; i < hits; i++)
+            {
+                if (hitScanNodes[i].transform.TryGetComponent<ScanNodeProperties>(out var snp))
+                {
+                    float dist = Vector3.Distance(hitScanNodes[i].transform.position, playerScript.transform.position);
+                    if (dist >= snp.minRange && dist <= snp.maxRange && GeometryUtility.TestPlanesAABB(camPlanes, new Bounds(snp.transform.position, Vector3.one)))
+                    {
+                        // In range and in camera view
+                        nearbyScanNodes.Add(new KeyValuePair<float, ScanNodeProperties>(dist, snp));
+                    }
+                }
+            }
+            nearbyScanNodes = nearbyScanNodes.OrderBy(n => n.Key).ToList();
 
             // Now attempt to scan each of them, stopping when we fill the number of UI elements
             foreach (var scannable in nearbyScanNodes.Select(s => s.Value))

@@ -2,6 +2,7 @@
 using GeneralImprovements.Assets;
 using TMPro;
 using UnityEngine;
+using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements.API
 {
@@ -30,16 +31,23 @@ namespace GeneralImprovements.API
         /// </summary>
         public static bool NewMonitorMeshActive { get; internal set; }
 
+        /// <summary>
+        /// True if the monitors currently have power, false otherwise.
+        /// </summary>
+        public static bool PoweredOn { get; internal set; }
+
         public class MonitorInfo
         {
             // Public properties for monitor information
+            public eMonitorNames Assignment { get; internal set; }
             public Camera Camera { get; internal set; } // The associated camera that handles text updates for text based monitors
             public MeshRenderer MeshRenderer { get; internal set; }
             public TextMeshProUGUI TextCanvas { get; internal set; } // Not used if the monitor is displaying a camera
             public int ScreenMaterialIndex { get; internal set; }
-            public Material AssignedMaterial { get; internal set; } // The original material this mod is trying to use
+            public Material AssignedMaterial { get; internal set; } // The material this mod is trying to use. Should either be a blank screen mat or the cam render target
 
             // Helper properties for internal use
+            internal Material OriginalMaterial { get; set; } // Stores the original camera renderer target material in case we need to switch back to it. Will not be blank screen mat.
             internal Material OverwrittenMaterial { get; set; } // If another mod overwrites the renderer's shared material, it will be stored here when detected
             internal Material TargetMaterial => OverwrittenMaterial ? OverwrittenMaterial : AssignedMaterial; // What material the monitor should be using at any given time. Prioritize overrides.
 

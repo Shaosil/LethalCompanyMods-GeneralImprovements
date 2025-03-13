@@ -178,6 +178,7 @@ namespace GeneralImprovements.Utilities
             MonitorsAPI.AllMonitors = new Dictionary<int, MonitorsAPI.MonitorInfo>();
             MonitorsAPI.NewMonitorMeshActive = Plugin.AddMoreBetterMonitors.Value;
             MonitorsAPI.NumMonitorsActive = 0;
+            MonitorsAPI.PoweredOn = true;
 
             if (Plugin.UseBetterMonitors.Value)
             {

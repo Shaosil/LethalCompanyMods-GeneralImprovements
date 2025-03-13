@@ -1,5 +1,13 @@
 # Changelog
 
+### v1.4.11 - Error hotfix and MonitorsAPI additions
+* Fixed an error caused by the Unity refactor in the previous update when `FixPersonalScanner` was set to true.
+* Fixed a bug where monitors would not show their updated text right away if it was changed while the power was out.
+* API Changes:
+	* Fixed MonitorsAPI not allowing custom text calls if a monitor was assigned "None".
+	* Added "Assignment" as another exposed property of the MonitorsAPI.MonitorInfo object. (Stores what GI monitor type is assigned)
+	* Added "PoweredOn" to MonitorsAPI to determine whether all monitors are on or off due to power (from power button, lightning strike, etc)
+
 ### v1.4.10 - Unity analyzer refactor, compatibility, and API improvements
 * Analyzed my code for potential invalid syntax and null checks and refactored 100+ areas that could have caused problems.
 * Fixed another compatability with [FurnitureLock](https://thunderstore.io/c/lethal-company/p/mattymatty/FurnitureLock/) where assigning a position/rotation would not work with GI placeables.

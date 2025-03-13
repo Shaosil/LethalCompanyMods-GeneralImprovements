@@ -75,6 +75,7 @@ namespace GeneralImprovements.Assets
             for (int i = 0; i < allMonitors.Count; i++)
             {
                 var screenText = activeTexts[i];
+                screenText.text = string.Empty;
                 screenText.font = StartOfRound.Instance.profitQuotaMonitorText.font;
                 screenText.spriteAsset = StartOfRound.Instance.profitQuotaMonitorText.spriteAsset;
                 screenText.color = Plugin.MonitorTextColorVal;
@@ -83,25 +84,22 @@ namespace GeneralImprovements.Assets
                 // If there is no assignment here, either show a blank screen or clear the text in prep of the canvas render
                 var renderer = allMonitors[i].GetComponent<MeshRenderer>();
                 var curAssignment = Plugin.ShipMonitorAssignments[i].Value;
-                if (curAssignment == Enums.eMonitorNames.None)
+                var originalMat = renderer.sharedMaterial;
+                if (curAssignment == Enums.eMonitorNames.None && !Plugin.ShowBackgroundOnAllScreens.Value)
                 {
-                    if (Plugin.ShowBackgroundOnAllScreens.Value)
-                    {
-                        screenText.text = string.Empty;
-                    }
-                    else
-                    {
-                        renderer.sharedMaterial = _blankScreenMaterial;
-                    }
+                    renderer.sharedMaterial = _blankScreenMaterial;
                 }
 
                 MonitorsAPI.AllMonitors[i] = new MonitorsAPI.MonitorInfo
                 {
+                    Assignment = curAssignment,
                     Camera = screenText.GetComponentInChildren<Camera>(),
                     MeshRenderer = renderer,
                     TextCanvas = curAssignment < Enums.eMonitorNames.ExternalCam ? screenText : null,
                     ScreenMaterialIndex = 0, // Our screen meshes are separate from the surrounding meshes and always only have one material
                     AssignedMaterial = renderer.sharedMaterial,
+
+                    OriginalMaterial = originalMat,
                     OverwrittenMaterial = overwrittenMaterials.GetValueOrDefault(i)
                 };
 
@@ -153,6 +151,13 @@ namespace GeneralImprovements.Assets
             // Only render if this monitor has a text canvas associated with it and is not overwritten
             if (monitor.TextCanvas && monitor.MeshRenderer.sharedMaterial == monitor.AssignedMaterial)
             {
+                // If the current monitor is a blank screen, we have text to render, and the power is on, update the material and assignment
+                if (IsBlankScreen(monitor) && !string.IsNullOrWhiteSpace(monitor.TextCanvas.text) && MonitorsAPI.PoweredOn)
+                {
+                    monitor.MeshRenderer.sharedMaterial = monitor.OriginalMaterial;
+                    monitor.AssignedMaterial = monitor.OriginalMaterial;
+                }
+
                 // Add the change to the queue and let the next Update() handle one per frame
                 _queuedMonitorTextUpdates.Enqueue(monitor);
                 return true;
@@ -163,20 +168,23 @@ namespace GeneralImprovements.Assets
 
         public void TogglePower(bool on)
         {
-            // Set the power of all in-use monitors
+            MonitorsAPI.PoweredOn = on;
+
+            // Set the power of all in-use monitors and queue an update for all of them in case they changed
             foreach (var kvp in MonitorsAPI.AllMonitors)
             {
                 var monitor = kvp.Value;
-                bool monitorOn = monitor.MeshRenderer.sharedMaterial != _blankScreenMaterial;
 
                 // If the monitor is currently on and we have a new material (probably from another mod that started after us), overwrite our stored one
-                if (monitorOn && monitor.MeshRenderer.sharedMaterial != monitor.TargetMaterial)
+                if (!IsBlankScreen(monitor) && monitor.MeshRenderer.sharedMaterial != monitor.TargetMaterial)
                 {
                     Plugin.MLS.LogWarning($"Found an unexpected material on ship monitor {kvp.Key + 1} ({monitor.MeshRenderer.sharedMaterial.name}). Using it instead, since it was most likely purposefully assigned.");
                     monitor.OverwrittenMaterial = monitor.MeshRenderer.sharedMaterial;
                 }
 
                 monitor.MeshRenderer.sharedMaterial = on ? monitor.TargetMaterial : _blankScreenMaterial;
+
+                RefreshMonitorAfterTextChange(monitor);
             }
         }
 
@@ -187,5 +195,7 @@ namespace GeneralImprovements.Assets
                 _mapRenderer.sharedMaterial = newMaterial;
             }
         }
+
+        private bool IsBlankScreen(MonitorsAPI.MonitorInfo monitor) => monitor?.MeshRenderer && monitor.MeshRenderer.sharedMaterial == _blankScreenMaterial;
     }
 }
