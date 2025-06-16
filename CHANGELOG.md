@@ -1,5 +1,10 @@
 # Changelog
 
+### v1.4.12 - Update for v72
+* Grabbed latest game DLL to recompile and eliminate outdated code errors.
+* Removed `SellCounterItemLimit` from config since vanilla code updated the counter limit from 12 items to 150.
+* Fixed transpiler for MeetsScanNodeRequirements when `FixPersonalScanner` is true since vanilla code is checking for a different layer mask during a linecast.
+
 ### v1.4.11 - Error hotfix and MonitorsAPI additions
 * Fixed an error caused by the Unity refactor in the previous update when `FixPersonalScanner` was set to true.
 * Fixed a bug where monitors would not show their updated text right away if it was changed while the power was out.

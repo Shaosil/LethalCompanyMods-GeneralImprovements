@@ -177,7 +177,7 @@ namespace GeneralImprovements.Patches
             {
                 if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
                 {
-                    i => i.LoadsConstant(0x100),
+                    i => i.LoadsConstant(0x08000100),
                     i => i.LoadsConstant(1),
                     i => i.Calls(typeof(Physics).GetMethod(nameof(Physics.Linecast), new System.Type[] { typeof(Vector3), typeof(Vector3), typeof(int), typeof(QueryTriggerInteraction) }))
                 }, out var scanCode))

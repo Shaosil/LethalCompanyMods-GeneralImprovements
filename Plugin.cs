@@ -61,7 +61,6 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> FixInternalFireExits { get; private set; }
         public static ConfigEntry<bool> FixItemsFallingThrough { get; private set; }
         public static ConfigEntry<bool> FixItemsLoadingSameRotation { get; private set; }
-        public static ConfigEntry<int> SellCounterItemLimit { get; private set; }
 
         private const string GameLaunchSection = "GameLaunch";
         public static ConfigEntry<bool> AllowPreGameLeverPullAsClient { get; private set; }
@@ -332,7 +331,6 @@ namespace GeneralImprovements
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
             FixItemsFallingThrough = Config.Bind(FixesSection, nameof(FixItemsFallingThrough), true, "Fixes items falling through furniture on the ship when loading the game.");
             FixItemsLoadingSameRotation = Config.Bind(FixesSection, nameof(FixItemsLoadingSameRotation), true, "Fixes items all facing the same way when loading a save file. Now they will store their rotations as well.");
-            SellCounterItemLimit = Config.Bind(FixesSection, nameof(SellCounterItemLimit), 24, new ConfigDescription("Sets the max amount of items the company selling counter will hold at one time. Vanilla = 12.", new AcceptableValueRange<int>(12, 999)));
 
             // Game Launch
             AllowPreGameLeverPullAsClient = Config.Bind(GameLaunchSection, nameof(AllowPreGameLeverPullAsClient), true, "If set to true, you will be able to pull the ship lever to start the game as a connected player.");
