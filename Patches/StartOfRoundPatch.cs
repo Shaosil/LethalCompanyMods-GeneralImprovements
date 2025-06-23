@@ -74,8 +74,8 @@ namespace GeneralImprovements.Patches
                     && cabinet.transform.GetChild(0).GetChild(0).GetComponent<InteractTrigger>()
                     && cabinet.transform.GetChild(1).GetChild(0).GetComponent<InteractTrigger>())
                 {
-                    Object.Destroy(cabinet.transform.GetChild(0).gameObject);
-                    Object.Destroy(cabinet.transform.GetChild(1).gameObject);
+                    cabinet.transform.GetChild(0).gameObject.SetActive(false);
+                    cabinet.transform.GetChild(1).gameObject.SetActive(false);
                 }
                 else
                 {
@@ -165,31 +165,36 @@ namespace GeneralImprovements.Patches
         private static IEnumerable<CodeInstruction> SetTimeAndPlanetToSavedSettings(IEnumerable<CodeInstruction> instructions)
         {
             var codeList = instructions.ToList();
-            var loadMethod = typeof(ES3).GetMethods().First(m => m.Name == nameof(ES3.Load) && m.ContainsGenericParameters && m.GetParameters().Length == 3 && m.GetParameters()[2].ParameterType.IsGenericParameter);
 
-            if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+            if (Plugin.RandomizeNewSaveSeed.Value)
             {
-                i => i.IsLdarg(0),
-                i => i.Is(OpCodes.Ldstr, "RandomSeed"),
-                i => i.IsLdloc(),
-                i => i.LoadsConstant(0),
-                i => i.Calls(loadMethod.MakeGenericMethod(typeof(int))),
-                i => i.StoresField(typeof(StartOfRound).GetField(nameof(StartOfRound.randomMapSeed)))
-            }, out var found))
-            {
-                // Instead of using 0 for a default map seed, use Random.Range(1, 100000000)
-                codeList[found[3].Index] = new CodeInstruction(OpCodes.Ldc_I4_1);
-                codeList.InsertRange(found[4].Index, new[]
+                var loadMethod = typeof(ES3).GetMethods().First(m => m.Name == nameof(ES3.Load)
+                    && m.ContainsGenericParameters && m.GetParameters().Length == 3 && m.GetParameters()[2].ParameterType.IsGenericParameter);
+
+                if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
                 {
-                    new CodeInstruction(OpCodes.Ldc_I4, 100000000),
-                    new CodeInstruction(OpCodes.Call, typeof(Random).GetMethod(nameof(Random.Range), new[] { typeof(int), typeof(int) }))
-                });
+                    i => i.IsLdarg(0),
+                    i => i.Is(OpCodes.Ldstr, "RandomSeed"),
+                    i => i.IsLdloc(),
+                    i => i.LoadsConstant(0),
+                    i => i.Calls(loadMethod.MakeGenericMethod(typeof(int))),
+                    i => i.StoresField(typeof(StartOfRound).GetField(nameof(StartOfRound.randomMapSeed)))
+                }, out var found))
+                {
+                    // Instead of using 0 for a default map seed, use Random.Range(1, 100000000)
+                    codeList[found[3].Index] = new CodeInstruction(OpCodes.Ldc_I4_1);
+                    codeList.InsertRange(found[4].Index, new[]
+                    {
+                        new CodeInstruction(OpCodes.Ldc_I4, 100000000),
+                        new CodeInstruction(OpCodes.Call, typeof(Random).GetMethod(nameof(Random.Range), new[] { typeof(int), typeof(int) }))
+                    });
 
-                Plugin.MLS.LogDebug("Patched SetTimeAndPlanetToSavedSettings to default the first map seed to a random value.");
-            }
-            else
-            {
-                Plugin.MLS.LogError("Could not find expected code in SetTimeAndPlanetToSavedSettings - Unable to patch randomMapSeed!");
+                    Plugin.MLS.LogDebug("Patched StartOfRound.SetTimeAndPlanetToSavedSettings to default the first map seed to a random value.");
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Could not find expected code in StartOfRound.SetTimeAndPlanetToSavedSettings - Unable to patch randomMapSeed!");
+                }
             }
 
             return codeList;
@@ -209,9 +214,11 @@ namespace GeneralImprovements.Patches
         private static void ShipLeave()
         {
             // Easter egg
-            if (RoundManagerPatch.CurShipNode != null)
+            if (!string.IsNullOrWhiteSpace(Plugin.EasterEggLabel.Value) && RoundManagerPatch.CurShipNode != null)
             {
-                RoundManagerPatch.CurShipNode.subText = "BYE LOL";
+                RoundManagerPatch.CurShipNode.subText = Plugin.EasterEggLabel.Value.Equals("Default", System.StringComparison.OrdinalIgnoreCase)
+                    ? "BYE LOL"
+                    : Plugin.EasterEggLabel.Value;
             }
         }
 
@@ -337,7 +344,7 @@ namespace GeneralImprovements.Patches
             if (!displayInfo && map && map.radarTargets.Count > map.targetTransformIndex && map.radarTargets[map.targetTransformIndex] != null
                 && !string.IsNullOrWhiteSpace(map.radarTargets[map.targetTransformIndex].name))
             {
-                __instance.mapScreenPlayerName.text = $"MONITORING: {__instance.mapScreen.radarTargets[__instance.mapScreen.targetTransformIndex].name}";
+                __instance.mapScreenPlayerName.text = __instance.mapScreen.radarTargets[__instance.mapScreen.targetTransformIndex].name;
             }
         }
 

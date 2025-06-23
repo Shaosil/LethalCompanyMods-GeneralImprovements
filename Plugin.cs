@@ -61,6 +61,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> FixInternalFireExits { get; private set; }
         public static ConfigEntry<bool> FixItemsFallingThrough { get; private set; }
         public static ConfigEntry<bool> FixItemsLoadingSameRotation { get; private set; }
+        public static ConfigEntry<bool> RandomizeNewSaveSeed { get; private set; }
 
         private const string GameLaunchSection = "GameLaunch";
         public static ConfigEntry<bool> AllowPreGameLeverPullAsClient { get; private set; }
@@ -96,6 +97,9 @@ namespace GeneralImprovements
         public static int StartingMoneyVal => Math.Clamp(StartingMoney.Value, 0, 10000);
         public static ConfigEntry<eStartingMoneyFunction> StartingMoneyFunction { get; private set; }
         public static ConfigEntry<bool> UnlockDoorsFromInventory { get; private set; }
+
+        private const string MiscSection = "Misc";
+        public static ConfigEntry<string> EasterEggLabel { get; private set; }
 
         private const string ScannerSection = "Scanner";
         public static ConfigEntry<bool> FixPersonalScanner { get; private set; }
@@ -331,6 +335,7 @@ namespace GeneralImprovements
             FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
             FixItemsFallingThrough = Config.Bind(FixesSection, nameof(FixItemsFallingThrough), true, "Fixes items falling through furniture on the ship when loading the game.");
             FixItemsLoadingSameRotation = Config.Bind(FixesSection, nameof(FixItemsLoadingSameRotation), true, "Fixes items all facing the same way when loading a save file. Now they will store their rotations as well.");
+            RandomizeNewSaveSeed = Config.Bind(FixesSection, nameof(RandomizeNewSaveSeed), true, "Fixes the map seed always being set to zero for new saves, which prevents randomized sales and weather.");
 
             // Game Launch
             AllowPreGameLeverPullAsClient = Config.Bind(GameLaunchSection, nameof(AllowPreGameLeverPullAsClient), true, "If set to true, you will be able to pull the ship lever to start the game as a connected player.");
@@ -362,6 +367,9 @@ namespace GeneralImprovements
             StartingMoney = Config.Bind(MechanicsSection, nameof(StartingMoney), 60, $"[Host Only] How much starting money the group gets when starting a new game. Internally clamped between 0 and 10k. {defaultNoChange}");
             StartingMoneyFunction = Config.Bind(MechanicsSection, nameof(StartingMoneyFunction), eStartingMoneyFunction.Disabled, $"[Host Only] Controls how {nameof(StartingMoney)} behaves. {eStartingMoneyFunction.Total} will set the credits to a single flat amount. {eStartingMoneyFunction.PerPlayer} will adjust the credits by {nameof(StartingMoney)} as players join and leave. {eStartingMoneyFunction.PerPlayerWithMinimum} does the same, with a minimum set by {nameof(MinimumStartingMoney)}. {defaultNoChange}");
             UnlockDoorsFromInventory = Config.Bind(MechanicsSection, nameof(UnlockDoorsFromInventory), false, "If set to true, keys in your inventory do not have to be held when unlocking facility doors.");
+
+            // Misc
+            EasterEggLabel = Config.Bind(MiscSection, nameof(EasterEggLabel), "Default", "Allows customization of the very small easter egg text, if set to anything other than the word 'Default'. 12 character limit.");
 
             // Scanner
             FixPersonalScanner = Config.Bind(ScannerSection, nameof(FixPersonalScanner), false, "If set to true, will tweak the behavior of the scan action and more reliably ping items closer to you, and the ship/main entrance.");
@@ -427,6 +435,8 @@ namespace GeneralImprovements
             TwentyFourHourClock = Config.Bind(UISection, nameof(TwentyFourHourClock), false, "If set to true, the clock will be 24 hours instead of 12.");
 
             // Sanitize where needed
+            EasterEggLabel.Value = new string(EasterEggLabel.Value.Trim().Take(12).ToArray());
+
             string backgroundHex = Regex.Match(MonitorBackgroundColor.Value, "([a-fA-F0-9]{6})").Groups[1].Value.ToUpper();
             string textHex = Regex.Match(MonitorTextColor.Value, "([a-fA-F0-9]{6})").Groups[1].Value.ToUpper();
             if (backgroundHex.Length != 6) MLS.LogWarning("Invalid hex code used for monitor background color! Reverting to default.");

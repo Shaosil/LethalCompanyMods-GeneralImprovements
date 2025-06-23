@@ -72,7 +72,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Dead bodies will now instantly show as collected when teleported back to the ship (configurable).
 * Fixes the scan terminal command and end-of-round scrap sum to include all valuables outside the ship, as well as factor in the current scrap value multiplier (under the hood, not related to company).
 * The initial monitor view now shows the correct player name when first starting a round.
-* The map seed is now properly randomized as soon as you start a new save file, which means sales, weather, etc will be properly randomized.
+* Adds an option to properly randomize the map seed as soon as you start a new save file, which means sales, weather, etc will be random.
 * Fixes ship scrap not being marked as 'in the ship' for clients when joining. This fixes several things client side, including terminal scans, extra scrap collection pings, and more.
 * [Host Only] Certain items (soccer ball, toilet paper, etc) will no longer be hit by lightning. If the host/server player has this enabled, it will apply to all clients.
 * [Host Only] When a new client connects to your lobby, they should see the correct position, rotation, and current emote animation of each player, as well as correct states of the ship lights and monitor power.

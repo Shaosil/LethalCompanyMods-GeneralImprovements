@@ -1,5 +1,11 @@
 # Changelog
 
+### v1.4.13 - Minor bugfixes and options
+* Fixed `HideShipCabinetDoors` set to true causing an error when attempting to place items in the cabinet.
+* Fixed the map screen still saying "MONITORING: " after the v70 update removed it from vanilla.
+* Added a config option to randomize the map seed for new save files. Defaults to true since it was an existing fix as of v1.2.2.
+* Added a config option for the small easter egg that exists. Setting it to anything other than the word "Default" will allow customization.
+
 ### v1.4.12 - Update for v72
 * Grabbed latest game DLL to recompile and eliminate outdated code errors.
 * Removed `SellCounterItemLimit` from config since vanilla code updated the counter limit from 12 items to 150.
