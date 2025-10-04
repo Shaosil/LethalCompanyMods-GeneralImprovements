@@ -1,5 +1,9 @@
 # Changelog
 
+### v1.4.14 - Update for v73
+* Recompiled with updated game DLLs to support latest codebase
+* Fixed `FixItemsLoadingSameRotation` no longer transpiling due to UnityEngine updates.
+
 ### v1.4.13 - Minor bugfixes and options
 * Fixed `HideShipCabinetDoors` set to true causing an error when attempting to place items in the cabinet.
 * Fixed the map screen still saying "MONITORING: " after the v70 update removed it from vanilla.
