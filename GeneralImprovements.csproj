@@ -133,7 +133,7 @@
     <Target Name="CopyFilesToGamePath" AfterTargets="PostBuildEvent">
         <!-- Install the netcode-patcher CLI from here: https://github.com/EvaisaDev/UnityNetcodePatcher -->
         <Message Text="Patching netcode..." Importance="high" />
-        <Exec Command="netcode-patch &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" />
+        <Exec Command="netcode-patch -uv 2022.3.62 -nv 1.12.0 -tv 1.0.0 &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" />
 
         <MakeDir Directories="$(GamePath)" />
         

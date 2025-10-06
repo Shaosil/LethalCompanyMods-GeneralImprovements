@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using BepInEx;
 using BepInEx.Configuration;
@@ -182,99 +183,19 @@ namespace GeneralImprovements
             harmony.PatchAll(typeof(ILManipulatorPatch));
             MLS.LogInfo("ILManipulator patched (fixes rare cases where transpilers do not emit the expected IL code.");
 
-            harmony.PatchAll(typeof(AudioReverbTriggerPatch));
-            MLS.LogInfo("AudioReverbTrigger patched.");
-
-            harmony.PatchAll(typeof(AutoParentToShipPatch));
-            MLS.LogInfo("AutoParentToShip patched.");
-
-            harmony.PatchAll(typeof(DepositItemsDeskPatch));
-            MLS.LogInfo("DepositItemsDesk patched.");
-
-            harmony.PatchAll(typeof(DoorLockPatch));
-            MLS.LogInfo("DoorLock patched.");
-
-            harmony.PatchAll(typeof(EnemyAIPatch));
-            MLS.LogInfo("EnemyAI patched.");
-
-            harmony.PatchAll(typeof(EntranceTeleportPatch));
-            MLS.LogInfo("EntranceTeleport patched.");
-
-            if (!OtherModHelper.FlashlightFixActive)
-            {
-                harmony.PatchAll(typeof(FlashlightItemPatch));
-                MLS.LogInfo("FlashlightItem patched.");
-            }
-            else
+            if (OtherModHelper.FlashlightFixActive)
             {
                 MLS.LogWarning("Outdated version of FlashlightFix detected - please update your mods.");
             }
 
-            harmony.PatchAll(typeof(GameNetworkManagerPatch));
-            MLS.LogInfo("GameNetworkManager patched.");
-
-            harmony.PatchAll(typeof(GrabbableObjectsPatch));
-            MLS.LogInfo("GrabbableObjects patched.");
-
-            harmony.PatchAll(typeof(HangarShipDoorPatch));
-            MLS.LogInfo("HangarShipDoor patched.");
-
-            harmony.PatchAll(typeof(HUDManagerPatch));
-            MLS.LogInfo("HUDManager patched.");
-
-            harmony.PatchAll(typeof(ItemDropshipPatch));
-            MLS.LogInfo("ItemDropship patched.");
-
-            harmony.PatchAll(typeof(LandminePatch));
-            MLS.LogInfo("Landmine patched.");
-
-            harmony.PatchAll(typeof(ManualCameraRendererPatch));
-            MLS.LogInfo("ManualCameraRenderer patched.");
-
-            harmony.PatchAll(typeof(MaskedPlayerEnemyPatch));
-            MLS.LogInfo("MaskedPlayerEnemy patched.");
-
-            harmony.PatchAll(typeof(MenuPatches));
-            MLS.LogInfo("Menus patched.");
-
-            harmony.PatchAll(typeof(PlayerControllerBPatch));
-            MLS.LogInfo("PlayerControllerB patched.");
-
-            harmony.PatchAll(typeof(RadarBoosterItemPatch));
-            MLS.LogInfo("RadarBoosterItem patched.");
-
-            harmony.PatchAll(typeof(RoundManagerPatch));
-            MLS.LogInfo("RoundManager patched.");
-
-            harmony.PatchAll(typeof(ShipBuildModeManagerPatch));
-            MLS.LogInfo("ShipBuildModeManager patched.");
-
-            harmony.PatchAll(typeof(ShipTeleporterPatch));
-            MLS.LogInfo("ShipTeleporter patched.");
-
-            harmony.PatchAll(typeof(SprayPaintItemPatch));
-            MLS.LogInfo("SprayPaintItem patched.");
-
-            harmony.PatchAll(typeof(StartMatchLeverPatch));
-            MLS.LogInfo("StartMatchLever patched.");
-
-            harmony.PatchAll(typeof(StartOfRoundPatch));
-            MLS.LogInfo("StartOfRound patched.");
-
-            harmony.PatchAll(typeof(StormyWeatherPatch));
-            MLS.LogInfo("StormyWeather patched.");
-
-            harmony.PatchAll(typeof(TerminalAccessibleObjectPatch));
-            MLS.LogInfo("TerminalAccessibleObject patched.");
-
-            harmony.PatchAll(typeof(TerminalPatch));
-            MLS.LogInfo("Terminal patched.");
-
-            harmony.PatchAll(typeof(TimeOfDayPatch));
-            MLS.LogInfo("TimeOfDay patched.");
-
-            harmony.PatchAll(typeof(UnlockableSuitPatch));
-            MLS.LogInfo("UnlockableSuit patched.");
+            // Use reflection to patch all types that are defined in the project by namespace
+            List<Type> allPatchables = Assembly.GetExecutingAssembly().GetTypes()
+                .Where(t => t.Namespace == $"{GetType().Namespace}.Patches" && t.Name.EndsWith("Patch")).ToList();
+            foreach (var patchable in allPatchables)
+            {
+                harmony.PatchAll(patchable);
+                MLS.LogInfo($"{Regex.Replace(patchable.Name, "Patch$", string.Empty)} patched.");
+            }
 
             GameNetworkManagerPatch.PatchNetcode();
 

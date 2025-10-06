@@ -1,5 +1,9 @@
 # Changelog
 
+### v1.4.15 - Update for Netcode Patcher
+* Updated Netcode Patcher CLI and arguments to support RPCs after base Unity update
+* Minor patch code cleanup
+
 ### v1.4.14 - Update for v73
 * Recompiled with updated game DLLs to support latest codebase
 * Fixed `FixItemsLoadingSameRotation` no longer transpiling due to UnityEngine updates.

@@ -1,15 +1,15 @@
-﻿using GeneralImprovements.Utilities;
-using HarmonyLib;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection.Emit;
+using GeneralImprovements.Utilities;
+using HarmonyLib;
 using UnityEngine;
 using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements.Patches
 {
-    internal static class MenuPatches
+    internal static class MenuPatch
     {
         [HarmonyPatch(typeof(MenuManager), "Start")]
         [HarmonyPrefix]
