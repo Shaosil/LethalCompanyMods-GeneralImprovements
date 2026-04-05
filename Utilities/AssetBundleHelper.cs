@@ -22,7 +22,7 @@ namespace GeneralImprovements.Utilities
                 string assetPath = Path.Combine(new FileInfo(Assembly.GetExecutingAssembly().Location).DirectoryName, "GeneralImprovementsAssets");
                 if (!new FileInfo(assetPath).Exists)
                 {
-                    Plugin.MLS.LogError("Could not find asset bundle!");
+                    Plugin.MLS.LogError("Could not find asset bundle! Better/extra monitors, reticle, med station, placeable charge station, and lightning overlays will not work!");
                     return;
                 }
                 _bundle = AssetBundle.LoadFromFile(assetPath, 0xA6F5F5DC);

@@ -36,15 +36,29 @@ namespace GeneralImprovements.Patches
             // If we will be creating the med station, make sure it is registered as an unlockable
             if (Plugin.AddHealthRechargeStation.Value)
             {
-                ObjectHelper.MedStationUnlockableID = ObjectHelper.AddUnlockable(__instance, "Med Station");
-                AssetBundleHelper.MedStationPrefab.GetComponentInChildren<PlaceableShipObject>().unlockableID = ObjectHelper.MedStationUnlockableID;
+                if (AssetBundleHelper.MedStationPrefab != null)
+                {
+                    ObjectHelper.MedStationUnlockableID = ObjectHelper.AddUnlockable(__instance, "Med Station");
+                    AssetBundleHelper.MedStationPrefab.GetComponentInChildren<PlaceableShipObject>().unlockableID = ObjectHelper.MedStationUnlockableID;
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Because asset bundle was not found, med station can not be loaded!");
+                }
             }
 
             // If we allow the item charger to be a placeable, make sure it is registered as an unlockable
             if (Plugin.AllowChargerPlacement.Value)
             {
-                ObjectHelper.ChargeStationUnlockableID = ObjectHelper.AddUnlockable(__instance, "Item Charger");
-                AssetBundleHelper.ChargeStationPrefab.GetComponentInChildren<PlaceableShipObject>().unlockableID = ObjectHelper.ChargeStationUnlockableID;
+                if (AssetBundleHelper.ChargeStationPrefab != null)
+                {
+                    ObjectHelper.ChargeStationUnlockableID = ObjectHelper.AddUnlockable(__instance, "Item Charger");
+                    AssetBundleHelper.ChargeStationPrefab.GetComponentInChildren<PlaceableShipObject>().unlockableID = ObjectHelper.ChargeStationUnlockableID;
+                }
+                else
+                {
+                    Plugin.MLS.LogError("Because asset bundle was not found, placeable charge station can not be loaded!");
+                }
             }
         }
 
@@ -160,46 +174,6 @@ namespace GeneralImprovements.Patches
             }
         }
 
-        [HarmonyPatch(typeof(StartOfRound), nameof(SetTimeAndPlanetToSavedSettings))]
-        [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> SetTimeAndPlanetToSavedSettings(IEnumerable<CodeInstruction> instructions)
-        {
-            var codeList = instructions.ToList();
-
-            if (Plugin.RandomizeNewSaveSeed.Value)
-            {
-                var loadMethod = typeof(ES3).GetMethods().First(m => m.Name == nameof(ES3.Load)
-                    && m.ContainsGenericParameters && m.GetParameters().Length == 3 && m.GetParameters()[2].ParameterType.IsGenericParameter);
-
-                if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
-                {
-                    i => i.IsLdarg(0),
-                    i => i.Is(OpCodes.Ldstr, "RandomSeed"),
-                    i => i.IsLdloc(),
-                    i => i.LoadsConstant(0),
-                    i => i.Calls(loadMethod.MakeGenericMethod(typeof(int))),
-                    i => i.StoresField(typeof(StartOfRound).GetField(nameof(StartOfRound.randomMapSeed)))
-                }, out var found))
-                {
-                    // Instead of using 0 for a default map seed, use Random.Range(1, 100000000)
-                    codeList[found[3].Index] = new CodeInstruction(OpCodes.Ldc_I4_1);
-                    codeList.InsertRange(found[4].Index, new[]
-                    {
-                        new CodeInstruction(OpCodes.Ldc_I4, 100000000),
-                        new CodeInstruction(OpCodes.Call, typeof(Random).GetMethod(nameof(Random.Range), new[] { typeof(int), typeof(int) }))
-                    });
-
-                    Plugin.MLS.LogDebug("Patched StartOfRound.SetTimeAndPlanetToSavedSettings to default the first map seed to a random value.");
-                }
-                else
-                {
-                    Plugin.MLS.LogError("Could not find expected code in StartOfRound.SetTimeAndPlanetToSavedSettings - Unable to patch randomMapSeed!");
-                }
-            }
-
-            return codeList;
-        }
-
         [HarmonyPatch(typeof(StartOfRound), nameof(OnShipLandedMiscEvents))]
         [HarmonyPostfix]
         private static void OnShipLandedMiscEvents()
@@ -267,12 +241,13 @@ namespace GeneralImprovements.Patches
                 }
 
                 // Destroy keys in our own inventory
-                for (int i = 0; i < StartOfRound.Instance.localPlayerController.ItemSlots.Length; i++)
+                var allItems = PlayerControllerBPatch.GetAllItemSlots(StartOfRound.Instance.localPlayerController);
+                for (int i = 0; i < allItems.Length; i++)
                 {
-                    if (StartOfRound.Instance.localPlayerController.ItemSlots[i] is KeyItem key)
+                    if (allItems[i] is KeyItem key)
                     {
                         Plugin.MLS.LogInfo($"Destroying held key in slot {i} after orbiting.");
-                        ObjectHelper.DestroyLocalItemAndSync(i);
+                        ObjectHelper.DestroyLocalItemAndSync(StartOfRound.Instance.localPlayerController.ItemOnlySlot == allItems[i] ? 50 : i);
                     }
                 }
             }
@@ -363,7 +338,7 @@ namespace GeneralImprovements.Patches
                 // Send positional, rotational, emotional (heh), light, and monitor power data to all when new people connect
                 foreach (var connectedPlayer in __instance.allPlayerScripts.Where(p => p.isPlayerControlled))
                 {
-                    connectedPlayer.UpdatePlayerPositionClientRpc(connectedPlayer.thisPlayerBody.localPosition, connectedPlayer.isInElevator,
+                    connectedPlayer.UpdatePlayerPositionRpc(connectedPlayer.thisPlayerBody.localPosition, connectedPlayer.isInElevator,
                         connectedPlayer.isInHangarShipRoom, connectedPlayer.isExhausted, connectedPlayer.thisController.isGrounded);
 
                     connectedPlayer.UpdatePlayerRotationClientRpc((short)connectedPlayer.cameraUp, (short)connectedPlayer.thisPlayerBody.localEulerAngles.y);

@@ -5,9 +5,9 @@ Everything is mostly configurable and improves (IMO) several things about the ga
 Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-company/p/ShaosilGaming/GeneralImprovements/wiki/) I default most of the improvements to OFF to maximize compatibility with other mods, but there's some good QoL features in there you might not want to miss.
 
 ### GENERAL IMPROVEMENTS:
-* Places newly picked up items in the hotbar in left-right order. May be disabled in config.
-* Rearranges hotbar items when dropping things. May be disabled in config.
-* Always puts two-handed items in slot 1 (makes selling things a bit faster). May be disabled in config.
+* If enabled, places newly picked up items in the hotbar in left-right order.
+* If enabled, rearranges hotbar items when dropping things.
+* If enabled, always puts two-handed items in slot 1 (makes selling/dropping things much faster).
 * Decreases the time required in between scrolling through inventory slots. Configurable.
 * Decreases the time required in between placing items on the company counter.
 * Removes the wait to begin typing at the terminal when activating it.
@@ -39,6 +39,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * A total of 14 customizable, screen-integrated monitors for the ship (instead of the vanilla 8)! Choose which monitor to put what item, including ship cams and background color.
 * Available monitors to customize are things like weather, sales, time, credits, door power, ship cams, total days, total quotas, scrap remaining, etc. Work in progress, may be enabled individually in the config.
 * If specified in the config, the game will automatically select ONLINE or LAN upon launch.
+* If enabled in the config, you may use 1-4 as shortcuts to quick swap through items in your hotbar. 5-9 may also work if you use extended hotbar mods.
 * Using the up/down arrow keys at the terminal will navigate through the previous (n) commands. (n) may range from 0-100 in the config.
 * Using the left/right arrow keys at the terminal while viewing the radar will quickly cycle through available targets.
 * [Host Only] Adds an option to specify starting money per player, as well as define a minumum credit amount. Accepts ranges from -1 (disabled/default) to 1000.
@@ -68,7 +69,6 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 ### MINOR BUGFIXES:
 * Stops all non-scrap objects from showing value (when scanned and sold) when they do not actually have any.
 * Removes the random 'n' in the middle-left of the terminal monitor when switching through radar cams.
-* Flips the rotation of fire entrances 180 degrees so you are facing inside the facility when entering.
 * Dead bodies will now instantly show as collected when teleported back to the ship (configurable).
 * Fixes the scan terminal command and end-of-round scrap sum to include all valuables outside the ship, as well as factor in the current scrap value multiplier (under the hood, not related to company).
 * The initial monitor view now shows the correct player name when first starting a round.
@@ -93,7 +93,3 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Fixes grabbable objects having a hovertip that they are grabbable when they are not (Nutcracker shotgun, deposit items desk, etc).
 
 I will probably keep adding to this as I see minor things that could be improved or fixed.
-
-### WARNING
-
-Because this mod can shift inventory slots around, if you play with people who do NOT also have this mod installed, the slots they are aware about on your character may be different, and as a result, they may not see you holding what you actually are.

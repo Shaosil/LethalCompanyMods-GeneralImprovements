@@ -1,5 +1,23 @@
 # Changelog
 
+### v1.5.0 - Update for v81
+* Added `NumberKeysSwitchItemSlots` (defaults to false) to allow using 1-4 to select item slots. 5-0 may also work if using extended hotbar mods.
+	* If enabled, this will also check if the two basic emotes are bound to 1/2, and if so, will rebind them to F1/F2.
+* Fixed bug where keys would appear to stay in item slots if using one when `UnlockDoorsFromInventory` was set to true.
+* Fixed bug where lightning overlays would not go away if you entered a building while being targeted but before the strike happened.
+* Updated all code that referenced a player's `ItemSlots` to take the new item-only slot into account as well, since v81 handles that as a separate game object.
+* Updated entrance/exit references to reflect v81 changes (now uses an `exitScript` instead of `exitPoint` reference)
+* Updated lightning warning overlays to also support item-only slot.
+* Updated `PickupInOrder`, `RearrangeOnDrop`, and `TwoHandedInSlotOne`. May need further tweaking.
+* Utilizing new v81 `DropHeldItem` function that can specify a specific item instead of only the held item, in order to simplify my `DropAllItemsExceptHeld` code and fix ship teleporter transpilers.
+* Updated `RoundManager` reference to reflect v81's variable name changes.
+* Removed `FixInternalFireExits` as this has been fixed in vanilla.
+* Removed outdated hovertip fix transpiler.
+* Removed `RandomizeNewSaveSeed` from config as this was implemented in v81.
+* Cleaned up code that checks for my deprecated FlashlightFix being active, as it will be broken going forward anyway.
+* Better logging if asset bundle is missing, and fixed places that tried to load prefabs if bundle does not exist.
+* Minor solution and project updates to support my migration to Linux. If building the project, you will need to provide a "`GamePath`" environment variable to the build if you want to auto-copy files.
+
 ### v1.4.15 - Update for Netcode Patcher
 * Updated Netcode Patcher CLI and arguments to support RPCs after base Unity update
 * Minor patch code cleanup

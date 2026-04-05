@@ -71,7 +71,8 @@ namespace GeneralImprovements.Patches
             }
 
             // If there is an active flashlight in the players inventory (prioritize non lasers), turn on its helemet light. This can happen if a helmet light was on last frame.
-            var otherFlashlights = ___previousPlayerHeldBy.ItemSlots.OfType<FlashlightItem>().Where(f => f != __instance);
+            var allItemSlots = PlayerControllerBPatch.GetAllItemSlots(___previousPlayerHeldBy);
+            var otherFlashlights = allItemSlots.OfType<FlashlightItem>().Where(f => f != __instance);
             var activeFlashlight = otherFlashlights.Where(f => f != null && f.isBeingUsed).OrderBy(f => f.CheckForLaser()).FirstOrDefault();
 
             if (activeFlashlight != null)
@@ -108,11 +109,12 @@ namespace GeneralImprovements.Patches
                     // Make sure no other flashlights in our inventory are on
                     if (__instance.IsOwner && Plugin.OnlyAllowOneActiveFlashlight.Value && !__instance.CheckForLaser())
                     {
-                        for (int i = 0; i < __instance.playerHeldBy.ItemSlots.Length; i++)
+                        var allItems = PlayerControllerBPatch.GetAllItemSlots(__instance.playerHeldBy);
+                        foreach (var item in allItems)
                         {
-                            if (__instance.playerHeldBy.ItemSlots[i] is FlashlightItem otherFlashlight && otherFlashlight != __instance && otherFlashlight.isBeingUsed && !otherFlashlight.CheckForLaser())
+                            if (item is FlashlightItem otherFlashlight && otherFlashlight != __instance && otherFlashlight.isBeingUsed && !otherFlashlight.CheckForLaser())
                             {
-                                Plugin.MLS.LogDebug($"Flashlight in pocket slot {i} TURNING OFF after turning on a held flashlight");
+                                Plugin.MLS.LogDebug("Flashlight in pocket slot TURNING OFF after turning on a held flashlight");
                                 otherFlashlight.UseItemOnClient();
                             }
                         }

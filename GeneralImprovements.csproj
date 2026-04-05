@@ -3,7 +3,6 @@
         <TargetFramework>netstandard2.1</TargetFramework>
         <Configurations>Debug;Release;Deploy</Configurations>
         <PackageDir>..\PACKAGED\$(MSBuildProjectName)</PackageDir>
-        <GamePath>C:\Program Files (x86)\Steam\steamapps\common\Lethal Company\BepInEx\plugins\ShaosilGaming-GeneralImprovements\</GamePath>
         <NetcodePatcherNoOverwrite>true</NetcodePatcherNoOverwrite>
         <PublicizerRuntimeStrategies>Unsafe</PublicizerRuntimeStrategies>
     </PropertyGroup>
@@ -39,10 +38,15 @@
         <Publicize Include="Assembly-CSharp:HUDManager.AttemptScanNode" />
         <Publicize Include="Assembly-CSharp:ManualCameraRenderer.isScreenOn" />
         <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.cameraUp" />
+        <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.DropHeldItem" />
         <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.timeSinceSwitchingSlots" />
-        <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.UpdatePlayerPositionClientRpc" />
+        <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.SwitchToItemSlot" />
+        <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.SwitchToSlotServerRpc" />
+        <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.throwingObject" />
+        <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.UpdatePlayerPositionRpc" />
         <Publicize Include="Assembly-CSharp:GameNetcodeStuff.PlayerControllerB.UpdatePlayerRotationClientRpc" />
         <Publicize Include="Assembly-CSharp:SprayPaintItem.sprayCanMatsIndex" />
+        <Publicize Include="Assembly-CSharp:StormyWeather.targetingMetalObject" />
         <Publicize Include="Assembly-CSharp:TerminalAccessibleObject.mapRadarText" />
     </ItemGroup>
 
@@ -131,17 +135,22 @@
     </ItemGroup>
 
     <Target Name="CopyFilesToGamePath" AfterTargets="PostBuildEvent">
+        <PropertyGroup>
+          <PluginPath>$(GamePath)/BepInEx/plugins/ShaosilGaming-GeneralImprovements/</PluginPath>
+        </PropertyGroup>
+
         <!-- Install the netcode-patcher CLI from here: https://github.com/EvaisaDev/UnityNetcodePatcher -->
         <Message Text="Patching netcode..." Importance="high" />
-        <Exec Command="netcode-patch -uv 2022.3.62 -nv 1.12.0 -tv 1.0.0 &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" />
+        <Exec Command="netcode-patch -uv 2022.3.62 -nv 1.12.0 -tv 1.0.0 &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" 
+          StandardOutputImportance="Low" />
 
-        <MakeDir Directories="$(GamePath)" />
+        <MakeDir Directories="$(PluginPath)" />
         
-        <Message Text="Copying DLL to $(GamePath)..." Importance="high" />
-        <Exec Command="copy $(TargetPath) &quot;$(GamePath)&quot;" />
+        <Message Text="Copying DLL to $(PluginPath)..." Importance="high" />
+        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginPath)"/>
         
-        <Message Text="Copying assets to $(GamePath)..." Importance="high" />
-        <Exec Command="copy Assets\GeneralImprovementsAssets &quot;$(GamePath)&quot;" />
+        <Message Text="Copying assets to $(PluginPath)..." Importance="high" />
+        <Copy SourceFiles="Assets\GeneralImprovementsAssets" DestinationFolder="$(PluginPath)"/>
     </Target>
 
     <Target Name="ZipMod" AfterTargets="PostBuildEvent" Condition="$(Configuration) == 'Deploy'">

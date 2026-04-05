@@ -23,24 +23,5 @@ namespace GeneralImprovements.Patches
         {
             Instance = null;
         }
-
-        [HarmonyPatch(typeof(StormyWeather), nameof(SetStaticElectricityWarning))]
-        [HarmonyPostfix]
-        private static void SetStaticElectricityWarning(NetworkObject warningObject)
-        {
-            // Store the targeted grabbable object when clients receive the warning
-            warningObject.TryGetComponent(out HUDManagerPatch.CurrentLightningTarget);
-        }
-
-        [HarmonyPatch(typeof(StormyWeather), nameof(LightningStrike))]
-        [HarmonyPostfix]
-        private static void LightningStrike(bool useTargetedObject)
-        {
-            // Null out the lightning target after a targeted strike
-            if (useTargetedObject)
-            {
-                HUDManagerPatch.CurrentLightningTarget = null;
-            }
-        }
     }
 }

@@ -36,11 +36,12 @@ namespace GeneralImprovements.Patches
                     var injectedFunction = Transpilers.EmitDelegate<Func<bool>>(() =>
                     {
                         // Return true if the player has a key in their inventory
-                        if (StartOfRound.Instance && StartOfRound.Instance.localPlayerController && StartOfRound.Instance.localPlayerController.ItemSlots != null)
+                        if (StartOfRound.Instance && StartOfRound.Instance.localPlayerController)
                         {
-                            for (int i = 0; i < StartOfRound.Instance.localPlayerController.ItemSlots.Length; i++)
+                            var allSlots = PlayerControllerBPatch.GetAllItemSlots(StartOfRound.Instance.localPlayerController);
+                            foreach (var slotItem in allSlots)
                             {
-                                if (StartOfRound.Instance.localPlayerController.ItemSlots[i] is KeyItem)
+                                if (slotItem is KeyItem)
                                 {
                                     return true;
                                 }

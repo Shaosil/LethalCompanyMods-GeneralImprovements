@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Linq;
 using System.Reflection;
-using BepInEx;
 using BepInEx.Bootstrap;
 using GameNetcodeStuff;
 using GeneralImprovements.Patches.Other;
@@ -24,7 +23,6 @@ namespace GeneralImprovements.Utilities
         public static bool AdvancedCompanyActive { get; private set; }
         public static bool CodeRebirthActive { get; private set; }
         public static bool BuyRateSettingsActive { get; private set; }
-        public static bool FlashlightFixActive { get; private set; }
         public static bool MattyFixesActive { get; private set; }
         public static bool MimicsActive { get; private set; }
         public static bool ReservedItemSlotCoreActive { get; private set; }
@@ -71,10 +69,6 @@ namespace GeneralImprovements.Utilities
             AdvancedCompanyActive = AppDomain.CurrentDomain.GetAssemblies().Any(a => a.FullName.Contains("AdvancedCompany,"));
             BuyRateSettingsActive = Chainloader.PluginInfos.ContainsKey(BuyRateSettingsGUID);
             CodeRebirthActive = Chainloader.PluginInfos.ContainsKey(CodeRebirthGUID);
-            // Detect flashlight fix as active only if they are not on the latest versio that removes all code
-            var flashlightFixPlugin = TypeLoader.FindPluginTypes(Paths.PluginPath, Chainloader.ToPluginInfo)
-                .FirstOrDefault(p => p.Value.FirstOrDefault()?.Metadata.GUID == "ShaosilGaming.FlashlightFix").Value?.FirstOrDefault();
-            FlashlightFixActive = flashlightFixPlugin != null && flashlightFixPlugin.Metadata.Version.Minor < 2;
             MattyFixesActive = Chainloader.PluginInfos.ContainsKey(MattyFixesGUID);
             MimicsActive = Chainloader.PluginInfos.ContainsKey(MimicsGUID);
             ReservedItemSlotCoreActive = reservedItemSlotCoreAssembly != null;

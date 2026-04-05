@@ -180,12 +180,17 @@ namespace GeneralImprovements.Utilities
             MonitorsAPI.NumMonitorsActive = 0;
             MonitorsAPI.PoweredOn = true;
 
-            if (Plugin.UseBetterMonitors.Value)
+            if (Plugin.UseBetterMonitors.Value && AssetBundleHelper.MonitorsPrefab != null)
             {
                 CreateNewStyleMonitors(monitorAssignments);
             }
             else
             {
+                if (Plugin.UseBetterMonitors.Value)
+                {
+                    Plugin.MLS.LogError("Because asset bundle was not found, better monitors could not be loaded! Defaulting to vanilla.");
+                }
+
                 CreateOldStyleMonitors(monitorAssignments);
 
                 // Disable the internal cam if we specified a custom monitor in that spot
@@ -768,10 +773,10 @@ namespace GeneralImprovements.Utilities
         {
             if (_dailyProfitMonitorTexts.Count > 0 && RoundManager.Instance != null)
             {
-                int profit = RoundManager.Instance.scrapCollectedThisRound.Sum(s => s.scrapValue);
+                int profit = RoundManager.Instance.scrapDroppedInShip.Sum(s => s.scrapValue);
                 if (UpdateGenericTextList(_dailyProfitMonitorTexts, $"DAY'S PROFIT:\n${profit}"))
                 {
-                    Plugin.MLS.LogInfo($"Updated daily profit monitors. ({RoundManager.Instance.scrapCollectedThisRound.Count} items, {profit} profit)");
+                    Plugin.MLS.LogInfo($"Updated daily profit monitors. ({RoundManager.Instance.scrapDroppedInShip.Count} items, {profit} profit)");
                 }
             }
         }

@@ -8,6 +8,7 @@ using HarmonyLib;
 using TMPro;
 using Unity.Profiling;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace GeneralImprovements.Patches
 {
@@ -18,8 +19,7 @@ namespace GeneralImprovements.Patches
         private static readonly ProfilerMarker _pm_HUDUpdate = new ProfilerMarker(ProfilerCategory.Scripts, "GeneralImprovements.HUDManager.Update");
 
         private static TextMeshProUGUI _hpText;
-        public static GrabbableObject CurrentLightningTarget;
-        private static List<SpriteRenderer> _lightningOverlays;
+        private static Dictionary<int, SpriteRenderer> _lightningSlotsToOverlays;
 
         [HarmonyPatch(typeof(HUDManager), nameof(Start))]
         [HarmonyPostfix]
@@ -43,16 +43,17 @@ namespace GeneralImprovements.Patches
             // Create lightning overlays on each inventory slot
             if (Plugin.ShowLightningWarnings.Value)
             {
-                _lightningOverlays = new List<SpriteRenderer>();
-                for (int i = 0; i < __instance.itemSlotIconFrames.Length; i++)
+                _lightningSlotsToOverlays = new Dictionary<int, SpriteRenderer>();
+                var allFrames = __instance.itemSlotIconFrames.Concat(new Image[] { __instance.itemOnlySlotIconFrame }).ToArray();
+                for (int i = 0; i < allFrames.Length; i++)
                 {
-                    var overlay = Object.Instantiate(AssetBundleHelper.LightningOverlay, __instance.itemSlotIconFrames[i].transform);
+                    var overlay = Object.Instantiate(AssetBundleHelper.LightningOverlay, allFrames[i].transform);
                     overlay.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
                     overlay.transform.localScale = Vector3.one;
 
                     var sprite = overlay.GetComponent<SpriteRenderer>();
                     sprite.enabled = false;
-                    _lightningOverlays.Add(sprite);
+                    _lightningSlotsToOverlays[allFrames[i] == __instance.itemOnlySlotIconFrame ? 50 : i] = sprite;
                 }
             }
 
@@ -277,8 +278,8 @@ namespace GeneralImprovements.Patches
                         new CodeInstruction(OpCodes.Ldarg_0),
                         new CodeInstruction(OpCodes.Ldfld, scanElementTextField),
                         new CodeInstruction(OpCodes.Ldc_I4_1),
-                        new CodeInstruction(OpCodes.Ldelem_Ref), // scanElementText[1]
-                        new CodeInstruction(OpCodes.Ldloc_2), // scanNodeProperties out var
+                        new CodeInstruction(OpCodes.Ldelem_Ref), // this.scanElementText[1]
+                        new CodeInstruction(OpCodes.Ldloc_1), // scanNodeProperties local var
 
                         Transpilers.EmitDelegate<System.Action<TextMeshProUGUI, ScanNodeProperties>>((text, scanNodeProperties) =>
                         {
@@ -327,7 +328,7 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(HUDManager), nameof(SetClock))]
         [HarmonyPrefix]
-        private static bool SetClock_Pre(float timeNormalized, float numberOfHours, TextMeshProUGUI ___clockNumber, ref string __result)
+        private static bool SetClock_Pre(float timeNormalized, float numberOfHours, TextMeshProUGUI ___clockNumber)
         {
             if (Plugin.TwentyFourHourClock.Value)
             {
@@ -337,7 +338,6 @@ namespace GeneralImprovements.Patches
 
                 string text = $"{hours}:{$"{minutes}".PadLeft(2, '0')}";
                 ___clockNumber.text = text;
-                __result = text;
 
                 return false;
             }
@@ -522,14 +522,17 @@ namespace GeneralImprovements.Patches
             if (StormyWeatherPatch.Instance && StormyWeatherPatch.Instance.isActiveAndEnabled && Plugin.ShowLightningWarnings.Value)
             {
                 // Toggle lightning overlays on item slots when needed
-                if (_lightningOverlays.Count > 0 && HUDManager.Instance != null && StartOfRound.Instance.localPlayerController != null)
+                if (_lightningSlotsToOverlays.Count > 0 && HUDManager.Instance != null && StartOfRound.Instance.localPlayerController != null)
                 {
-                    for (int i = 0; i < Mathf.Min(HUDManager.Instance.itemSlotIconFrames.Length, _lightningOverlays.Count, StartOfRound.Instance.localPlayerController.ItemSlots.Length); i++)
+                    var allSlots = PlayerControllerBPatch.GetAllItemSlots(StartOfRound.Instance.localPlayerController);
+                    for (int i = 0; i < allSlots.Length; i++)
                     {
-                        bool shouldBeEnabled = CurrentLightningTarget != null && StartOfRound.Instance.localPlayerController.ItemSlots[i] == CurrentLightningTarget;
-                        if (_lightningOverlays[i].enabled != shouldBeEnabled)
+                        var curTarget = StormyWeatherPatch.Instance.targetingMetalObject;
+                        bool shouldBeEnabled = curTarget != null && allSlots[i] == curTarget;
+                        int slotNum = allSlots[i] == StartOfRound.Instance.localPlayerController.ItemOnlySlot ? 50 : i;
+                        if (_lightningSlotsToOverlays[slotNum].enabled != shouldBeEnabled)
                         {
-                            _lightningOverlays[i].enabled = shouldBeEnabled;
+                            _lightningSlotsToOverlays[slotNum].enabled = shouldBeEnabled;
                         }
                     }
                 }

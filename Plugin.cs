@@ -59,10 +59,8 @@ namespace GeneralImprovements
         private const string FixesSection = "Fixes";
         public static ConfigEntry<bool> AutomaticallyCollectTeleportedCorpses { get; private set; }
         public static ConfigEntry<int> DropShipItemLimit { get; private set; }
-        public static ConfigEntry<bool> FixInternalFireExits { get; private set; }
         public static ConfigEntry<bool> FixItemsFallingThrough { get; private set; }
         public static ConfigEntry<bool> FixItemsLoadingSameRotation { get; private set; }
-        public static ConfigEntry<bool> RandomizeNewSaveSeed { get; private set; }
 
         private const string GameLaunchSection = "GameLaunch";
         public static ConfigEntry<bool> AllowPreGameLeverPullAsClient { get; private set; }
@@ -72,6 +70,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> SkipStartupScreen { get; private set; }
 
         private const string InventorySection = "Inventory";
+        public static ConfigEntry<bool> NumberKeysSwitchItemSlots { get; private set; }
         public static ConfigEntry<bool> PickupInOrder { get; private set; }
         public static ConfigEntry<bool> RearrangeOnDrop { get; private set; }
         public static ConfigEntry<float> ScrollDelay { get; private set; }
@@ -183,11 +182,6 @@ namespace GeneralImprovements
             harmony.PatchAll(typeof(ILManipulatorPatch));
             MLS.LogInfo("ILManipulator patched (fixes rare cases where transpilers do not emit the expected IL code.");
 
-            if (OtherModHelper.FlashlightFixActive)
-            {
-                MLS.LogWarning("Outdated version of FlashlightFix detected - please update your mods.");
-            }
-
             // Use reflection to patch all types that are defined in the project by namespace
             List<Type> allPatchables = Assembly.GetExecutingAssembly().GetTypes()
                 .Where(t => t.Namespace == $"{GetType().Namespace}.Patches" && t.Name.EndsWith("Patch")).ToList();
@@ -253,10 +247,8 @@ namespace GeneralImprovements
             // Fixes
             AutomaticallyCollectTeleportedCorpses = Config.Bind(FixesSection, nameof(AutomaticallyCollectTeleportedCorpses), true, "If set to true, dead bodies will be automatically collected as scrap when being teleported to the ship.");
             DropShipItemLimit = Config.Bind(FixesSection, nameof(DropShipItemLimit), 24, new ConfigDescription("Sets the max amount of items a single dropship delivery will allow. Vanilla = 12.", new AcceptableValueRange<int>(12, 100)));
-            FixInternalFireExits = Config.Bind(FixesSection, nameof(FixInternalFireExits), true, "If set to true, the player will face the interior of the facility when entering through a fire entrance.");
             FixItemsFallingThrough = Config.Bind(FixesSection, nameof(FixItemsFallingThrough), true, "Fixes items falling through furniture on the ship when loading the game.");
             FixItemsLoadingSameRotation = Config.Bind(FixesSection, nameof(FixItemsLoadingSameRotation), true, "Fixes items all facing the same way when loading a save file. Now they will store their rotations as well.");
-            RandomizeNewSaveSeed = Config.Bind(FixesSection, nameof(RandomizeNewSaveSeed), true, "Fixes the map seed always being set to zero for new saves, which prevents randomized sales and weather.");
 
             // Game Launch
             AllowPreGameLeverPullAsClient = Config.Bind(GameLaunchSection, nameof(AllowPreGameLeverPullAsClient), true, "If set to true, you will be able to pull the ship lever to start the game as a connected player.");
@@ -266,10 +258,11 @@ namespace GeneralImprovements
             SkipStartupScreen = Config.Bind(GameLaunchSection, nameof(SkipStartupScreen), true, "Skips the main menu loading screen bootup animation.");
 
             // Inventory
-            PickupInOrder = Config.Bind(InventorySection, nameof(PickupInOrder), false, "When picking up items, will always put them in left - right order.");
-            RearrangeOnDrop = Config.Bind(InventorySection, nameof(RearrangeOnDrop), false, "When dropping items, will rearrange other inventory items to ensure slots are filled left - right.");
+            NumberKeysSwitchItemSlots = Config.Bind(InventorySection, nameof(NumberKeysSwitchItemSlots), false, "If set to true, your number keys will quick select item slots. Vanilla emotes will be rebound to function keys.");
+            PickupInOrder = Config.Bind(InventorySection, nameof(PickupInOrder), false, "When picking up items, will always put them in left - right order. May cause visual desyncs with other players.");
+            RearrangeOnDrop = Config.Bind(InventorySection, nameof(RearrangeOnDrop), false, "When dropping items, will rearrange other inventory items to ensure slots are filled left - right. May cause visual desyncs with other players.");
             ScrollDelay = Config.Bind(InventorySection, nameof(ScrollDelay), 0.1f, new ConfigDescription("The minimum time you must wait to scroll to another item in your inventory. Vanilla: 0.3.", new AcceptableValueRange<float>(0.05f, 0.3f)));
-            TwoHandedInSlotOne = Config.Bind(InventorySection, nameof(TwoHandedInSlotOne), false, $"When picking up a two handed item, it will always place it in slot 1 and shift things to the right if needed. Makes selling quicker when paired with RearrangeOnDrop.");
+            TwoHandedInSlotOne = Config.Bind(InventorySection, nameof(TwoHandedInSlotOne), false, $"When picking up a two handed item, it will always place it in slot 1 and shift things to the right if needed. Makes selling quicker when paired with RearrangeOnDrop. May cause visual desyncs with other players.");
 
             // Mechanics
             AddHealthRechargeStation = Config.Bind(MechanicsSection, nameof(AddHealthRechargeStation), false, $"[ALL USERS] If set to true, a medical charging station will be above the ship's battery charger, and can be used to heal to full. {incompatWarning}");

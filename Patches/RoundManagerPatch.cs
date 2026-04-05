@@ -23,7 +23,7 @@ namespace GeneralImprovements.Patches
                 if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
                 {
                     i => i.IsLdarg(0),
-                    i => i.LoadsField(typeof(RoundManager).GetField(nameof(RoundManager.scrapCollectedThisRound))),
+                    i => i.LoadsField(typeof(RoundManager).GetField(nameof(RoundManager.scrapDroppedInShip))),
                     i => i.IsLdarg(1),
                     i => i.Calls(typeof(List<GrabbableObject>).GetMethod("Add"))
                 }, out var addScrapCode))

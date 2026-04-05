@@ -1,6 +1,8 @@
-﻿using System.Text;
+﻿using System.Reflection;
+using System.Text;
 
-var entries = InternalConfigDef.GetConfigSectionsAndItems(@"C:\Program Files (x86)\Steam\steamapps\common\Lethal Company\BepInEx\config\ShaosilGaming.GeneralImprovements.cfg");
+var gamePath = typeof(Program).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().First(x => x.Key == "GamePath").Value!;
+var entries = InternalConfigDef.GetConfigSectionsAndItems(Path.Combine(gamePath, "BepInEx/config/ShaosilGaming.GeneralImprovements.cfg"));
 Console.WriteLine($"Loaded {entries.Count} sections and {entries.Count} total entries.");
 Console.WriteLine();
 
@@ -18,7 +20,7 @@ foreach (var section in entries.Where(e => e.Value.Count > 0))
         curWiki.AppendLine($"| {replacePipes(item.Name)} | {replacePipes(item.Description)} | {replacePipes(item.AcceptableValuesDescription)} | {replacePipes(item.DefaultValue)} |");
     }
 
-    string filePath = Path.Combine(Environment.CurrentDirectory, $@"..\..\..\Output\{section.Key}.txt");
+    string filePath = Path.Combine(Environment.CurrentDirectory, $"WikiBuilder/Output/{section.Key}.txt");
     string contents = curWiki.ToString().Trim();
     if (File.Exists(filePath) && File.ReadAllText(filePath) == contents)
     {
@@ -35,5 +37,3 @@ foreach (var section in entries.Where(e => e.Value.Count > 0))
 
 Console.WriteLine();
 Console.ForegroundColor = ConsoleColor.White;
-Console.Write("Press any key to continue...");
-Console.ReadKey();

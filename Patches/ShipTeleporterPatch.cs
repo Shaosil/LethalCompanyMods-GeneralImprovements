@@ -104,7 +104,7 @@ namespace GeneralImprovements.Patches
                 }
                 else
                 {
-                    Plugin.MLS.LogError("Unexpected code - Could not transpile ShipTeleporter.beamUpPlayer to fix dead body collection!");
+                    Plugin.MLS.LogWarning("Unexpected code - Could not transpile ShipTeleporter.beamUpPlayer to fix dead body collection!");
                 }
             }
 
@@ -113,10 +113,14 @@ namespace GeneralImprovements.Patches
             {
                 if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
                 {
+                    i => i.opcode == OpCodes.Ldarg_0,
                     i => i.opcode == OpCodes.Ldfld && i.operand is FieldInfo fi && fi.Name.Contains("playerToBeamUp"),
-                    i => i.LoadsConstant(1),
-                    i => i.LoadsConstant(0),
-                    i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.DropAllHeldItems)))
+                    null, null, null, null, // this.playerToBeamUp.transform.position,
+                    null, null, null, null, // this.playerToBeamUp.localItemHolder.position
+                    null, null, null, null, // this.playerToBeamUp.localItemHolder.eulerAngles
+                    null, null, null, null, null, // this.playerToBeamUp.playerEye.transform.position
+                    null, null, null, null, null, // this.playerToBeamUp.playerEye.transform.eulerAngles
+                    i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.DropAllHeldItemsAndSync)))
                 }, out var dropItems))
                 {
                     Plugin.MLS.LogDebug($"Patching ShipTeleporter.beamUpPlayer to keep {Plugin.KeepItemsDuringTeleport.Value} items.");
@@ -131,22 +135,24 @@ namespace GeneralImprovements.Patches
                         // Replace the drop function with our own
                         codeList[dropItems.Last().Index] = dropAllExceptHeldDelegate;
 
-                        // Remove the two bools (no longer needed) from the stack load code
-                        codeList[dropItems[1].Index].opcode = OpCodes.Nop;
-                        codeList[dropItems[2].Index].opcode = OpCodes.Nop;
+                        // Remove all parameters that were previously passed
+                        for (int i = 0; i < 22; i++)
+                        {
+                            codeList[dropItems.First().Index + 2 + i].opcode = OpCodes.Nop;
+                        }
                     }
                     else
                     {
-                        // Remove the 5 lines of code that call the drop function
-                        for (int i = 0; i < 5; i++)
+                        // Remove the 25 lines of code that call the drop function
+                        for (int i = 0; i < 25; i++)
                         {
-                            codeList[(dropItems.First().Index - 1) + i].opcode = OpCodes.Nop;
+                            codeList[dropItems.First().Index + i].opcode = OpCodes.Nop;
                         }
                     }
                 }
                 else
                 {
-                    Plugin.MLS.LogError("Unexpected code - Could not transpile ShipTeleporter.beamUpPlayer to keep items!");
+                    Plugin.MLS.LogWarning("Unexpected code - Could not transpile ShipTeleporter.beamUpPlayer to keep items!");
                 }
             }
 
@@ -192,9 +198,17 @@ namespace GeneralImprovements.Patches
 
             if (Plugin.KeepItemsDuringInverse.Value != eItemsToKeep.None)
             {
-                if (codeList.TryFindInstruction(i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.DropAllHeldItems))), out var found))
+                if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
                 {
-                    Plugin.MLS.LogDebug($"Patching ShipTeleporter.TeleportPlayerOutWithInverseTeleporter to keep {Plugin.KeepItemsDuringTeleport.Value} items.");
+                    // Passing defaults to the optional params
+                    null, null, null, null, null,
+                    null, null, null, null, null,
+                    null, null, null, null, null,
+                    null, null, null, null,
+                    i => i.Calls(typeof(PlayerControllerB).GetMethod(nameof(PlayerControllerB.DropAllHeldItems)))
+                }, out var found))
+                {
+                    Plugin.MLS.LogDebug($"Patching ShipTeleporter.TeleportPlayerOutWithInverseTeleporter to keep {Plugin.KeepItemsDuringInverse.Value} items.");
 
                     if (Plugin.KeepItemsDuringInverse.Value == eItemsToKeep.Held || Plugin.KeepItemsDuringInverse.Value == eItemsToKeep.NonScrap)
                     {
@@ -204,20 +218,25 @@ namespace GeneralImprovements.Patches
                         });
 
                         // Replace the function call with our own
-                        codeList[found.Index] = dropAllExceptHeldDelegate;
+                        codeList[found.Last().Index] = dropAllExceptHeldDelegate;
 
-                        // Remove the two bools (no longer needed) from the stack load code
-                        codeList[found.Index - 2].opcode = OpCodes.Nop;
-                        codeList[found.Index - 1].opcode = OpCodes.Nop;
+                        // Remove all parameters that were previously passed
+                        for (int i = 0; i < 19; i++)
+                        {
+                            codeList[found.First().Index + i].opcode = OpCodes.Nop;
+                        }
                     }
                     else
                     {
-                        // Remove the 4 lines of code that call the drop function
-                        for (int i = 0; i < 4; i++)
+                        // Remove the 21 lines of code that call the drop function
+                        for (int i = 0; i < 21; i++)
                         {
-                            codeList[(found.Index - 3) + i].opcode = OpCodes.Nop;
+                            codeList[found.First().Index + i].opcode = OpCodes.Nop;
                         }
                     }
+                }
+                else {
+                    Plugin.MLS.LogWarning("Unexpected IL Code - Could not patch ShipTeleporter.TeleportPlayerOutWithInverseTeleporter to keep items!");
                 }
             }
 

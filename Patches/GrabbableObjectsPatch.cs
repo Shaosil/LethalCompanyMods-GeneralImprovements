@@ -173,6 +173,11 @@ namespace GeneralImprovements.Patches
                                     return;
                                 }
                             }
+                            
+                            if (StartOfRound.Instance.localPlayerController.ItemOnlySlot == k)
+                            {
+                                ObjectHelper.DestroyLocalItemAndSync(50);
+                            }
                         }
                         codeList[found.Last().Index] = Transpilers.EmitDelegate((Action<KeyItem>)callDestroy);
                     }

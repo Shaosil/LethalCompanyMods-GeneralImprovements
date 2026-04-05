@@ -7,11 +7,11 @@ using System.Reflection.Emit;
 using GameNetcodeStuff;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
-using TMPro;
 using Unity.Netcode;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Windows;
 using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements.Patches
@@ -32,10 +32,14 @@ namespace GeneralImprovements.Patches
         private static readonly float _healthCheckInterval = 1f;
         private static float _healthCheckTimer = 0;
 
-        [HarmonyPatch(typeof(PlayerControllerB), nameof(Awake))]
+        [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
         [HarmonyPostfix]
-        private static void Awake(PlayerControllerB __instance)
+        [HarmonyPriority(Priority.High)]
+        private static void ConnectClientToPlayerObjectPre(PlayerControllerB __instance)
         {
+            if (!__instance.IsOwner) return;
+
+            _originalCursorScale = __instance.cursorIcon.transform.localScale.x;
             _originalClimbSpeed = __instance.climbSpeed;
 
             bool hasToggleShortcut = Plugin.FlashlightToggleShortcut.Value != eValidKeys.None;
@@ -48,14 +52,24 @@ namespace GeneralImprovements.Patches
                 var control = hasToggleShortcut && Enum.TryParse<Key>(Plugin.FlashlightToggleShortcut.Value.ToString(), out var flashlightToggleKey) ? Keyboard.current[flashlightToggleKey] : null;
                 _flashlightTogglePressed = () => control?.wasPressedThisFrame ?? false;
             }
-        }
 
-        [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
-        [HarmonyPrefix]
-        [HarmonyPriority(Priority.High)]
-        private static void ConnectClientToPlayerObjectPre(PlayerControllerB __instance)
-        {
-            _originalCursorScale = __instance.cursorIcon.transform.localScale.x;
+            if (Plugin.NumberKeysSwitchItemSlots.Value)
+            {
+                // Rebind 1 and 2 to use the function keys if they exist
+                var emote1 = InputSystem.actions.FindAction("Emote1");
+                var emote2 = InputSystem.actions.FindAction("Emote2");
+                bool emote1NeedsRebind = emote1?.bindings.FirstOrDefault().path == "<Keyboard>/1";
+                bool emote2NeedsRebind = emote2?.bindings.FirstOrDefault().path == "<Keyboard>/2";
+
+                if (emote1NeedsRebind || emote2NeedsRebind)
+                {
+                    Plugin.MLS.LogMessage("Rebinding emotes to F1/F2.");
+                    if (emote1NeedsRebind) emote1.ApplyBindingOverride("<Keyboard>/F1");
+                    if (emote2NeedsRebind) emote2.ApplyBindingOverride("<Keyboard>/F2");
+                    IngamePlayerSettings.Instance.settings.keyBindings = InputSystem.actions.SaveBindingOverridesAsJson();
+			        ES3.Save("Bindings", IngamePlayerSettings.Instance.settings.keyBindings, "LCGeneralSaveData");
+                }
+            }
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
@@ -117,9 +131,10 @@ namespace GeneralImprovements.Patches
             // If specified, attempt to use the first key found in our inventory
             if (Plugin.UnlockDoorsFromInventory.Value && CanUseAnyItem(__instance))
             {
-                for (int i = 0; i < __instance.ItemSlots.Length; i++)
+                var allItemSlots = GetAllItemSlots(__instance);
+                foreach (var item in allItemSlots)
                 {
-                    if (__instance.ItemSlots[i] is KeyItem key)
+                    if (item is KeyItem key)
                     {
                         key.ItemActivate(true);
                         break;
@@ -157,22 +172,24 @@ namespace GeneralImprovements.Patches
         private static bool ItemTertiaryUse_performed(PlayerControllerB __instance)
         {
             // Flashlights do not have tertiary uses, so cancel out when this is called in that case
-            return OtherModHelper.FlashlightFixActive || !(__instance.currentlyHeldObjectServer is FlashlightItem);
+            return !(__instance.currentlyHeldObjectServer is FlashlightItem);
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SwitchToItemSlot))]
         [HarmonyPostfix]
         private static void SwitchToItemSlot(PlayerControllerB __instance, int slot)
         {
-            if (!OtherModHelper.FlashlightFixActive && __instance.ItemSlots[slot] is FlashlightItem slotFlashlight)
+            if ((slot == 50 ? __instance.ItemOnlySlot : __instance.ItemSlots[slot]) is FlashlightItem slotFlashlight)
             {
                 // If the player already has an active flashlight (helmet lamp will be on) when picking up a new INACTIVE one, switch to the new one
                 if (__instance.IsOwner && !slotFlashlight.isBeingUsed && __instance.helmetLight.enabled && !slotFlashlight.CheckForLaser() && Plugin.OnlyAllowOneActiveFlashlight.Value)
                 {
-                    for (int i = 0; i < __instance.ItemSlots.Length; i++)
+                    var allItemSlots = GetAllItemSlots(__instance);
+
+                    foreach (var otherItem in allItemSlots)
                     {
                         // Find the first active flashlights in our inventory that still has battery, and turn it on
-                        if (i != slot && __instance.ItemSlots[i] is FlashlightItem otherFlashlight && otherFlashlight.usingPlayerHelmetLight
+                        if (otherItem != slotFlashlight && otherItem is FlashlightItem otherFlashlight && otherFlashlight.usingPlayerHelmetLight
                             && !otherFlashlight.CheckForLaser() && !slotFlashlight.insertedBattery.empty && !slotFlashlight.CheckForLaser())
                         {
                             Plugin.MLS.LogDebug($"Flashlight in slot {slot} turning ON after switching to it");
@@ -190,7 +207,7 @@ namespace GeneralImprovements.Patches
         public static void UpdateHelmetLight(PlayerControllerB player)
         {
             // The helmet light should always be the first sorted flashlight that is on (lasers are sorted last, then pocketed flashlights are prioritized)
-            var activeLight = player.ItemSlots.OfType<FlashlightItem>()
+            var activeLight = GetAllItemSlots(player).OfType<FlashlightItem>()
                 .Where(f => f.isBeingUsed)
                 .OrderBy(f => f.CheckForLaser())
                 .ThenByDescending(f => f.isPocketed)
@@ -221,35 +238,63 @@ namespace GeneralImprovements.Patches
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(FirstEmptyItemSlot))]
-        [HarmonyPrefix]
-        private static bool FirstEmptyItemSlot(PlayerControllerB __instance, ref int __result)
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> FirstEmptyItemSlot(IEnumerable<CodeInstruction> instructions)
         {
-            // If not configured to pickup in order, OR the reserved item slot or advanced company mods exist, pass over this patch
+            var codeList = instructions.ToList();
+
+            // If not configured to pickup in order, or the reserved item slot or advanced company mods exist, skip this patch
             if (!Plugin.PickupInOrder.Value || OtherModHelper.ReservedItemSlotCoreActive || OtherModHelper.AdvancedCompanyActive)
             {
-                return true;
+                return codeList;
             }
 
-            // Otherwise, rewrite the method to always return the first empty slot
-            __result = -1;
-
-            for (int i = 0; i < __instance.ItemSlots.Length; i++)
+            FieldInfo curItemSlotField = typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.currentItemSlot));
+            if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
             {
-                if (__instance.ItemSlots[i] == null)
+                // if (currentItemSlot != 50...
+                i => i.IsLdarg(0),
+                i => i.LoadsField(curItemSlotField),
+                i => i.LoadsConstant(50), i => i.Branches(out _),
+
+                // && ItemSlots[currentItemSlot] == null)
+                i => i.IsLdarg(0),
+                i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.ItemSlots))),
+                i => i.IsLdarg(0),
+                i => i.LoadsField(curItemSlotField),
+                i => i.opcode == OpCodes.Ldelem_Ref,
+                i => i.opcode == OpCodes.Ldnull,
+                i => i.opcode == OpCodes.Call,
+                i => i.Branches(out _),
+
+                // num = currentItemSlot
+                i => i.IsLdarg(0),
+                i => i.LoadsField(curItemSlotField),
+                i => i.IsStloc(),
+                i => i.Branches(out _)
+            }, out var found))
+            {
+                Plugin.MLS.LogDebug("Patching PlayerControllerB.FirstEmptyItemSlot to help manage inventory.");
+
+                // Remove the code that sets current item slot
+                foreach (var code in found)
                 {
-                    __result = i;
-                    break;
+                    codeList[code.Index].opcode = OpCodes.Nop;
                 }
             }
+            else
+            {
+                Plugin.MLS.LogWarning("Unexpected IL Code - Could not patch PlayerControllerB.FirstEmptyItemSlot to help manage inventory!");
+            }
 
-            return false;
+            return codeList;
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(GrabObjectClientRpc))]
         [HarmonyPrefix]
         private static void GrabObjectClientRpc(PlayerControllerB __instance, bool grabValidated, NetworkObjectReference grabbedObject)
         {
-            // If the player is about to pick up a two handed item and we are configured to do this, make sure it lands in slot 1
+            // If the local player is about to pick up a two handed item and we are configured to do this, make sure it lands in slot 1
             if (!Plugin.TwoHandedInSlotOne.Value || !grabValidated || !grabbedObject.TryGet(out var networkObject))
             {
                 return;
@@ -262,7 +307,10 @@ namespace GeneralImprovements.Patches
                 return;
             }
 
-            Plugin.MLS.LogDebug($"Two handed item being grabbed!");
+            if (__instance.IsOwner)
+            {
+                Plugin.MLS.LogDebug($"Two handed item being grabbed!");
+            }
 
             // Move things over
             ShiftRightFromSlot(__instance, 0);
@@ -303,44 +351,40 @@ namespace GeneralImprovements.Patches
                 }
             }
 
-            RefreshCurrentHeldItem(__instance);
+            // Refresh currently held item/animations
+            __instance.SwitchToItemSlot(__instance.currentItemSlot, null);
         }
 
-        private static void RefreshCurrentHeldItem(PlayerControllerB __instance)
+        private static void ShiftRightFromSlot(PlayerControllerB player, int slot)
         {
-            // Refresh the current item slot if the player is holding something new
-            var newHeldItem = __instance.ItemSlots[__instance.currentItemSlot];
-            if (__instance.currentlyHeldObjectServer != newHeldItem)
+            // Double check the object is not two handed to prevent multiple calls to this from happening
+            if (player.ItemSlots[slot] != null)
             {
-                if (newHeldItem != null)
+                // If the slot to the right has an item, recursively move that to the right as well
+                if (player.ItemSlots[slot + 1] != null)
                 {
-                    newHeldItem.EquipItem();
+                    ShiftRightFromSlot(player, slot + 1);
                 }
-                __instance.twoHanded = newHeldItem ? newHeldItem.itemProperties.twoHanded : false;
-                __instance.twoHandedAnimation = newHeldItem ? newHeldItem.itemProperties.twoHandedAnimation : false;
-                __instance.playerBodyAnimator.ResetTrigger("Throw");
-                __instance.playerBodyAnimator.SetBool("Grab", true);
-                if (!string.IsNullOrEmpty(newHeldItem ? newHeldItem.itemProperties.grabAnim : string.Empty))
-                {
-                    __instance.playerBodyAnimator.SetBool(newHeldItem.itemProperties.grabAnim, true);
-                }
-                if (__instance.twoHandedAnimation != (newHeldItem ? newHeldItem.itemProperties.twoHandedAnimation : false))
-                {
-                    __instance.playerBodyAnimator.ResetTrigger("SwitchHoldAnimationTwoHanded");
-                    __instance.playerBodyAnimator.SetTrigger("SwitchHoldAnimationTwoHanded");
-                }
-                __instance.playerBodyAnimator.ResetTrigger("SwitchHoldAnimation");
-                __instance.playerBodyAnimator.SetTrigger("SwitchHoldAnimation");
-                __instance.playerBodyAnimator.SetBool("GrabValidated", true);
-                __instance.playerBodyAnimator.SetBool("cancelHolding", false);
-                __instance.isHoldingObject = newHeldItem != null;
-                __instance.currentlyHeldObjectServer = newHeldItem;
 
-                if (__instance.IsOwner)
-                {
-                    HUDManager.Instance.holdingTwoHandedItem.enabled = __instance.twoHanded;
-                }
+                ShiftSlots(player, slot + 1, slot);
             }
+        }
+
+        private static void ShiftSlots(PlayerControllerB player, int newSlot, int oldSlot)
+        {
+            Plugin.MLS.LogDebug($"Shifting slot {oldSlot} to {newSlot}");
+
+            // Update the UI
+            if (player.IsOwner)
+            {
+                HUDManager.Instance.itemSlotIcons[newSlot].sprite = player.ItemSlots[oldSlot].itemProperties.itemIcon;
+                HUDManager.Instance.itemSlotIcons[newSlot].enabled = true;
+                HUDManager.Instance.itemSlotIcons[oldSlot].enabled = false;
+            }
+
+            // Move item
+            player.ItemSlots[newSlot] = player.ItemSlots[oldSlot];
+            player.ItemSlots[oldSlot] = null;
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(ScrollMouse_performed))]
@@ -375,82 +419,7 @@ namespace GeneralImprovements.Patches
         private static IEnumerable<CodeInstruction> SetHoverTipAndCurrentInteractTrigger_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
             var codeList = instructions.ToList();
-            Label? outsideEqualityLabel = null;
-
-            // Do not set grab hovertip if grabbable item is not grabbable
-            if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
-            {
-                i => i.Branches(out _),
-                i => i.IsLdloc(),
-                i => i.Is(OpCodes.Ldstr, "InteractTrigger"),
-                i => i.Calls(typeof(string).GetMethod("op_Equality")),
-                i => i.Branches(out _),
-                i => i.Branches(out outsideEqualityLabel),
-
-                i => i.IsLdarg(0), // Index 6
-                i => i.Calls(typeof(PlayerControllerB).GetMethod("FirstEmptyItemSlot", BindingFlags.Instance | BindingFlags.NonPublic)),
-                i => i.LoadsConstant(-1),
-                i => i.Branches(out _), // Index 9
-                i => i.IsLdarg(0),
-                i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.cursorTip))),
-                i => i.Is(OpCodes.Ldstr, "Inventory full!"),
-                i => i.Calls(typeof(TMP_Text).GetMethod("set_text")),
-                i => i.Branches(out _), // Index 14
-
-                i => i.IsLdarg(0), // Index 15
-                i => i.LoadsField(typeof(PlayerControllerB).GetField("hit", BindingFlags.Instance | BindingFlags.NonPublic), true),
-                i => i.Calls(typeof(RaycastHit).GetMethod("get_collider")),
-                i => i.Calls(typeof(Component).GetMethod("get_gameObject")),
-                i => i.Calls(typeof(GameObject).GetMethod(nameof(GameObject.GetComponent), 1, Type.EmptyTypes).MakeGenericMethod(typeof(GrabbableObject))),
-                i => i.opcode == OpCodes.Stloc_2, // Index 20
-
-                // 20 lines to a vehicle linecast we don't care about
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-
-                i => i.Calls(typeof(GameNetworkManager).GetMethod("get_Instance")) // Index 41
-            }, out var grabbableCode))
-            {
-                // Create a label on the get_Instance call, and branch to that instead
-                var newLabel = generator.DefineLabel();
-                codeList[grabbableCode.Last().Index].labels.Add(newLabel);
-                grabbableCode[9].Instruction.operand = newLabel;
-
-                // Create a label on the GetComponent variable, and make sure it is branched to
-                var componentLabel = generator.DefineLabel();
-                grabbableCode[15].Instruction.labels.Add(componentLabel);
-                grabbableCode[0].Instruction.operand = componentLabel;
-
-                // Create a label on the FirstEmptyItemSlot call so we can still jump to that if needed
-                var firstEmptySlotLabel = generator.DefineLabel();
-                grabbableCode[6].Instruction.labels.Add(firstEmptySlotLabel);
-
-                // Move the GetComponent variable to be above the FirstEmptyItemSlot if statement
-                codeList.RemoveRange(grabbableCode[15].Index, 6);
-                codeList.InsertRange(grabbableCode[6].Index, grabbableCode.Skip(15).Take(6).Select(f => f.Instruction));
-
-                // Add an if statement to break out of this entire section if the component is not grabbable and has no custom hover tip
-                codeList.InsertRange(grabbableCode[6].Index + 6, new[]
-                {
-                    // If it's grabbable, skip over the next if statement
-                    new CodeInstruction(OpCodes.Ldloc_2),
-                    new CodeInstruction(OpCodes.Ldfld, typeof(GrabbableObject).GetField(nameof(GrabbableObject.grabbable))),
-                    new CodeInstruction(OpCodes.Ldc_I4_1),
-                    new CodeInstruction(OpCodes.Beq_S, firstEmptySlotLabel),
-
-                    // Otherwise if it has no custom hovertip either, skip this whole section
-                    new CodeInstruction(OpCodes.Ldloc_2),
-                    new CodeInstruction(OpCodes.Ldfld, typeof(GrabbableObject).GetField(nameof(GrabbableObject.customGrabTooltip))),
-                    new CodeInstruction(OpCodes.Call, typeof(string).GetMethod(nameof(string.IsNullOrEmpty))),
-                    new CodeInstruction(OpCodes.Brtrue_S, outsideEqualityLabel)
-                });
-
-                Plugin.MLS.LogDebug("Patching PlayerControllerB.SetHoverTipAndCurrentInteractionTrigger to remove grab notification when not needed.");
-            }
-            else
-            {
-                Plugin.MLS.LogWarning("Unexpected IL code - Could not patch PlayerControllerB.SetHoverTipAndCurrentInteractionTrigger to remove the grab notification!");
-            }
-
+            
             // Check for masked entity raycast hit when doing players in order to show their billboards if needed
             if (Plugin.MaskedEntitiesShowPlayerNames.Value)
             {
@@ -593,38 +562,6 @@ namespace GeneralImprovements.Patches
             return !(Plugin.HidePlayerNames.Value && !(StartOfRound.Instance && StartOfRound.Instance.inShipPhase));
         }
 
-        private static void ShiftRightFromSlot(PlayerControllerB player, int slot)
-        {
-            // Double check the object is not two handed to prevent multiple calls to this from happening
-            if (player.ItemSlots[slot] != null)
-            {
-                // If the slot to the right has an item, recursively move that to the right as well
-                if (player.ItemSlots[slot + 1] != null)
-                {
-                    ShiftRightFromSlot(player, slot + 1);
-                }
-
-                ShiftSlots(player, slot + 1, slot);
-            }
-        }
-
-        private static void ShiftSlots(PlayerControllerB player, int newSlot, int oldSlot)
-        {
-            Plugin.MLS.LogDebug($"Shifting slot {oldSlot} to {newSlot}");
-
-            // Update the owner's UI
-            if (player.IsOwner)
-            {
-                HUDManager.Instance.itemSlotIcons[newSlot].sprite = player.ItemSlots[oldSlot].itemProperties.itemIcon;
-                HUDManager.Instance.itemSlotIcons[newSlot].enabled = true;
-                HUDManager.Instance.itemSlotIcons[oldSlot].enabled = false;
-            }
-
-            // Move item
-            player.ItemSlots[newSlot] = player.ItemSlots[oldSlot];
-            player.ItemSlots[oldSlot] = null;
-        }
-
         private static void SelectNewSlotLocal(PlayerControllerB player, int newSlot)
         {
             // This should only be used when an item has shifted, so we don't need any animations or grab code
@@ -638,77 +575,29 @@ namespace GeneralImprovements.Patches
 
         public static void DropAllItemsExceptHeld(PlayerControllerB player, bool onlyDropScrap)
         {
-            int oldHeldSlot = -1;
-
-            // Had to copy this from DropAllHeldItems() since vanilla code doesn't have a way to discard only a single item from a specific slot
             for (int i = 0; i < player.ItemSlots.Length; i++)
             {
                 // If the checked item is held or not scrap (if we only drop scrap), skip this one
-                bool isHeldItem = player.currentlyHeldObjectServer != null && player.ItemSlots[i] == player.currentlyHeldObjectServer && !onlyDropScrap;
-                if (isHeldItem || (player.ItemSlots[i] != null && !player.ItemSlots[i].itemProperties.isScrap && onlyDropScrap))
+                // Only drop non held items, or held scrap if we only drop scrap
+                bool isHeldItem = player.currentlyHeldObjectServer != null && player.ItemSlots[i] == player.currentlyHeldObjectServer;
+                if (!isHeldItem || (player.ItemSlots[i] != null && player.ItemSlots[i].itemProperties.isScrap && onlyDropScrap))
                 {
-                    if (isHeldItem)
-                    {
-                        oldHeldSlot = i;
-                    }
-                    continue;
-                }
-
-                DropItemAtIndex(player, i);
-            }
-
-            // Shift whatever necessary and select the new slot
-            ItemLeftSlot(player);
-            for (int i = 0; i < player.ItemSlots.Length; i++)
-            {
-                if (oldHeldSlot > -1 && i < oldHeldSlot && player.ItemSlots[i] == player.currentlyHeldObjectServer)
-                {
-                    SelectNewSlotLocal(player, i);
-                    break;
+                    player.DropHeldItem(player.ItemSlots[i], true, false);
                 }
             }
 
-            RefreshCurrentHeldItem(player);
-
-            player.carryWeight = 1 + player.ItemSlots.Sum(i => (i && i.itemProperties ? i.itemProperties.weight : 1) - 1);
+            var allItems = GetAllItemSlots(player);
+            player.carryWeight = 1 + allItems.Sum(i => (i && i.itemProperties ? i.itemProperties.weight : 1) - 1);
         }
 
-        public static void DropItemAtIndex(PlayerControllerB player, int index)
+        public static GrabbableObject[] GetAllItemSlots(PlayerControllerB player)
         {
-            var grabbableObject = player.ItemSlots[index];
-            if (grabbableObject != null)
+            if (player != null)
             {
-                grabbableObject.parentObject = null;
-                grabbableObject.heldByPlayerOnServer = false;
-                if (player.isInElevator)
-                {
-                    grabbableObject.transform.SetParent(player.playersManager.elevatorTransform, true);
-                }
-                else
-                {
-                    grabbableObject.transform.SetParent(player.playersManager.propsContainer, true);
-                }
-                player.SetItemInElevator(player.isInHangarShipRoom, player.isInElevator, grabbableObject);
-                grabbableObject.EnablePhysics(true);
-                grabbableObject.EnableItemMeshes(true);
-                grabbableObject.transform.localScale = grabbableObject.originalScale;
-                grabbableObject.isHeld = false;
-                grabbableObject.isPocketed = false;
-                grabbableObject.startFallingPosition = grabbableObject.transform.parent.InverseTransformPoint(grabbableObject.transform.position);
-                grabbableObject.FallToGround(true);
-                grabbableObject.fallTime = UnityEngine.Random.Range(-0.3f, 0.05f);
-                if (player.IsOwner)
-                {
-                    grabbableObject.DiscardItemOnClient();
-                    HUDManager.Instance.itemSlotIcons[index].enabled = false;
-                }
-                else if (!grabbableObject.itemProperties.syncDiscardFunction)
-                {
-                    grabbableObject.playerHeldBy = null;
-                }
-
-                player.ItemSlots[index] = null;
+                return player.ItemSlots.Concat(new GrabbableObject[] { player.ItemOnlySlot }).ToArray();
             }
+
+            return new GrabbableObject[0];
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(Update))]
@@ -794,10 +683,11 @@ namespace GeneralImprovements.Patches
 
                 if (Plugin.FlashlightToggleShortcut.Value != eValidKeys.None && !__instance.inTerminalMenu && !__instance.isTypingChat && __instance.isPlayerControlled)
                 {
-                    if (!OtherModHelper.FlashlightFixActive && _flashlightTogglePressed())
+                    if (_flashlightTogglePressed())
                     {
                         // Get the nearest flashlight with charge, whether it's held or in the inventory
-                        var targetFlashlight = __instance.ItemSlots.OfType<FlashlightItem>().Where(f => !f.insertedBattery.empty) // All charged flashlight items
+                        var allItems = GetAllItemSlots(__instance);
+                        var targetFlashlight = allItems.OfType<FlashlightItem>().Where(f => !f.insertedBattery.empty) // All charged flashlight items
                             .OrderBy(f => f.CheckForLaser()) // Sort by non-lasers first
                             .ThenByDescending(f => __instance.currentlyHeldObjectServer == f) // ... then by held items
                             .ThenByDescending(f => f.isBeingUsed) // ... then by active status
@@ -808,6 +698,30 @@ namespace GeneralImprovements.Patches
                         if (targetFlashlight != null)
                         {
                             targetFlashlight.UseItemOnClient();
+                        }
+                    }
+                }
+
+                if (Plugin.NumberKeysSwitchItemSlots.Value)
+                {
+                    // If we CAN switch, allow switching
+                    bool disableSwitch = __instance.inTerminalMenu || !__instance.isPlayerControlled || __instance.timeSinceSwitchingSlots < 0.3f || __instance.isGrabbingObjectAnimation
+                        || __instance.quickMenuManager.isMenuOpen || __instance.inSpecialInteractAnimation || __instance.throwingObject || __instance.isTypingChat || __instance.twoHanded
+                        || __instance.activatingItem || ((__instance.jetpackControls || __instance.disablingJetpackControls) && __instance.currentlyHeldObjectServer?.itemProperties.itemId  == 13);
+                    
+                    if (!disableSwitch)
+                    {
+                        for (int i = (int)Key.Digit1; i <= (int)Key.Digit0; i++)
+                        {
+                            if (Keyboard.current?[(Key)i]?.wasPressedThisFrame == true)
+                            {
+                                int index = i - (int)Key.Digit1;
+                                if (index < __instance.ItemSlots.Length)
+                                {
+                                    __instance.SwitchToItemSlot(index);
+                                    __instance.SwitchToSlotServerRpc(index);
+                                }
+                            }
                         }
                     }
                 }
