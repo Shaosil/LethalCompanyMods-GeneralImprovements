@@ -1,5 +1,8 @@
 # Changelog
 
+### v1.5.1 - Hotfix
+* Fixed a bug that spammed the log with errors if a weed killer was present.
+
 ### v1.5.0 - Update for v81
 * Added `NumberKeysSwitchItemSlots` (defaults to false) to allow using 1-4 to select item slots. 5-0 may also work if using extended hotbar mods.
 	* If enabled, this will also check if the two basic emotes are bound to 1/2, and if so, will rebind them to F1/F2.

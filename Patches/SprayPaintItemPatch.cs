@@ -2,6 +2,7 @@
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 
@@ -13,14 +14,27 @@ namespace GeneralImprovements.Patches
 
         [HarmonyPatch(typeof(SprayPaintItem), nameof(Start))]
         [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> Start_Transpiler(IEnumerable<CodeInstruction> instructions)
+        private static IEnumerable<CodeInstruction> Start_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
             // Patch out the random color assignment lines
             var codeList = instructions.ToList();
-            if (codeList.TryFindInstruction(i => i.Is(OpCodes.Initobj, typeof(RaycastHit)), out var found))
+            if (codeList.TryFindInstructions(new System.Func<CodeInstruction, bool>[]
+            {
+                // if (isWeedKillerSprayBottle), branch past ret
+                i => i.LoadsField(typeof(SprayPaintItem).GetField(nameof(SprayPaintItem.isWeedKillerSprayBottle))),
+                i => i.Branches(out _),
+                i => i.IsLdarg(0),
+                i => i.opcode == OpCodes.Call && ((MethodInfo)i.operand).Name == nameof(Object.FindObjectOfType),
+                i => i.opcode == OpCodes.Stfld,
+                i => i.opcode == OpCodes.Ret
+            }, out var found))
             {
                 Plugin.MLS.LogDebug("Patching out old spray can random color assignment.");
-                codeList = codeList.Take(6).Concat(new[] { codeList.Last() }).ToList();
+                
+                // Give the return a label and branch to it instead of past it
+                var retLabel = generator.DefineLabel();
+                found.Last().Instruction.labels.Add(retLabel);
+                found[1].Instruction.operand = retLabel;
             }
             else
             {
