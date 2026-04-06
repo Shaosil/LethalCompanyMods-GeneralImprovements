@@ -1,6 +1,5 @@
 ﻿using GeneralImprovements.Utilities;
 using HarmonyLib;
-using Unity.Netcode;
 
 namespace GeneralImprovements.Patches
 {
@@ -8,17 +7,6 @@ namespace GeneralImprovements.Patches
     {
         public static int NumItemsSoldToday = 0;
         public static int ProfitThisQuota = 0;
-
-        [HarmonyPatch(typeof(DepositItemsDesk), nameof(DepositItemsDesk.AddObjectToDeskClientRpc))]
-        [HarmonyPostfix]
-        private static void AddObjectToDeskClientRpc(NetworkObjectReference grabbableObjectNetObject)
-        {
-            // Update layer so we do not detect them anymore.
-            if (grabbableObjectNetObject.TryGet(out var netObj) && netObj.GetComponentInChildren<GrabbableObject>() is GrabbableObject obj)
-            {
-                obj.gameObject.layer = 0;
-            }
-        }
 
         [HarmonyPatch(typeof(DepositItemsDesk), nameof(SellAndDisplayItemProfits))]
         [HarmonyPostfix]

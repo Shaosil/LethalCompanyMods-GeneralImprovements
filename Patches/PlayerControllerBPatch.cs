@@ -7,6 +7,7 @@ using System.Reflection.Emit;
 using GameNetcodeStuff;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
+using TMPro;
 using Unity.Netcode;
 using Unity.Profiling;
 using UnityEngine;
@@ -131,14 +132,9 @@ namespace GeneralImprovements.Patches
             // If specified, attempt to use the first key found in our inventory
             if (Plugin.UnlockDoorsFromInventory.Value && CanUseAnyItem(__instance))
             {
-                var allItemSlots = GetAllItemSlots(__instance);
-                foreach (var item in allItemSlots)
+                if (GetAllItemSlots(__instance).Values.OfType<KeyItem>().FirstOrDefault() is KeyItem key)
                 {
-                    if (item is KeyItem key)
-                    {
-                        key.ItemActivate(true);
-                        break;
-                    }
+                    key.ItemActivate(true);
                 }
             }
         }
@@ -184,12 +180,12 @@ namespace GeneralImprovements.Patches
                 // If the player already has an active flashlight (helmet lamp will be on) when picking up a new INACTIVE one, switch to the new one
                 if (__instance.IsOwner && !slotFlashlight.isBeingUsed && __instance.helmetLight.enabled && !slotFlashlight.CheckForLaser() && Plugin.OnlyAllowOneActiveFlashlight.Value)
                 {
-                    var allItemSlots = GetAllItemSlots(__instance);
+                    var otherFlashlights = GetAllItemSlots(__instance).Values.OfType<FlashlightItem>();
 
-                    foreach (var otherItem in allItemSlots)
+                    foreach (var otherFlashlight in otherFlashlights)
                     {
                         // Find the first active flashlights in our inventory that still has battery, and turn it on
-                        if (otherItem != slotFlashlight && otherItem is FlashlightItem otherFlashlight && otherFlashlight.usingPlayerHelmetLight
+                        if (otherFlashlight != slotFlashlight && otherFlashlight.usingPlayerHelmetLight
                             && !otherFlashlight.CheckForLaser() && !slotFlashlight.insertedBattery.empty && !slotFlashlight.CheckForLaser())
                         {
                             Plugin.MLS.LogDebug($"Flashlight in slot {slot} turning ON after switching to it");
@@ -207,7 +203,7 @@ namespace GeneralImprovements.Patches
         public static void UpdateHelmetLight(PlayerControllerB player)
         {
             // The helmet light should always be the first sorted flashlight that is on (lasers are sorted last, then pocketed flashlights are prioritized)
-            var activeLight = GetAllItemSlots(player).OfType<FlashlightItem>()
+            var activeLight = GetAllItemSlots(player).Values.OfType<FlashlightItem>()
                 .Where(f => f.isBeingUsed)
                 .OrderBy(f => f.CheckForLaser())
                 .ThenByDescending(f => f.isPocketed)
@@ -419,6 +415,56 @@ namespace GeneralImprovements.Patches
         private static IEnumerable<CodeInstruction> SetHoverTipAndCurrentInteractTrigger_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
             var codeList = instructions.ToList();
+
+            // Do not set grab hovertip if grabbable item is not grabbable
+            var getTransformMethod = typeof(Component).GetMethod("get_transform");
+            var getPositionMethod = typeof(Transform).GetMethod("get_position");
+            if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+            {
+                // if (grabbableObject == null) { grabbableObject = hit.collider.gameObject.GetComponent<GrabbableObject>(); }
+                i => i.Branches(out _),
+                i => i.IsLdarg(0),
+                i => i.LoadsField(typeof(PlayerControllerB).GetField("hit", BindingFlags.Instance | BindingFlags.NonPublic), true),
+                i => i.Calls(typeof(RaycastHit).GetMethod("get_collider")),
+                i => i.Calls(typeof(Component).GetMethod("get_gameObject")),
+                null,
+                i => i.IsStloc(),
+
+                // if (Physics.Linecast(gameplayCamera.transform.position, grabbableObject.transform.position...))
+                i => i.IsLdarg(0),
+                i => i.LoadsField(typeof(PlayerControllerB).GetField(nameof(PlayerControllerB.gameplayCamera))),
+                i => i.Calls(getTransformMethod),
+                i => i.Calls(getPositionMethod),
+                i => i.IsLdloc(),
+                i => i.Calls(getTransformMethod),
+                i => i.Calls(getPositionMethod),
+                i => i.LoadsConstant(),
+                i => i.LoadsConstant(),
+                i => i.Calls(typeof(Physics).GetMethod(nameof(Physics.Linecast), new Type[] { typeof(Vector3), typeof(Vector3), typeof(int), typeof(QueryTriggerInteraction) })),
+                i => i.Branches(out _),
+                i => i.IsLdarg(0)
+            }, out var grabbableCode))
+            {
+                Plugin.MLS.LogDebug("Patching PlayerControllerB.SetHoverTipAndCurrentInteractionTrigger to remove grab notification when not needed.");
+
+                // First check if item is not grabbable, and if so, branch to newly added no-tip label
+                Label newCheckLabel = generator.DefineLabel();
+                Label noTipLabel = generator.DefineLabel();
+                grabbableCode.Last().Instruction.labels.Add(noTipLabel);
+                codeList.InsertRange(grabbableCode[7].Index, new CodeInstruction[]
+                {
+                    new CodeInstruction(grabbableCode[11].Instruction.opcode).WithLabels(newCheckLabel), // LdLoc grabbableObject
+                    new CodeInstruction(OpCodes.Ldfld, typeof(GrabbableObject).GetField(nameof(GrabbableObject.grabbable))),
+                    new CodeInstruction(OpCodes.Brfalse_S, noTipLabel)
+                });
+
+                // Make sure previous code goes to our check and not past it
+                grabbableCode.First().Instruction.operand = newCheckLabel;
+            }
+            else
+            {
+                Plugin.MLS.LogWarning("Unexpected IL code - Could not patch PlayerControllerB.SetHoverTipAndCurrentInteractionTrigger to remove the grab notification!");
+            }
             
             // Check for masked entity raycast hit when doing players in order to show their billboards if needed
             if (Plugin.MaskedEntitiesShowPlayerNames.Value)
@@ -586,18 +632,25 @@ namespace GeneralImprovements.Patches
                 }
             }
 
-            var allItems = GetAllItemSlots(player);
+            var allItems = GetAllItemSlots(player).Values.ToArray();
             player.carryWeight = 1 + allItems.Sum(i => (i && i.itemProperties ? i.itemProperties.weight : 1) - 1);
         }
 
-        public static GrabbableObject[] GetAllItemSlots(PlayerControllerB player)
+        public static Dictionary<int, GrabbableObject> GetAllItemSlots(PlayerControllerB player)
         {
+            var allSlots = new Dictionary<int, GrabbableObject>();
+
             if (player != null)
             {
-                return player.ItemSlots.Concat(new GrabbableObject[] { player.ItemOnlySlot }).ToArray();
+                for (int i = 0; i < player.ItemSlots.Length; i++)
+                {
+                    allSlots[i] = player.ItemSlots[i];
+                }
+
+                allSlots[50] = player.ItemOnlySlot;
             }
 
-            return new GrabbableObject[0];
+            return allSlots;
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(Update))]

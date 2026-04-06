@@ -1,5 +1,15 @@
 # Changelog
 
+### v1.5.2 - Minor mod code fixes
+* Fixed a bug that spammed the log with errors on stormy days if ReservedItemSlot mods were used
+* Fixed a bug that stripped keys of their monetary value.
+* Fixed a bug where teleportable radar boosters thought teleporters were always in their default position.
+	* Also fixed them to have more stable behavior, as the teleporting methods were being called too many times from the transpiler.
+* Fixed a bug with lightning overlays where they wouldn't go away in many cases.
+* Fixed bug with sell items counter having physics on placed items.
+* Rewrote and added code back in that prevents "Grab" hovertip from displaying if grabbable object is not interactable.
+* Further stabilized the mod code that reads all item slots to avoid similar bugs.
+
 ### v1.5.1 - Hotfix
 * Fixed a bug that spammed the log with errors if a weed killer was present.
 

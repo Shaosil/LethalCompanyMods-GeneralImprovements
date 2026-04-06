@@ -71,8 +71,8 @@ namespace GeneralImprovements.Patches
             }
 
             // If there is an active flashlight in the players inventory (prioritize non lasers), turn on its helemet light. This can happen if a helmet light was on last frame.
-            var allItemSlots = PlayerControllerBPatch.GetAllItemSlots(___previousPlayerHeldBy);
-            var otherFlashlights = allItemSlots.OfType<FlashlightItem>().Where(f => f != __instance);
+            var allItems = PlayerControllerBPatch.GetAllItemSlots(___previousPlayerHeldBy).Values.ToArray();
+            var otherFlashlights = allItems.OfType<FlashlightItem>().Where(f => f != __instance);
             var activeFlashlight = otherFlashlights.Where(f => f != null && f.isBeingUsed).OrderBy(f => f.CheckForLaser()).FirstOrDefault();
 
             if (activeFlashlight != null)
@@ -109,7 +109,7 @@ namespace GeneralImprovements.Patches
                     // Make sure no other flashlights in our inventory are on
                     if (__instance.IsOwner && Plugin.OnlyAllowOneActiveFlashlight.Value && !__instance.CheckForLaser())
                     {
-                        var allItems = PlayerControllerBPatch.GetAllItemSlots(__instance.playerHeldBy);
+                        var allItems = PlayerControllerBPatch.GetAllItemSlots(__instance.playerHeldBy).Values.ToArray();
                         foreach (var item in allItems)
                         {
                             if (item is FlashlightItem otherFlashlight && otherFlashlight != __instance && otherFlashlight.isBeingUsed && !otherFlashlight.CheckForLaser())

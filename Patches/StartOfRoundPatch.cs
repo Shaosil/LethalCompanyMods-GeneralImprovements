@@ -241,13 +241,13 @@ namespace GeneralImprovements.Patches
                 }
 
                 // Destroy keys in our own inventory
-                var allItems = PlayerControllerBPatch.GetAllItemSlots(StartOfRound.Instance.localPlayerController);
-                for (int i = 0; i < allItems.Length; i++)
+                var allSlots = PlayerControllerBPatch.GetAllItemSlots(StartOfRound.Instance.localPlayerController);
+                foreach (var slot in allSlots.Keys)
                 {
-                    if (allItems[i] is KeyItem key)
+                    if (allSlots[slot] is KeyItem key)
                     {
-                        Plugin.MLS.LogInfo($"Destroying held key in slot {i} after orbiting.");
-                        ObjectHelper.DestroyLocalItemAndSync(StartOfRound.Instance.localPlayerController.ItemOnlySlot == allItems[i] ? 50 : i);
+                        Plugin.MLS.LogInfo($"Destroying held key in slot {slot} after orbiting.");
+                        ObjectHelper.DestroyLocalItemAndSync(slot);
                     }
                 }
             }

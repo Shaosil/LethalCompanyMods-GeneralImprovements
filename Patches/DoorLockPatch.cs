@@ -36,19 +36,7 @@ namespace GeneralImprovements.Patches
                     var injectedFunction = Transpilers.EmitDelegate<Func<bool>>(() =>
                     {
                         // Return true if the player has a key in their inventory
-                        if (StartOfRound.Instance && StartOfRound.Instance.localPlayerController)
-                        {
-                            var allSlots = PlayerControllerBPatch.GetAllItemSlots(StartOfRound.Instance.localPlayerController);
-                            foreach (var slotItem in allSlots)
-                            {
-                                if (slotItem is KeyItem)
-                                {
-                                    return true;
-                                }
-                            }
-                        }
-
-                        return false;
+                        return PlayerControllerBPatch.GetAllItemSlots(StartOfRound.Instance?.localPlayerController).Values.OfType<KeyItem>().Any();
                     });
 
                     // Define new labels for the OR and existing (true) code block

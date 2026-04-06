@@ -35,8 +35,8 @@ namespace GeneralImprovements.Patches
                 __instance.scrapPersistedThroughRounds = false;
             }
 
-            // Ensure no non-scrap items have scrap value. This will update its value and description
-            if (!__instance.itemProperties.isScrap)
+            // Ensure no non-scrap items have scrap value except for keys. This will update its value and description
+            if (!__instance.itemProperties.isScrap && !(__instance is KeyItem))
             {
                 if (__instance.GetComponentInChildren<ScanNodeProperties>() is ScanNodeProperties scanNode)
                 {

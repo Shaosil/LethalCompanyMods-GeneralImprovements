@@ -22,13 +22,13 @@ namespace GeneralImprovements.Items
         }
 
         [ClientRpc]
-        public void TeleportRadarBoosterClientRpc(NetworkObjectReference teleporterNetRef, Vector3 position, bool onShip)
+        public void BeamUpClientRpc(NetworkObjectReference teleporterNetRef, Vector3 position)
         {
             Plugin.MLS.LogDebug("Received radar booster regular teleport RPC");
 
             if (teleporterNetRef.TryGet(out var teleporterNetObj) && teleporterNetObj.TryGetComponent<ShipTeleporter>(out var teleporter))
             {
-                TeleportRadarBooster(teleporter, position, onShip);
+                TeleportRadarBooster(teleporter, position, true);
             }
         }
 

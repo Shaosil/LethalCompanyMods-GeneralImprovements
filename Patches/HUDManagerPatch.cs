@@ -525,11 +525,10 @@ namespace GeneralImprovements.Patches
                 if (_lightningSlotsToOverlays.Count > 0 && HUDManager.Instance != null && StartOfRound.Instance.localPlayerController != null)
                 {
                     var allSlots = PlayerControllerBPatch.GetAllItemSlots(StartOfRound.Instance.localPlayerController);
-                    for (int i = 0; i < allSlots.Length; i++)
+                    var curTarget = StormyWeatherPatch.Instance.targetingMetalObject;
+                    foreach (var slotNum in _lightningSlotsToOverlays.Keys)
                     {
-                        var curTarget = StormyWeatherPatch.Instance.targetingMetalObject;
-                        bool shouldBeEnabled = curTarget != null && allSlots[i] == curTarget;
-                        int slotNum = allSlots[i] == StartOfRound.Instance.localPlayerController.ItemOnlySlot ? 50 : i;
+                        bool shouldBeEnabled = curTarget != null && allSlots[slotNum] == curTarget;
                         if (_lightningSlotsToOverlays[slotNum].enabled != shouldBeEnabled)
                         {
                             _lightningSlotsToOverlays[slotNum].enabled = shouldBeEnabled;
