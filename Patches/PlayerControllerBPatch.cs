@@ -181,7 +181,6 @@ namespace GeneralImprovements.Patches
                 if (__instance.IsOwner && !slotFlashlight.isBeingUsed && __instance.helmetLight.enabled && !slotFlashlight.CheckForLaser() && Plugin.OnlyAllowOneActiveFlashlight.Value)
                 {
                     var otherFlashlights = GetAllItemSlots(__instance).Values.OfType<FlashlightItem>();
-
                     foreach (var otherFlashlight in otherFlashlights)
                     {
                         // Find the first active flashlights in our inventory that still has battery, and turn it on
@@ -393,6 +392,37 @@ namespace GeneralImprovements.Patches
             {
                 __instance.timeSinceSwitchingSlots = 0.3f - desiredDelay;
             }
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(ScrollMouse_performed))]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> ScrollMouse_performed_Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeList = instructions.ToList();
+
+            if (Plugin.InvertScrollDirection.Value)
+            {
+                if (codeList.TryFindInstructions(new Func<CodeInstruction, bool>[]
+                {
+                    // if (context.ReadValue<float>() > 0f)
+                    i => i.IsLdarga(),
+                    i => i.Calls(typeof(InputAction.CallbackContext).GetMethod(nameof(InputAction.CallbackContext.ReadValue), 1, Type.EmptyTypes).MakeGenericMethod(typeof(float))),
+                    i => i.LoadsConstant(0f),
+                    i => i.Branches(out _)
+                }, out var found))
+                {
+                    Plugin.MLS.LogDebug("Transpiling PlayerControllerB.ScrollMouse_performed to invert scroll direction.");
+
+                    // Simply make < into >
+                    found.Last().Instruction.opcode = OpCodes.Bgt_Un_S;
+                }
+                else
+                {
+                    Plugin.MLS.LogWarning("Unexpected IL Code - Could not transpile PlayerControllerB.ScrollMouse_performed to invert scroll direction!");
+                }
+            }
+
+            return codeList;
         }
 
         [HarmonyPatch(typeof(QuickMenuManager), nameof(OpenQuickMenu))]
@@ -739,8 +769,8 @@ namespace GeneralImprovements.Patches
                     if (_flashlightTogglePressed())
                     {
                         // Get the nearest flashlight with charge, whether it's held or in the inventory
-                        var allItems = GetAllItemSlots(__instance);
-                        var targetFlashlight = allItems.OfType<FlashlightItem>().Where(f => !f.insertedBattery.empty) // All charged flashlight items
+                        var allFlashlights = GetAllItemSlots(__instance).Values.OfType<FlashlightItem>();
+                        var targetFlashlight = allFlashlights.Where(f => !f.insertedBattery.empty) // All charged flashlight items
                             .OrderBy(f => f.CheckForLaser()) // Sort by non-lasers first
                             .ThenByDescending(f => __instance.currentlyHeldObjectServer == f) // ... then by held items
                             .ThenByDescending(f => f.isBeingUsed) // ... then by active status

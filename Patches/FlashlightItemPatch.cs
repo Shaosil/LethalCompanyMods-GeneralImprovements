@@ -71,8 +71,7 @@ namespace GeneralImprovements.Patches
             }
 
             // If there is an active flashlight in the players inventory (prioritize non lasers), turn on its helemet light. This can happen if a helmet light was on last frame.
-            var allItems = PlayerControllerBPatch.GetAllItemSlots(___previousPlayerHeldBy).Values.ToArray();
-            var otherFlashlights = allItems.OfType<FlashlightItem>().Where(f => f != __instance);
+            var otherFlashlights = PlayerControllerBPatch.GetAllItemSlots(___previousPlayerHeldBy).Values.OfType<FlashlightItem>().Where(f => f != __instance);
             var activeFlashlight = otherFlashlights.Where(f => f != null && f.isBeingUsed).OrderBy(f => f.CheckForLaser()).FirstOrDefault();
 
             if (activeFlashlight != null)

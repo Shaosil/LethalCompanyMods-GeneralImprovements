@@ -65,6 +65,7 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Adds an option to control the menu music volume.
 * Adds configurable settings for the chat fade delay and opacity level.
 * Adds configurable weather multipliers for scrap values and amounts. Supports any custom or modded weather.
+* Added an option to invert the mouse scroll direction.
 
 ### MINOR BUGFIXES:
 * Stops all non-scrap objects from showing value (when scanned and sold) when they do not actually have any.

@@ -70,6 +70,7 @@ namespace GeneralImprovements
         public static ConfigEntry<bool> SkipStartupScreen { get; private set; }
 
         private const string InventorySection = "Inventory";
+        public static ConfigEntry<bool> InvertScrollDirection { get; private set; }
         public static ConfigEntry<bool> NumberKeysSwitchItemSlots { get; private set; }
         public static ConfigEntry<bool> PickupInOrder { get; private set; }
         public static ConfigEntry<bool> RearrangeOnDrop { get; private set; }
@@ -258,6 +259,7 @@ namespace GeneralImprovements
             SkipStartupScreen = Config.Bind(GameLaunchSection, nameof(SkipStartupScreen), true, "Skips the main menu loading screen bootup animation.");
 
             // Inventory
+            InvertScrollDirection = Config.Bind(InventorySection, nameof(InvertScrollDirection), false, "If set to true, scrolling the mouse wheel will select item slots in the other direction.");
             NumberKeysSwitchItemSlots = Config.Bind(InventorySection, nameof(NumberKeysSwitchItemSlots), false, "If set to true, your number keys will quick select item slots. Vanilla emotes will be rebound to function keys.");
             PickupInOrder = Config.Bind(InventorySection, nameof(PickupInOrder), false, "When picking up items, will always put them in left - right order. May cause visual desyncs with other players.");
             RearrangeOnDrop = Config.Bind(InventorySection, nameof(RearrangeOnDrop), false, "When dropping items, will rearrange other inventory items to ensure slots are filled left - right. May cause visual desyncs with other players.");

@@ -1,5 +1,9 @@
 # Changelog
 
+### v1.5.3 - InvertScrollDirection and hotfix
+* Added `InvertScrollDirection` as an option (defaults to false) to do exactly that.
+* Fixed a bug where the last update broke `FlashlightToggleShortcut`.
+
 ### v1.5.2 - Minor mod code fixes
 * Fixed a bug that spammed the log with errors on stormy days if ReservedItemSlot mods were used
 * Fixed a bug that stripped keys of their monetary value.
