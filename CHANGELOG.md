@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.5.4 - Walkie shortcut and minor fixes
+* Added a new option `WalkieUseShortcut` that allows for holding a key of your choice to use a walkie no matter where it is in your inventory.
+* Fixed a missed v80 transpiler update for `DisplayKgInsteadOfLb`.
+* Fixed the Monitors API `NewMonitorMeshActive` incorrectly reporting true if `UseBetterMonitors` was false, but `AddMoreBetterMonitors` was true.
+* Added a helpful log warning message if `AddMoreBetterMonitors` is set to true but not `UseBetterMonitors`.
+
 ### v1.5.3 - InvertScrollDirection and hotfix
 * Added `InvertScrollDirection` as an option (defaults to false) to do exactly that.
 * Fixed a bug where the last update broke `FlashlightToggleShortcut`.

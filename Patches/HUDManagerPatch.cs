@@ -540,9 +540,9 @@ namespace GeneralImprovements.Patches
             ProfilerHelper.EndProfilingSafe(_pm_HUDUpdate);
         }
 
-        [HarmonyPatch(typeof(HUDManager), nameof(Update))]
+        [HarmonyPatch(typeof(HUDManager), nameof(HUDManager.UpdateWeightCounter))]
         [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> UpdateTranspiler(IEnumerable<CodeInstruction> instructions)
+        private static IEnumerable<CodeInstruction> UpdateWeightCounter_Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             var codeList = instructions.ToList();
 

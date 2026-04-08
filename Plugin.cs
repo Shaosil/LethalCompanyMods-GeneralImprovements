@@ -151,6 +151,7 @@ namespace GeneralImprovements
         public static List<Type> ScannableToolVals { get; private set; } = new List<Type>();
         public static ConfigEntry<bool> ToolsDoNotAttractLightning { get; private set; }
         public static ConfigEntry<bool> TreatLasersAsFlashlights { get; private set; }
+        public static ConfigEntry<eValidKeys> WalkieUseShortcut { get; private set; }
 
         private const string UISection = "UI";
         public static ConfigEntry<bool> AlwaysShowClock { get; private set; }
@@ -335,6 +336,7 @@ namespace GeneralImprovements
             ScannableTools = Config.Bind(ToolsSection, nameof(ScannableTools), string.Empty, $"A comma separated list of which tools, if any, should be scannable. Accepted values: {validToolStrings}");
             ToolsDoNotAttractLightning = Config.Bind(ToolsSection, nameof(ToolsDoNotAttractLightning), false, "[Host Only] If set to true, all useful tools (ladders, jetpacks, keys, radar boosters, shovels & signs, tzp inhalant, knives, and zap guns) will no longer attract lighning.");
             TreatLasersAsFlashlights = Config.Bind(ToolsSection, nameof(TreatLasersAsFlashlights), false, "If set to true, laser pointers will be like flashlights and automatically toggle off and on when switching to them, etc.");
+            WalkieUseShortcut = Config.Bind(ToolsSection, nameof(WalkieUseShortcut), eValidKeys.None, $"A shortcut key to allow using a walkie talkie at any time.");
 
             // UI
             AlwaysShowClock = Config.Bind(UISection, nameof(AlwaysShowClock), false, "If set to true, the clock will always be displayed on the HUD when landed on a moon.");

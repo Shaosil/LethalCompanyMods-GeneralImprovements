@@ -12,6 +12,7 @@ using Unity.Netcode;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using UnityEngine.Windows;
 using static GeneralImprovements.Enums;
 
@@ -25,7 +26,8 @@ namespace GeneralImprovements.Patches
 
         public static int CurrentMaxHealth = 100;
 
-        private static Func<bool> _flashlightTogglePressed;
+        private static ButtonControl _flashlightToggleButton;
+        private static ButtonControl _walkieUseButton;
         private static float _originalCursorScale = 0;
         private static float _originalClimbSpeed;
 
@@ -43,15 +45,16 @@ namespace GeneralImprovements.Patches
             _originalCursorScale = __instance.cursorIcon.transform.localScale.x;
             _originalClimbSpeed = __instance.climbSpeed;
 
-            bool hasToggleShortcut = Plugin.FlashlightToggleShortcut.Value != eValidKeys.None;
-            if (Plugin.FlashlightToggleShortcut.Value >= eValidKeys.MouseLeft)
+            if (Plugin.FlashlightToggleShortcut.Value != eValidKeys.None)
             {
-                _flashlightTogglePressed = () => GetMouseButtonMapping(Plugin.FlashlightToggleShortcut.Value).wasPressedThisFrame;
+                _flashlightToggleButton = Plugin.FlashlightToggleShortcut.Value >= eValidKeys.MouseLeft ? GetMouseButtonMapping(Plugin.FlashlightToggleShortcut.Value)
+                    : (Enum.TryParse<Key>(Plugin.FlashlightToggleShortcut.Value.ToString(), out var flashlightToggleKey) ? Keyboard.current[flashlightToggleKey] : null);
             }
-            else
+
+            if (Plugin.WalkieUseShortcut.Value != eValidKeys.None)
             {
-                var control = hasToggleShortcut && Enum.TryParse<Key>(Plugin.FlashlightToggleShortcut.Value.ToString(), out var flashlightToggleKey) ? Keyboard.current[flashlightToggleKey] : null;
-                _flashlightTogglePressed = () => control?.wasPressedThisFrame ?? false;
+                _walkieUseButton = Plugin.WalkieUseShortcut.Value >= eValidKeys.MouseLeft ? GetMouseButtonMapping(Plugin.WalkieUseShortcut.Value)
+                    : (Enum.TryParse<Key>(Plugin.WalkieUseShortcut.Value.ToString(), out var walkieUseKey) ? Keyboard.current[walkieUseKey] : null);
             }
 
             if (Plugin.NumberKeysSwitchItemSlots.Value)
@@ -764,15 +767,15 @@ namespace GeneralImprovements.Patches
                     }
                 }
 
-                if (Plugin.FlashlightToggleShortcut.Value != eValidKeys.None && !__instance.inTerminalMenu && !__instance.isTypingChat && __instance.isPlayerControlled)
+                if (_flashlightToggleButton != null && !__instance.inTerminalMenu && !__instance.isTypingChat && __instance.isPlayerControlled)
                 {
-                    if (_flashlightTogglePressed())
+                    if (_flashlightToggleButton.wasPressedThisFrame)
                     {
-                        // Get the nearest flashlight with charge, whether it's held or in the inventory
+                        // Get the first flashlight with charge, whether it's held or in the inventory
                         var allFlashlights = GetAllItemSlots(__instance).Values.OfType<FlashlightItem>();
                         var targetFlashlight = allFlashlights.Where(f => !f.insertedBattery.empty) // All charged flashlight items
                             .OrderBy(f => f.CheckForLaser()) // Sort by non-lasers first
-                            .ThenByDescending(f => __instance.currentlyHeldObjectServer == f) // ... then by held items
+                            .ThenByDescending(f => __instance.currentlyHeldObjectServer == f) // ... then by held item
                             .ThenByDescending(f => f.isBeingUsed) // ... then by active status
                             .ThenBy(f => f.flashlightTypeID) // ... then by pro, regular, laser
                             .FirstOrDefault();
@@ -782,6 +785,24 @@ namespace GeneralImprovements.Patches
                         {
                             targetFlashlight.UseItemOnClient();
                         }
+                    }
+                }
+
+                if ((_walkieUseButton?.wasPressedThisFrame == true || _walkieUseButton?.wasReleasedThisFrame == true) && !__instance.isTypingChat && __instance.isPlayerControlled)
+                {
+                    // Get all walkies with charge, whether they are held or in the inventory
+                    var allWalkies = GetAllItemSlots(__instance).Values.OfType<WalkieTalkie>()
+                        .Where(f => !f.insertedBattery.empty) // All charged walkie items
+                        .OrderByDescending(f => f.isBeingUsed) // Sort by active status
+                        .ThenBy(f => __instance.currentlyHeldObjectServer == f); // ... then by held item
+
+                    if (_walkieUseButton.wasReleasedThisFrame && allWalkies.FirstOrDefault(w => w.isBeingUsed) is WalkieTalkie walkie)
+                    {
+                        walkie.UseItemOnClient(false);
+                    }
+                    else if (_walkieUseButton.wasPressedThisFrame && allWalkies.Any())
+                    {
+                        allWalkies.First().UseItemOnClient(true);
                     }
                 }
 

@@ -40,6 +40,8 @@ Check the config settings or the [wiki!](https://thunderstore.io/c/lethal-compan
 * Available monitors to customize are things like weather, sales, time, credits, door power, ship cams, total days, total quotas, scrap remaining, etc. Work in progress, may be enabled individually in the config.
 * If specified in the config, the game will automatically select ONLINE or LAN upon launch.
 * If enabled in the config, you may use 1-4 as shortcuts to quick swap through items in your hotbar. 5-9 may also work if you use extended hotbar mods.
+* You may specify a shortcut button or key in the config to allow toggling of your flashlight from anywhere.
+* You may specify a shortcut button or key in the config to allow use of your walkie talkie from anywhere.
 * Using the up/down arrow keys at the terminal will navigate through the previous (n) commands. (n) may range from 0-100 in the config.
 * Using the left/right arrow keys at the terminal while viewing the radar will quickly cycle through available targets.
 * [Host Only] Adds an option to specify starting money per player, as well as define a minumum credit amount. Accepts ranges from -1 (disabled/default) to 1000.

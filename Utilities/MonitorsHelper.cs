@@ -176,7 +176,7 @@ namespace GeneralImprovements.Utilities
 
             // Initialize API items
             MonitorsAPI.AllMonitors = new Dictionary<int, MonitorsAPI.MonitorInfo>();
-            MonitorsAPI.NewMonitorMeshActive = Plugin.AddMoreBetterMonitors.Value;
+            MonitorsAPI.NewMonitorMeshActive = Plugin.UseBetterMonitors.Value && Plugin.AddMoreBetterMonitors.Value;
             MonitorsAPI.NumMonitorsActive = 0;
             MonitorsAPI.PoweredOn = true;
 
@@ -189,6 +189,11 @@ namespace GeneralImprovements.Utilities
                 if (Plugin.UseBetterMonitors.Value)
                 {
                     Plugin.MLS.LogError("Because asset bundle was not found, better monitors could not be loaded! Defaulting to vanilla.");
+                }
+
+                if (Plugin.AddMoreBetterMonitors.Value)
+                {
+                    Plugin.MLS.LogWarning($"{nameof(Plugin.AddMoreBetterMonitors)} was set to true, but more monitors can only be added if {nameof(Plugin.UseBetterMonitors)} is also true! No new monitors will be added.");
                 }
 
                 CreateOldStyleMonitors(monitorAssignments);
