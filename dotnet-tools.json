@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "evaisa.netcodepatcher.cli": {
+      "version": "4.5.0",
+      "commands": [
+        "netcode-patch"
+      ],
+      "rollForward": false
+    }
+  }
+}
