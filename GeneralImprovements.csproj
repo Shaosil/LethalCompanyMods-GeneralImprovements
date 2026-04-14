@@ -134,15 +134,21 @@
         </None>
     </ItemGroup>
 
-    <Target Name="CopyFilesToGamePath" AfterTargets="PostBuildEvent">
+    <!-- Install the netcode-patcher CLI: dotnet tool restore -->
+    <Target Name="NetcodePatch" AfterTargets="PostBuildEvent">
+        <PropertyGroup>
+            <NetcodePatcherDepsListFile>$(IntermediateOutputPath)ncp-deps.list</NetcodePatcherDepsListFile>
+        </PropertyGroup>
+        <Message Text="Patching netcode..." Importance="high" />
+        <WriteLinesToFile File="$(NetcodePatcherDepsListFile)" Lines="@(ReferencePathWithRefAssemblies)" Overwrite="true"/>
+        <Exec Command="dotnet netcode-patch -uv 2022.3.62 -nv 1.12.2 -tv 1.0.0 &quot;$(TargetPath)&quot; --dependency-file &quot;$(NetcodePatcherDepsListFile)&quot;"
+            StandardOutputImportance="Low" />
+    </Target>
+
+    <Target Name="CopyFilesToGamePath" AfterTargets="PostBuildEvent" DependsOnTargets="NetcodePatch">
         <PropertyGroup>
           <PluginPath>$(GamePath)/BepInEx/plugins/ShaosilGaming-GeneralImprovements/</PluginPath>
         </PropertyGroup>
-
-        <!-- Install the netcode-patcher CLI: `dotnet tool restore` -->
-        <Message Text="Patching netcode..." Importance="high" />
-        <Exec Command="dotnet netcode-patch -uv 2022.3.62 -nv 1.12.0 -tv 1.0.0 &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" 
-          StandardOutputImportance="Low" />
 
         <MakeDir Directories="$(PluginPath)" />
         
@@ -153,7 +159,7 @@
         <Copy SourceFiles="Assets\GeneralImprovementsAssets" DestinationFolder="$(PluginPath)"/>
     </Target>
 
-    <Target Name="ZipMod" AfterTargets="PostBuildEvent" Condition="$(Configuration) == 'Deploy'">
+    <Target Name="ZipMod" AfterTargets="PostBuildEvent" DependsOnTargets="NetcodePatch" Condition="$(Configuration) == 'Deploy'">
         <Message Text="Deleting $(PackageDir)..." Importance="high" />
         <RemoveDir Directories="$(PackageDir)" />
 
