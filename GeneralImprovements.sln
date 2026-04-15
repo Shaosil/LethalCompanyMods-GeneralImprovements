@@ -14,23 +14,18 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
+		Test|Any CPU = Test|Any CPU
 		Deploy|Any CPU = Deploy|Any CPU
-		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{DC3B0020-5BF8-4CE5-A743-090BAC16953B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DC3B0020-5BF8-4CE5-A743-090BAC16953B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC3B0020-5BF8-4CE5-A743-090BAC16953B}.Test|Any CPU.ActiveCfg = Test|Any CPU
+		{DC3B0020-5BF8-4CE5-A743-090BAC16953B}.Test|Any CPU.Build.0 = Test|Any CPU
 		{DC3B0020-5BF8-4CE5-A743-090BAC16953B}.Deploy|Any CPU.ActiveCfg = Deploy|Any CPU
 		{DC3B0020-5BF8-4CE5-A743-090BAC16953B}.Deploy|Any CPU.Build.0 = Deploy|Any CPU
-		{DC3B0020-5BF8-4CE5-A743-090BAC16953B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DC3B0020-5BF8-4CE5-A743-090BAC16953B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Deploy|Any CPU.ActiveCfg = Debug|Any CPU
-		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Deploy|Any CPU.Build.0 = Debug|Any CPU
-		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Test|Any CPU.ActiveCfg = Test|Any CPU
+		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Test|Any CPU.Build.0 = Test|Any CPU
+		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Deploy|Any CPU.ActiveCfg = Deploy|Any CPU
+		{FB9BA67B-5FA3-4E16-9E6A-421E8DE49AA6}.Deploy|Any CPU.Build.0 = Deploy|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

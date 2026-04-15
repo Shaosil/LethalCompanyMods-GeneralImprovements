@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
-        <Configurations>Debug;Release;Deploy</Configurations>
+        <Configurations>Test;Deploy</Configurations>
         <PackageDir>..\PACKAGED\$(MSBuildProjectName)</PackageDir>
         <NetcodePatcherNoOverwrite>true</NetcodePatcherNoOverwrite>
         <PublicizerRuntimeStrategies>Unsafe</PublicizerRuntimeStrategies>

@@ -136,7 +136,9 @@ namespace GeneralImprovements.Patches
                     {
                         var dropAllExceptHeldDelegate = Transpilers.EmitDelegate<Action<PlayerControllerB>>((player) =>
                         {
-                            PlayerControllerBPatch.DropAllItemsExceptHeld(player, Plugin.KeepItemsDuringTeleport.Value == eItemsToKeep.NonScrap);
+                            NetworkHelper.Instance.DropAllPlayerItemsExceptHeldClientRpc((int)player.playerClientId, Plugin.KeepItemsDuringTeleport.Value == eItemsToKeep.NonScrap,
+                                player.transform.position, player.localItemHolder.position, player.localItemHolder.eulerAngles, player.playerEye.position,
+                                player.playerEye.eulerAngles, player.isInHangarShipRoom, player.isInElevator);
                         });
 
                         // Replace the drop function with our own
@@ -228,7 +230,9 @@ namespace GeneralImprovements.Patches
                     {
                         var dropAllExceptHeldDelegate = Transpilers.EmitDelegate<Action<PlayerControllerB>>((player) =>
                         {
-                            PlayerControllerBPatch.DropAllItemsExceptHeld(player, Plugin.KeepItemsDuringInverse.Value == eItemsToKeep.NonScrap);
+                            NetworkHelper.Instance.DropAllPlayerItemsExceptHeldClientRpc((int)player.playerClientId, Plugin.KeepItemsDuringInverse.Value == eItemsToKeep.NonScrap,
+                                player.transform.position, player.localItemHolder.position, player.localItemHolder.eulerAngles, player.playerEye.position,
+                                player.playerEye.eulerAngles, player.isInHangarShipRoom, player.isInElevator);
                         });
 
                         // Replace the function call with our own

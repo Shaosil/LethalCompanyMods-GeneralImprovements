@@ -315,8 +315,8 @@ namespace GeneralImprovements
 
             // Teleporters
             InverseTeleporterCooldown = Config.Bind(TeleportersSection, nameof(InverseTeleporterCooldown), 210, new ConfigDescription("How many seconds to wait in between button presses for the INVERSE teleporter. Vanilla = 210. If using the vanilla value, the teleporter code will not be modified.", new AcceptableValueRange<int>(1, 300)));
-            KeepItemsDuringInverse = Config.Bind(TeleportersSection, nameof(KeepItemsDuringInverse), eItemsToKeep.None, "Whether to keep Held, Non Scrap, or All items in inventory when using the inverse teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!");
-            KeepItemsDuringTeleport = Config.Bind(TeleportersSection, nameof(KeepItemsDuringTeleport), eItemsToKeep.None, "Whether to keep Held, Non Scrap, or All items in inventory when using the regular teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS IF OTHER PLAYERS DO NOT SHARE YOUR SETTING!");
+            KeepItemsDuringInverse = Config.Bind(TeleportersSection, nameof(KeepItemsDuringInverse), eItemsToKeep.None, "Whether to keep Held, Non Scrap, or All items in inventory when using the inverse teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS ON UNMODDED CLIENTS!");
+            KeepItemsDuringTeleport = Config.Bind(TeleportersSection, nameof(KeepItemsDuringTeleport), eItemsToKeep.None, "Whether to keep Held, Non Scrap, or All items in inventory when using the regular teleporter. *WARNING:* THIS WILL CAUSE INVENTORY DESYNCS ON UNMODDED CLIENTS!");
             RadarBoostersCanBeTeleported = Config.Bind(TeleportersSection, nameof(RadarBoostersCanBeTeleported), eRadarBoosterTeleport.Disabled, "[Host Only] If enabled, radar boosters can be affected by the specified type of teleporters. If the host has this setting enabled, unmodded clients may experience desyncs with radar boosters and teleporters.");
             RegularTeleporterCooldown = Config.Bind(TeleportersSection, nameof(RegularTeleporterCooldown), 10, new ConfigDescription("How many seconds to wait in between button presses for the REGULAR teleporter. Vanilla = 10. If using the vanilla value, the teleporter code will not be modified.", new AcceptableValueRange<int>(1, 300)));
 
@@ -392,30 +392,34 @@ namespace GeneralImprovements
             }
 
             // Sanitize weather multipliers by removing invalid entries and clamping the multipliers
-            var scrapValueWeatherMatches = Regex.Matches(ScrapValueWeatherMultipliers.Value, @"[a-z]+:\d*([\. ]\d+)?", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
-            var scrapAmountWeatherMatches = Regex.Matches(ScrapAmountWeatherMultipliers.Value, @"[a-z]+:\d([\. ]\d+)?", RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
-            List<string[]> sanitizedScrapValues = new List<string[]>();
-            List<string[]> sanitizedScrapAmounts = new List<string[]>();
-            foreach (Match valueMatch in scrapValueWeatherMatches)
+            Func<string, List<string[]>> splitWeatherMultipliers = s => 
+                s.Replace(" ", "")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(e => e.Split(':', StringSplitOptions.RemoveEmptyEntries)).Where(se => se.Length == 2).ToArray()
+                .ToList();
+            var splitScrapValues = splitWeatherMultipliers(ScrapValueWeatherMultipliers.Value);
+            var splitScrapAmounts = splitWeatherMultipliers(ScrapAmountWeatherMultipliers.Value);
+            
+            SanitizedScrapValueWeatherMultipliers = new Dictionary<string, float>();
+            foreach (var value in splitScrapValues)
             {
-                string[] curSplit = valueMatch.Value.Split(":");
-                if (float.TryParse(curSplit[1], out var multiplier))
+                if (float.TryParse(value[1], NumberStyles.Any, CultureInfo.InvariantCulture, out var multiplier))
                 {
-                    sanitizedScrapValues.Add(new[] { curSplit[0], Mathf.Clamp(multiplier, 0.1f, 2f).ToString() });
+                    float clamped = Mathf.Clamp(multiplier, 0.1f, 2f);
+                    SanitizedScrapValueWeatherMultipliers[value[0]] = clamped;
+                    MLS.LogDebug($"Setting scrap value weather multiplier: {value[0]}:{clamped}");
                 }
             }
-            foreach (Match amountMatch in scrapAmountWeatherMatches)
+            SanitizedScrapAmountWeatherMultipliers = new Dictionary<string, float>();
+            foreach (var value in splitScrapAmounts)
             {
-                string[] curSplit = amountMatch.Value.Split(":");
-                if (float.TryParse(curSplit[1], out var multiplier))
+                if (float.TryParse(value[1], NumberStyles.Any, CultureInfo.InvariantCulture, out var multiplier))
                 {
-                    sanitizedScrapAmounts.Add(new[] { curSplit[0], Mathf.Clamp(multiplier, 1f, 5f).ToString() });
+                    float clamped = Mathf.Clamp(multiplier, 1f, 5f);
+                    SanitizedScrapAmountWeatherMultipliers[value[0]] = clamped;
+                    MLS.LogDebug($"Setting scrap amount weather multiplier: {value[0]}:{clamped}");
                 }
             }
-            ScrapValueWeatherMultipliers.Value = string.Join(", ", sanitizedScrapValues.Select(s => $"{s[0]}:{s[1]}"));
-            SanitizedScrapValueWeatherMultipliers = sanitizedScrapValues.ToDictionary(k => k[0], v => float.Parse(v[1]));
-            ScrapAmountWeatherMultipliers.Value = string.Join(", ", sanitizedScrapAmounts.Select(s => $"{s[0]}:{s[1]}"));
-            SanitizedScrapAmountWeatherMultipliers = sanitizedScrapAmounts.ToDictionary(k => k[0], v => float.Parse(v[1]));
         }
 
         private static Color HexToColor(string hex)

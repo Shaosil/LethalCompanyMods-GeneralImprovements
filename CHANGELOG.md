@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.5.5 - Minor mod fixes
+* Updated `KeepItemsDuringInverse` and `KeepItemsDuringTeleport` to include utility slot when being set to `Held`.
+* Fixed bug with seting teleporters to drop held or non-scrap items that prevented teleporters from working at all.
+	* Also fixed an issue where non-held item slots would not be updated after teleporting.
+	* Also fixed an issue where dropped items places and statuses would not be synced to other players.
+	* Improved desync issues with other GI modded clients by converting the DropAllExceptHeld method to an RPC. Will still cause visual desyncs on unmodded clients.
+* Rewrote how weather multipliers are read and sanitized to fix a culture related bug where decimal points were not being seen.
+	* This means, regardless of your PC regional settings, you must use the period as a decimal place as specified in the config for multipliers.
+* Fixed minor issue where `DisplayKgInsteadOfLb` wouldn't show kg until grabbing an item.
+* Merged [PR259](https://github.com/Shaosil/LethalCompanyMods-GeneralImprovements/pull/259) and upgraded netcode patcher (thanks ratijas).
+
 ## v1.5.4 - Walkie shortcut and minor fixes
 * Added a new option `WalkieUseShortcut` that allows for holding a key of your choice to use a walkie no matter where it is in your inventory.
 * Fixed a missed v80 transpiler update for `DisplayKgInsteadOfLb`.

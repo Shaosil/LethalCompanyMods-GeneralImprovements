@@ -7,13 +7,11 @@ using System.Reflection.Emit;
 using GameNetcodeStuff;
 using GeneralImprovements.Utilities;
 using HarmonyLib;
-using TMPro;
 using Unity.Netcode;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
-using UnityEngine.Windows;
 using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements.Patches
@@ -98,6 +96,7 @@ namespace GeneralImprovements.Patches
             }
 
             MonitorsHelper.UpdatePlayerHealthMonitors();
+            StartOfRound.Instance.SendChangedWeightEvent();
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), nameof(SendNewPlayerValuesServerRpc))]
@@ -650,23 +649,6 @@ namespace GeneralImprovements.Patches
             }
             HUDManager.Instance.itemSlotIconFrames[newSlot].GetComponent<Animator>().SetBool("selectedSlot", true);
             player.currentItemSlot = newSlot;
-        }
-
-        public static void DropAllItemsExceptHeld(PlayerControllerB player, bool onlyDropScrap)
-        {
-            for (int i = 0; i < player.ItemSlots.Length; i++)
-            {
-                // If the checked item is held or not scrap (if we only drop scrap), skip this one
-                // Only drop non held items, or held scrap if we only drop scrap
-                bool isHeldItem = player.currentlyHeldObjectServer != null && player.ItemSlots[i] == player.currentlyHeldObjectServer;
-                if (!isHeldItem || (player.ItemSlots[i] != null && player.ItemSlots[i].itemProperties.isScrap && onlyDropScrap))
-                {
-                    player.DropHeldItem(player.ItemSlots[i], true, false);
-                }
-            }
-
-            var allItems = GetAllItemSlots(player).Values.ToArray();
-            player.carryWeight = 1 + allItems.Sum(i => (i && i.itemProperties ? i.itemProperties.weight : 1) - 1);
         }
 
         public static Dictionary<int, GrabbableObject> GetAllItemSlots(PlayerControllerB player)

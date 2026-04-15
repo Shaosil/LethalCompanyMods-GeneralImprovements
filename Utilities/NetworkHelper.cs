@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using GeneralImprovements.Patches;
 using Unity.Netcode;
+using UnityEngine;
 using static GeneralImprovements.Enums;
 
 namespace GeneralImprovements.Utilities
@@ -134,6 +135,34 @@ namespace GeneralImprovements.Utilities
             {
                 Plugin.MLS.LogWarning($"Received life status sync RPC for playerID {playerId}, but that is out of range of all known player scripts. No action taken.");
             }
+        }
+
+        [ClientRpc]
+        public void DropAllPlayerItemsExceptHeldClientRpc(int playerId, bool onlyDropScrap, Vector3 playerPos, Vector3 itemsPos, Vector3 itemsRot,
+            Vector3 camPos, Vector3 camRot, bool inShip, bool inElevator)
+        {
+            var player = StartOfRound.Instance.allPlayerScripts[playerId];
+            var allItems = PlayerControllerBPatch.GetAllItemSlots(player);
+
+            foreach (var item in allItems)
+            {
+                // Only drop non held items (including utility slot), or held scrap if we only drop scrap
+                bool isHeldItem = item.Value != null && (item.Value == player.currentlyHeldObjectServer || item.Value == player.ItemOnlySlot);
+                if (item.Value != null && (!isHeldItem || (item.Value.itemProperties.isScrap && onlyDropScrap)))
+                {
+                    player.DropHeldItem(item.Value, true, false, playerPos, itemsPos, itemsRot, camPos, camRot, inShip, inElevator);
+
+                    // Manually update some things that vanilla doesn't handle in that lower level function
+                    if (player.IsOwner)
+                    {
+                        HUDManager.Instance.itemSlotIcons[item.Key].enabled = false;
+                    }
+                    player.ItemSlots[item.Key] = null;
+                }
+            }
+
+            player.carryWeight = 1 + allItems.Values.Sum(i => (i && i.itemProperties ? i.itemProperties.weight : 1) - 1);
+            StartOfRound.Instance.SendChangedWeightEvent();
         }
     }
 }
